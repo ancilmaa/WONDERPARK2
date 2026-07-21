@@ -168,12 +168,6 @@
 .btn-confirm:hover {
     background: var(--pink-dark, #d63e63);
 }
-.booking-col-cal {
-    position: sticky;
-    top: 24px;
-    align-self: flex-start;
-    height: fit-content;
-}
 
 /* pagination controls */
 .promo-pagination {
@@ -339,9 +333,16 @@
         #calSelectedBar { margin: 0; }
         #bookingSubmitBtn { margin: 0; }
 
-        @media (max-width: 768px) {
-            .booking-split { gap: 28px !important; }
-        }
+      @media (max-width: 768px) {
+    #bookingForm > .booking-submit-btn {
+        width: 100%;
+        margin-top: 24px;
+    }
+    .booking-col-cal {
+        position: static;
+        top: auto;
+    }
+}
     </style>
 @endpush
 
