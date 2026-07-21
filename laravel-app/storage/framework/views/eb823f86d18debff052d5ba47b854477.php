@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\WONDERPARK\WONDERPARK2\laravel-app\resources\views/partials/ui-feedback.blade.php ENDPATH**/ ?>
