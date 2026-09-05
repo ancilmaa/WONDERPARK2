@@ -38,7 +38,7 @@ const ZONE_FIELD_OF_RIDES = 'field of rides';
 const ZONE_DINO_ADVENTURE = 'dino adventure';
 
 const CATEGORIES_SKATES = [
-  'all','rides','rentals','billiards','massage','socks'
+  'all','ticket','rentals','billiards','massage','socks'
 ];
 
 const CATEGORIES_SNACKBAR = ['sweets','beverages','snacks','noodles','icecream'];
@@ -233,7 +233,7 @@ function renderProducts() {
   } else if (currentMode === 'skates') {
     filtered = phpProducts.filter(p => {
       const inZone   = (p.zone || '') === ZONE_ROLLER_FEVER;
-      const inCat    = CATEGORIES_SKATES.includes(p.category);
+      const inCat = CATEGORIES_SKATES.includes((p.category || '').toLowerCase());
       const matchCat = currentCategory === 'all' ? true : p.category === currentCategory;
       const matchQ   = p.name.toLowerCase().includes(query);
       return inZone && inCat && matchCat && matchQ;
@@ -242,7 +242,7 @@ function renderProducts() {
   } else {
     filtered = phpProducts.filter(p => {
       const inZone   = (p.zone || '') === ZONE_ROLLER_FEVER;
-      const inCat    = CATEGORIES_SNACKBAR.includes(p.category);
+      const inCat = CATEGORIES_SNACKBAR.includes((p.category || '').toLowerCase());
       const matchCat = currentCategory === 'all' ? true : p.category === currentCategory;
       const matchQ   = p.name.toLowerCase().includes(query);
       return inZone && inCat && matchCat && matchQ;
@@ -287,12 +287,18 @@ function openPwdSeniorDiscount() {
   const list = document.getElementById('pwdSeniorItemsList');
   const checkedIds = specialDiscount?.itemIds || [];
 
+  // Isang (1) piraso lang bawat item ang covered ng PWD/Senior discount,
+  // kahit ilan ang quantity na binili. Kaya per-unit price ang ipinapakita
+  // dito, hindi yung buong line total, para malinaw sa cashier.
   list.innerHTML = cart.map(item => `
     <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:13px;cursor:pointer;">
       <input type="checkbox" class="pwd-item-check" value="${item.id}"
              ${checkedIds.includes(item.id) ? 'checked' : ''}>
-      <span style="flex:1">${escHtml(item.name)}</span>
-      <span style="color:#888">₱${(item.price * item.qty).toFixed(2)}</span>
+      <span style="flex:1">
+        ${escHtml(item.name)}
+        ${item.qty > 1 ? `<br><span style="font-size:11px;color:#aaa">1 of ${item.qty} pcs get discounts</span>` : ''}
+      </span>
+      <span style="color:#888">₱${item.price.toFixed(2)}</span>
     </label>
   `).join('');
 
@@ -570,14 +576,19 @@ function renderCart() {
 function calcTotals() {
   let gross = 0;
   let regularGross = 0;
-  let specialGrossVatIncl = 0;
+  let specialGrossVatIncl = 0; // covers exactly 1 unit per PWD/Senior-tagged item
 
   cart.forEach(item => {
     const lineTotal = item.price * item.qty;
     gross += lineTotal;
     const isSpecial = specialDiscount && specialDiscount.itemIds.includes(item.id);
+
     if (isSpecial) {
-      specialGrossVatIncl += lineTotal;
+      // Isang (1) piraso lang bawat item ang covered ng PWD/Senior discount,
+      // kahit ilan ang quantity na binili. Ang natitirang (qty - 1) ay
+      // regular price pa rin at may VAT (walang discount).
+      specialGrossVatIncl += item.price;                    // 1 unit lang
+      regularGross        += item.price * (item.qty - 1);   // natitirang qty
     } else {
       regularGross += lineTotal;
     }
@@ -644,6 +655,19 @@ function selPay(el, method) {
 // ============================================================
 //  CHECKOUT
 // ============================================================
+function updatePaymentDiscountDisplay() {
+  const t = calcTotals();
+  const discountTotal = t.specialDiscountAmt + t.genericDiscountAmt;
+  const row = document.getElementById('discountRow');
+  if (!row) return;
+  if (discountTotal > 0) {
+    row.style.display = '';
+    document.getElementById('discountDisplay').textContent = '−₱' + discountTotal.toFixed(2);
+  } else {
+    row.style.display = 'none';
+  }
+}
+
 function doCheckout() {
   if (dayLocked) {
     alert('Transactions are closed for today after cut-off. Please try again tomorrow.');
@@ -665,6 +689,8 @@ function doCheckout() {
   document.getElementById('payKeypad').style.display     = '';
   document.getElementById('payRefGroup').style.display   = 'none';
   document.getElementById('refInput').value = '';
+
+  updatePaymentDiscountDisplay();
 
   document.getElementById('cashDueDisplay').textContent = '₱' + total.toFixed(2);
   document.getElementById('cashTenderedInput').value = total.toFixed(2);
@@ -906,6 +932,17 @@ function showReceipt(invNum, custName, gross, vatAmount, total, refNumber = null
   document.getElementById('rSubTotal').textContent = total.toFixed(2);
   document.getElementById('rTotal').textContent    = total.toFixed(2);
 
+  const discountTotal = t.specialDiscountAmt + t.genericDiscountAmt;
+  const rDiscountRow = document.getElementById('rDiscountRow');
+  if (rDiscountRow) {
+    if (discountTotal > 0) {
+      rDiscountRow.style.display = '';
+      document.getElementById('rDiscount').textContent = '−' + discountTotal.toFixed(2);
+    } else {
+      rDiscountRow.style.display = 'none';
+    }
+  }
+
   const tendered = pendingTendered >= total ? pendingTendered : total;
   const change   = Math.max(0, tendered - total);
   document.getElementById('rTendered').textContent      = tendered.toFixed(2);
@@ -935,6 +972,7 @@ function resetAfterCheckout() {
   discountType    = 'percent';
   pendingTendered = 0;
   activePendingId = null;
+  specialDiscount = null;
 
   document.getElementById('custName').value = '';
   document.querySelectorAll('.qs-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
@@ -966,6 +1004,7 @@ function removeDiscount() {
   discountType   = 'percent';
   discountValue  = 0;
   discountAmount = 0;
+  specialDiscount = null;
   const discInput = document.getElementById('discValue');
   if (discInput) discInput.value = '';
   updateTotals();
@@ -1093,6 +1132,12 @@ function viewHistoricalCutoff(id) {
     .catch(() => { hideLoading(); alert('Could not load report.'); });
 }
 
+// ============================================================
+//  SALES REPORT RENDERING
+//  Order: Overall -> Sales by Zone (Roller Fever, Snackbar,
+//  Field of Rides, Dino Adventure — only zones with sales show
+//  up) -> Per-Cashier breakdown.
+// ============================================================
 function renderSalesReport(res, isPreview, isReprint = false) {
   const r = res.report;
   const dateStr = (res.period_end ? new Date(res.period_end) : new Date()).toLocaleString('en-PH');
@@ -1105,6 +1150,14 @@ function renderSalesReport(res, isPreview, isReprint = false) {
     r.overall.payment_breakdown, null, isReprint
   );
   html += buildReportFooter(res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview);
+
+  // === SALES BY ZONE (Roller Fever / Snackbar / Field of Rides / Dino Adventure) ===
+  (r.zones || []).forEach(z => {
+    html += buildReportReceipt(
+      `SALES BY ZONE — ${z.zone_label}`, dateStr, z.items, z.total_sales, 0, null, null, isReprint
+    );
+  });
+  // ===================================================================================
 
   r.cashiers.forEach(c => {
     html += buildReportReceipt(
@@ -1148,7 +1201,7 @@ function buildReportReceipt(title, dateStr, items, totalSales, totalDiscount, pa
     <div class="report-receipt">
       <div class="receipt-header">
         ${reprintBanner}
-        <div class="receipt-store">REKS AMUSEMENT COM. INC.</div>
+        <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
         <div class="receipt-title">${title}</div>
       </div>
       <hr class="dashed">
@@ -1393,6 +1446,17 @@ function showReprintedReceipt(t) {
   document.getElementById('rItemCount').textContent     = items.reduce((s, i) => s + parseFloat(i.qty || 0), 0).toFixed(2);
   document.getElementById('rSubTotal').textContent      = total.toFixed(2);
   document.getElementById('rTotal').textContent         = total.toFixed(2);
+
+  const rDiscountRow = document.getElementById('rDiscountRow');
+  if (rDiscountRow) {
+    if (disc > 0) {
+      rDiscountRow.style.display = '';
+      document.getElementById('rDiscount').textContent = '−' + disc.toFixed(2);
+    } else {
+      rDiscountRow.style.display = 'none';
+    }
+  }
+
   document.getElementById('rTendered').textContent      = tendered.toFixed(2);
   document.getElementById('rChange').textContent        = change.toFixed(2);
   document.getElementById('rPaymentMethod').textContent =

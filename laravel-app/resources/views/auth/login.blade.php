@@ -7,7 +7,7 @@
     <title>Sign In | WonderPark Amusement Com Inc.</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
@@ -24,8 +24,8 @@
                 <div class="auth-visual-copy">
                     <span class="ticket-label on-dark">Lipa Branch</span>
                     <h2>Three worlds of thrill, one login away.</h2>
-                    <p>Manage bookings, inventory, and the front desk for Roller Fever, Dino Adventure, and the Field of
-                        Rides — all in one place.</p>
+                    <p>Manage bookings, inventory, and the front desk for Roller Fever, Dino Adventure, and the
+                        Field of Rides — all in one place.</p>
                     <div class="auth-visual-stamps">
                         <span class="stamp">Roller Fever</span>
                         <span class="stamp">Dino Adventure</span>
@@ -63,7 +63,8 @@
 
                     <div class="field">
                         <label for="password">Password</label>
-                        <input id="password" type="password" name="password" required autocomplete="current-password">
+                        <input id="password" type="password" name="password" required
+                            autocomplete="current-password">
                     </div>
 
                     <button type="submit" class="btn btn-primary">Log In</button>
@@ -97,16 +98,12 @@
                 <p class="auth-signup">Don't have an account? <a href="{{ url('/register') }}">Create one</a></p>
             </div>
         </div>
-        <script>
-            document.querySelectorAll('.bg-slide[data-bg]').forEach(function(el) {
-                el.style.backgroundImage = "url('" + el.dataset.bg + "')";
-            });
-        </script>
     </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.bg-slide').forEach(el => {
-                el.style.backgroundImage = `url('${el.dataset.bg}')`;
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.bg-slide[data-bg]').forEach(function (el) {
+                el.style.backgroundImage = "url('" + el.dataset.bg + "')";
             });
         });
     </script>

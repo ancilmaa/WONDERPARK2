@@ -902,37 +902,31 @@
     <!-- SUMMARY -->
     <div class="stats-row">
         <div class="stat-card card-online">
-            <div class="icon-badge"><i class="fa-solid fa-mobile-screen-button"></i></div>
             <div class="label">Online Bookings</div>
             <div class="value">{{ $totalOnlineBookings ?? 0 }}</div>
             <div class="sub">Booked via website / app</div>
         </div>
         <div class="stat-card card-age">
-            <div class="icon-badge"><i class="fa-solid fa-cake-candles"></i></div>
             <div class="label">Most Active Age Group</div>
             <div class="value">{{ $topOverallAgeGroup ?? '—' }}</div>
             <div class="sub">Across all attractions</div>
         </div>
         <div class="stat-card card-total">
-            <div class="icon-badge"><i class="fa-solid fa-users"></i></div>
             <div class="label">Total Visitors</div>
             <div class="value">{{ $totalVisitors ?? 0 }}</div>
             <div class="sub">Unique visitors this period</div>
         </div>
         <div class="stat-card card-online">
-    <div class="icon-badge"><i class="fa-solid fa-signal"></i></div>
     <div class="label">Live Now</div>
     <div class="value" id="liveNowValue">—</div>
     <div class="sub">Active in the last 5 mins</div>
 </div>
 <div class="stat-card">
-    <div class="icon-badge"><i class="fa-solid fa-user-plus"></i></div>
     <div class="label">New Accounts</div>
     <div class="value">{{ $totalNewAccounts ?? 0 }}</div>
     <div class="sub">Registered this period</div>
 </div>
         <div class="stat-card">
-            <div class="icon-badge"><i class="fa-solid fa-trophy"></i></div>
             <div class="label">Top Attraction</div>
             <div class="value" style="font-size:1.25rem;">{{ $topAttraction ?? '—' }}</div>
             <div class="sub">Most booked this period</div>
@@ -1007,7 +1001,7 @@
 </div>
             <!-- RIGHT: ranked top packages -->
             <div class="service-rank-col">
-                <h4 class="service-rank-title">Most Availed Packages</h4>
+                <h4 class="service-rank-title"> I think I I see.Most Availed Packages</h4>
 
                 @forelse(($packageRanking ?? []) as $pkg)
                     <div class="rank-item">

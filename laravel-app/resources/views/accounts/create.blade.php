@@ -41,18 +41,18 @@
             color: var(--pink-dark);
         }
 
-        /* ===== TOOLBAR (matches Attendance) ===== */
+        /* ===== TOOLBAR — title, live stat strip, and primary action in one row ===== */
         .toolbar {
             background: var(--card);
-            padding: 22px 26px;
-            margin-bottom: 20px;
+            padding: 18px 26px;
+            margin-bottom: 18px;
             border-radius: 16px;
             box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 18px;
+            gap: 20px;
         }
 
         .toolbar .eyebrow {
@@ -61,7 +61,7 @@
             color: var(--pink-deep);
             text-transform: uppercase;
             letter-spacing: .09em;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
         .toolbar h2 {
@@ -69,6 +69,42 @@
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--ink);
+            white-space: nowrap;
+        }
+
+        .stat-strip {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            padding: 2px 24px;
+            text-align: center;
+        }
+
+        .stat-item + .stat-item {
+            border-left: 1px solid var(--line);
+        }
+
+        .stat-item .value {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .stat-item .label {
+            font-size: .62rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-top: 5px;
+            white-space: nowrap;
         }
 
         .toolbar-actions {
@@ -78,88 +114,16 @@
             flex-wrap: wrap;
         }
 
-        /* ===== STAT CARDS ===== */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .stat-card .label {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 9px;
-        }
-
-        .stat-card .value {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.7rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .stat-card .sub {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 7px;
-        }
-
-        /* ===== ADD ACCOUNT CARD ===== */
-        .form-card {
-            background: var(--card);
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .form-card-header {
-            padding: 18px 26px;
-            border-bottom: none;
+        .form-group {
             display: flex;
-            align-items: center;
-            gap: 11px;
-            background: var(--ink);
-        }
-
-        .form-card-header i {
-            color: #fff;
-            font-size: 1.05rem;
-        }
-
-        .form-card-header-title {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .form-card-body {
-            padding: 26px;
+            flex-direction: column;
+            gap: 7px;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 18px 24px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
+            gap: 16px 22px;
         }
 
         .form-label {
@@ -194,7 +158,7 @@
         .form-actions {
             display: flex;
             gap: 12px;
-            margin-top: 20px;
+            margin-top: 18px;
         }
 
         .print-btn {
@@ -261,24 +225,45 @@
             background: #C43F3C;
         }
 
-        /* ===== FILTER BAR (matches Attendance) ===== */
+        /* ===== TABLE CARD — section title and filters share one header row ===== */
+        .table-box {
+            background: var(--card);
+            padding: 22px 26px 26px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .table-box-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding-bottom: 16px;
+            margin-bottom: 4px;
+            border-bottom: 2px solid var(--pink-light);
+        }
+
+        .section-title {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            white-space: nowrap;
+        }
+
+        .section-title i {
+            color: var(--pink-dark);
+        }
+
         .filter-bar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .filter-bar .filter-label {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-right: 2px;
+            gap: 9px;
         }
 
         .filter-bar input[type="text"],
@@ -293,9 +278,7 @@
         }
 
         .filter-bar input[type="text"] {
-            flex: 1;
-            min-width: 180px;
-            max-width: 280px;
+            width: 210px;
         }
 
         .filter-bar select {
@@ -311,34 +294,13 @@
             cursor: pointer;
             text-decoration: underline;
             font-family: 'Inter', sans-serif;
-            padding: 9px 4px;
+            padding: 9px 2px;
+            white-space: nowrap;
         }
 
-        /* ===== TABLE BOX (matches Attendance) ===== */
-        .table-box {
-            background: var(--card);
-            padding: 28px 26px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
+        .table-scroll {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-        }
-
-        .section-title {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid var(--pink-light);
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .section-title i {
-            color: var(--pink-dark);
         }
 
         table {
@@ -348,7 +310,7 @@
         }
 
         thead th {
-            padding: 12px 14px;
+            padding: 11px 14px;
             text-align: left;
             font-size: .72rem;
             font-weight: 600;
@@ -359,8 +321,16 @@
             border-bottom: none;
         }
 
+        thead th:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        thead th:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
         tbody td {
-            padding: 14px;
+            padding: 12px 14px;
             font-size: .9rem;
             border-bottom: 1px solid var(--line);
             color: var(--ink);
@@ -377,25 +347,25 @@
         .user-cell {
             display: flex;
             align-items: center;
-            gap: 13px;
+            gap: 12px;
         }
 
         .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 11px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: .8rem;
+            font-size: .76rem;
             font-weight: 700;
             color: #fff;
             flex-shrink: 0;
         }
 
         .user-name {
-            font-size: .92rem;
+            font-size: .9rem;
             font-weight: 600;
             color: var(--ink);
         }
@@ -407,7 +377,7 @@
 
         .badge {
             display: inline-block;
-            padding: 5px 14px;
+            padding: 4px 13px;
             border-radius: 20px;
             font-size: .76rem;
             font-weight: 700;
@@ -435,11 +405,12 @@
 
         .action-btns {
             display: flex;
-            gap: 9px;
+            gap: 8px;
+            justify-content: flex-end;
         }
 
         .btn-edit {
-            padding: 8px 16px;
+            padding: 7px 14px;
             background: var(--blue-bg);
             border: none;
             border-radius: 8px;
@@ -456,7 +427,7 @@
         }
 
         .btn-delete {
-            padding: 8px 16px;
+            padding: 7px 14px;
             background: var(--red-bg);
             border: none;
             border-radius: 8px;
@@ -470,6 +441,15 @@
 
         .btn-delete:hover {
             filter: brightness(0.96);
+        }
+
+        .table-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            font-size: .78rem;
+            color: var(--muted);
         }
 
         #noMatchRow td {
@@ -510,6 +490,7 @@
             z-index: 100;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .modal-overlay.active {
@@ -523,6 +504,10 @@
             width: 100%;
             max-width: 400px;
             box-shadow: var(--shadow-md);
+        }
+
+        .modal-wide {
+            max-width: 520px;
         }
 
         .modal-title {
@@ -589,8 +574,25 @@
                 grid-template-columns: 1fr;
             }
 
-            .stats-row {
-                grid-template-columns: 1fr 1fr;
+            .toolbar {
+                justify-content: flex-start;
+            }
+
+            .stat-strip {
+                justify-content: flex-start;
+                width: 100%;
+                order: 3;
+                padding-top: 14px;
+                border-top: 1px solid var(--line);
+            }
+
+            .stat-item {
+                padding: 2px 18px 2px 0;
+            }
+
+            .stat-item + .stat-item {
+                border-left: none;
+                padding-left: 18px;
             }
 
             .toolbar-actions {
@@ -603,17 +605,27 @@
                 flex-direction: column;
             }
 
-            .stats-row {
-                grid-template-columns: 1fr;
+            .table-box-header {
+                align-items: flex-start;
+            }
+
+            .filter-bar {
+                width: 100%;
             }
 
             .filter-bar input[type="text"] {
-                max-width: none;
                 width: 100%;
+                flex: 1;
             }
 
             .filter-bar select {
                 width: 100%;
+            }
+
+            .table-footer {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
             }
         }
     </style>
@@ -627,44 +639,47 @@
         $totalAdmins = $byRole->get('admin', collect())->count();
         $totalManagers = $byRole->get('manager', collect())->count();
         $totalCashiers = $byRole->get('cashier', collect())->count() + $byRole->get('tl', collect())->count();
+        $hasAddErrors = $errors->any() && (old('fullname') || old('username'));
     @endphp
 
     <a href="/home" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
 
+    {{-- TOOLBAR: title, live counts, and the one primary action, all in one row --}}
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Staff Accounts</div>
             <h2>Account Management</h2>
         </div>
-    </div>
 
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="label">Total Accounts</div>
-            <div class="value">{{ $totalAccounts }}</div>
-            <div class="sub">Registered staff</div>
+        <div class="stat-strip">
+            <div class="stat-item">
+                <div class="value">{{ $totalAccounts }}</div>
+                <div class="label">Total accounts</div>
+            </div>
+            <div class="stat-item">
+                <div class="value">{{ $totalAdmins }}</div>
+                <div class="label">Admins</div>
+            </div>
+            <div class="stat-item">
+                <div class="value">{{ $totalManagers }}</div>
+                <div class="label">Managers</div>
+            </div>
+            <div class="stat-item">
+                <div class="value">{{ $totalCashiers }}</div>
+                <div class="label">Cashiers &amp; TLs</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="label">Admins</div>
-            <div class="value">{{ $totalAdmins }}</div>
-            <div class="sub">Full access</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Managers</div>
-            <div class="value">{{ $totalManagers }}</div>
-            <div class="sub">Branch oversight</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Cashiers &amp; TLs</div>
-            <div class="value">{{ $totalCashiers }}</div>
-            <div class="sub">Front-line staff</div>
+
+        <div class="toolbar-actions">
+            <button type="button" class="print-btn" onclick="openAdd()"><i class="fas fa-user-plus"></i> Add
+                account</button>
         </div>
     </div>
 
     @if (session('success'))
         <div class="alert-success"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>
     @endif
-    @if ($errors->any())
+    @if ($errors->any() && !$hasAddErrors)
         <div class="alert-error">
             @foreach ($errors->all() as $error)
                 <div>{{ $error }}</div>
@@ -672,13 +687,87 @@
         </div>
     @endif
 
-    {{-- ADD ACCOUNT FORM --}}
-    <div class="form-card">
-        <div class="form-card-header">
-            <i class="fas fa-user-plus"></i>
-            <span class="form-card-header-title">Add new account</span>
+    {{-- ACCOUNTS TABLE — now the first and largest thing on the page --}}
+    <div class="table-box">
+        <div class="table-box-header">
+            <div class="section-title"></i> Staff Accounts</div>
+
+            <div class="filter-bar">
+                <input type="text" id="accountSearch" placeholder="Search name or username&hellip;">
+                <select id="roleFilter">
+                    <option value="">All roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="tl">Team Leader</option>
+                    <option value="cashier">Cashier</option>
+                </select>
+                <button type="button" class="filter-clear" id="filterClear">Clear</button>
+            </div>
         </div>
-        <div class="form-card-body">
+
+        <div class="table-scroll">
+            <table id="accountsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($users as $user)
+                        <tr data-name="{{ strtolower($user->fullname . ' ' . $user->username) }}"
+                            data-role="{{ $user->role }}">
+                            <td>
+                                <div class="user-cell">
+                                    <div class="avatar">{{ strtoupper(substr($user->fullname, 0, 2)) }}</div>
+                                    <div>
+                                        <div class="user-name">{{ $user->fullname }}</div>
+                                        <div class="user-username">&#64;{{ $user->username }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ $user->role }}">{{ ucfirst($user->role) }}</span>
+                            </td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-edit" data-id="{{ $user->user_id }}"
+                                        data-fullname="{{ $user->fullname }}" data-username="{{ $user->username }}"
+                                        data-role="{{ $user->role }}"
+                                        onclick="openEdit(this.dataset.id, this.dataset.fullname, this.dataset.username, this.dataset.role)">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn-delete" data-id="{{ $user->user_id }}"
+                                        data-fullname="{{ $user->fullname }}"
+                                        onclick="openDelete(this.dataset.id, this.dataset.fullname)">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">No accounts
+                                found.</td>
+                        </tr>
+                    @endforelse
+                    <tr id="noMatchRow" style="display:none;">
+                        <td colspan="3">No accounts match your search or filter.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <span id="resultCount">Showing {{ $totalAccounts }} of {{ $totalAccounts }} accounts</span>
+        </div>
+    </div>
+
+    {{-- ADD ACCOUNT MODAL — reopens automatically with your input if it was submitted with an error --}}
+    <div class="modal-overlay @if($hasAddErrors) active @endif" id="addModal">
+        <div class="modal modal-wide">
+            <div class="modal-title"><i class="fas fa-user-plus"></i> Add new account</div>
             <form action="/accounts/store" method="POST">
                 @csrf
                 <div class="form-grid">
@@ -707,81 +796,20 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-actions">
+                @if ($hasAddErrors)
+                    <div class="alert-error" style="margin-top:16px; margin-bottom:0;">
+                        @foreach ($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                        @endforeach
+                    </div>
+                @endif
+                <div class="modal-actions">
                     <button type="submit" class="print-btn"><i class="fas fa-user-check"></i> Create account</button>
-                    <button type="reset" class="btn-outline"><i class="fas fa-times"></i> Clear</button>
+                    <button type="button" class="btn-outline" onclick="closeAdd()"><i class="fas fa-times"></i>
+                        Cancel</button>
                 </div>
             </form>
         </div>
-    </div>
-
-    {{-- ACCOUNTS TABLE --}}
-    <div class="table-box">
-        <div class="section-title"><i class="fas fa-users"></i> Staff Accounts</div>
-
-        <div class="filter-bar">
-            <span class="filter-label">Filter</span>
-            <input type="text" id="accountSearch" placeholder="Search name or username&hellip;">
-            <select id="roleFilter">
-                <option value="">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="tl">Team Leader</option>
-                <option value="cashier">Cashier</option>
-            </select>
-            <button type="button" class="filter-clear" id="filterClear">Clear filters</button>
-        </div>
-
-        <table id="accountsTable">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($users as $user)
-                    <tr data-name="{{ strtolower($user->fullname . ' ' . $user->username) }}" data-role="{{ $user->role }}">
-                        <td>
-                            <div class="user-cell">
-                                <div class="avatar">{{ strtoupper(substr($user->fullname, 0, 2)) }}</div>
-                                <div>
-                                    <div class="user-name">{{ $user->fullname }}</div>
-                                    <div class="user-username">&#64;{{ $user->username }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge badge-{{ $user->role }}">{{ ucfirst($user->role) }}</span>
-                        </td>
-                        <td>
-                            <div class="action-btns">
-                                <button class="btn-edit" data-id="{{ $user->user_id }}"
-                                    data-fullname="{{ $user->fullname }}" data-username="{{ $user->username }}"
-                                    data-role="{{ $user->role }}"
-                                    onclick="openEdit(this.dataset.id, this.dataset.fullname, this.dataset.username, this.dataset.role)">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button type="button" class="btn-delete" data-id="{{ $user->user_id }}"
-                                    data-fullname="{{ $user->fullname }}"
-                                    onclick="openDelete(this.dataset.id, this.dataset.fullname)">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">No accounts found.
-                        </td>
-                    </tr>
-                @endforelse
-                <tr id="noMatchRow" style="display:none;">
-                    <td colspan="3">No accounts match your search or filter.</td>
-                </tr>
-            </tbody>
-        </table>
     </div>
 
     {{-- EDIT MODAL --}}
@@ -847,6 +875,14 @@
 
 @push('scripts')
     <script>
+        function openAdd() {
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function closeAdd() {
+            document.getElementById('addModal').classList.remove('active');
+        }
+
         function openEdit(id, fullname, username, role) {
             document.getElementById('editForm').action = '/accounts/update/' + id;
             document.getElementById('edit_fullname').value = fullname;
@@ -869,13 +905,15 @@
             document.getElementById('deleteModal').classList.remove('active');
         }
 
-        // ===== SEARCH & ROLE FILTER (Attendance-style filter bar) =====
+        // ===== SEARCH & ROLE FILTER, with a live result count =====
         (function() {
             const searchInput = document.getElementById('accountSearch');
             const roleFilter = document.getElementById('roleFilter');
             const clearBtn = document.getElementById('filterClear');
             const noMatchRow = document.getElementById('noMatchRow');
+            const resultCount = document.getElementById('resultCount');
             const rows = Array.from(document.querySelectorAll('#accountsTable tbody tr[data-name]'));
+            const total = rows.length;
             if (!searchInput || !rows.length) return;
 
             function applyFilters() {
@@ -889,6 +927,7 @@
                     if (ok) visibleCount++;
                 });
                 if (noMatchRow) noMatchRow.style.display = visibleCount ? 'none' : '';
+                if (resultCount) resultCount.textContent = 'Showing ' + visibleCount + ' of ' + total + ' accounts';
             }
 
             searchInput.addEventListener('input', applyFilters);

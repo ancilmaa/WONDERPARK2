@@ -92,10 +92,12 @@
         }
 
         .amount-due-card {
-            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--pink-deep);
             border-radius: var(--radius);
             padding: 14px 16px;
-            color: #fff;
+            color: var(--ink);
             margin-bottom: 10px;
         }
 
@@ -104,13 +106,14 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .08em;
-            opacity: .85;
+            color: var(--text-muted);
         }
 
         .amount-due-val {
             font-size: 26px;
             font-weight: 800;
             margin-top: 2px;
+            color: var(--pink-deep);
         }
 
         .pay-amounts {
@@ -538,6 +541,8 @@
             <div class="receipt-totals-section">
                 <div class="rt-row"><span class="rt-label">Sub Total</span><span class="rt-val"
                         id="rSubTotal">0.00</span></div>
+                <div class="rt-row" id="rDiscountRow" style="display:none;"><span class="rt-label">Discount</span><span class="rt-val"
+                        id="rDiscount">0.00</span></div>
             </div>
             <hr class="solid">
             <div class="receipt-totals-section">
@@ -696,6 +701,10 @@
                     <div class="amount-due-card">
                         <div class="amount-due-label">Amount Due</div>
                         <div class="amount-due-val" id="cashDueDisplay">₱0.00</div>
+                    </div>
+                    <div class="amt-row" id="discountRow" style="display:none;">
+                        <span class="amt-label">Discount</span>
+                        <span class="amt-val" id="discountDisplay" style="color:#E24B4A;">−₱0.00</span>
                     </div>
                     <div class="amt-row" id="tenderedRow">
                         <span class="amt-label">Tendered</span>

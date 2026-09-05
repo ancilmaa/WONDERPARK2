@@ -15,12 +15,35 @@ function hideLoading() {
     if (overlay) overlay.classList.remove('active');
 }
 
+/* ─── TOAST (gumagamit na ng #toastStack) ─────────────────── */
 function showToast(msg, type) {
-    var t = document.getElementById('toast');
-    t.textContent   = msg;
-    t.className     = 'toast' + (type === 'error' ? ' error' : '');
-    t.style.display = 'block';
-    setTimeout(function () { t.style.display = 'none'; }, 2800);
+    var stack = document.getElementById('toastStack');
+    if (!stack) return;
+
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type === 'error' ? 'error' : 'success');
+
+    var iconClass = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
+    var title      = type === 'error' ? 'Error' : 'Success';
+
+    toast.innerHTML =
+        '<span class="toast-icon"><i class="fas ' + iconClass + '"></i></span>' +
+        '<span class="toast-body">' +
+            '<span class="toast-title">' + title + '</span>' +
+            '<span class="toast-msg">' + escHtml(msg) + '</span>' +
+        '</span>' +
+        '<button type="button" class="toast-close">&times;</button>' +
+        '<span class="toast-bar"></span>';
+
+    stack.appendChild(toast);
+
+    function remove() {
+        toast.classList.add('hide');
+        setTimeout(function () { toast.remove(); }, 280);
+    }
+
+    toast.querySelector('.toast-close').addEventListener('click', remove);
+    setTimeout(remove, 3000);
 }
 
 function statusBadge(stock, threshold) {

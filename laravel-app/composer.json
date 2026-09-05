@@ -11,6 +11,7 @@
         "ext-zip": "*",
         "doctrine/dbal": "^4.4",
         "laravel/framework": "^12.0",
+        "laravel/reverb": "^1.11",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.28",
         "laravel/tinker": "^2.10.1",

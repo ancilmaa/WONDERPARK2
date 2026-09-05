@@ -241,6 +241,27 @@ class InventoryController extends Controller
         return response()->json(['status' => 'success', 'message' => $message]);
     }
 
+    // ─── SHARED NOTIFICATION HELPER ────────────────────────
+    // Ginagamit ito ng add/edit/delete/restock/low-stock check.
+    // Naka-try/catch para hindi ito makasira sa pangunahing action
+    // (add/edit/delete/restock) kahit mag-fail ang broadcast.
+    // $message ay pwedeng multi-line (\n) — ang popup sa frontend na
+    // ang bahalang mag-preserve ng line breaks (white-space: pre-line).
+    private function notify($title, $message, $url = null)
+    {
+        try {
+            $notif = \App\Models\Notification::create([
+                'type'    => 'inventory',
+                'title'   => $title,
+                'message' => $message,
+                'url'     => $url ?: url('/inventory'),
+            ]);
+            broadcast(new \App\Events\NewSystemNotification($notif));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Notification/broadcast failed: ' . $e->getMessage());
+        }
+    }
+
     // ─── ADD PRODUCT ──────────────────────────────────
     public function store(Request $request)
     {
@@ -253,15 +274,25 @@ class InventoryController extends Controller
         $stock = $category->is_stock_tracked
             ? (($request->stock !== '' && $request->stock !== null) ? intval($request->stock) : 0)
             : 0;
+        $price = floatval($request->price);
 
         $id = DB::table('products')->insertGetId([
             'product_name'  => $request->name,
             'category_id'   => $category->category_id,
             'category_name' => $category->category_name, // legacy/backup, laging naka-sync
             'stock'         => $stock,
-            'price'         => floatval($request->price),
+            'price'         => $price,
             'status'        => 'active',
         ]);
+
+        // Full details ng bagong idinagdag na product
+        $details = [
+            "Category: {$category->category_name} ({$category->zone})",
+            "Stock: " . ($category->is_stock_tracked ? $stock : 'Not tracked'),
+            "Price: ₱" . number_format($price, 2),
+        ];
+        $this->notify('Product Added', "{$request->name} was added.\n" . implode("\n", $details));
+        $this->checkStockAlert($id);
 
         return response()->json([
             'status'   => 'success',
@@ -285,15 +316,52 @@ class InventoryController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Please select a valid category.']);
         }
 
+        // Kunin ang LUMANG values BAGO i-update — ito ang gagamitin
+        // natin para sa before/after na detalye ng notification.
+        $old = DB::table('products')
+            ->join('categories', 'products.category_id', '=', 'categories.category_id')
+            ->where('products.product_id', $request->id)
+            ->select('products.*', 'categories.category_name as old_category_name', 'categories.zone as old_zone')
+            ->first();
+
+        $newStock = $category->is_stock_tracked ? intval($request->stock) : 0;
+        $newPrice = floatval($request->price);
+
         $data = [
             'product_name'  => $request->name,
             'category_id'   => $category->category_id,
             'category_name' => $category->category_name,
-            'price'         => floatval($request->price),
-            'stock'         => $category->is_stock_tracked ? intval($request->stock) : 0,
+            'price'         => $newPrice,
+            'stock'         => $newStock,
         ];
 
         DB::table('products')->where('product_id', $request->id)->update($data);
+
+        // Ihambing ang luma vs bago, isama lang sa message yung mga
+        // field na TALAGANG nagbago (para hindi puno ng walang silbing
+        // "Price: 65.00 → 65.00" kapag hindi naman iyon binago).
+        $changes = [];
+        if ($old) {
+            if ((string) $old->product_name !== (string) $request->name) {
+                $changes[] = "Name: {$old->product_name} → {$request->name}";
+            }
+            if ((int) $old->category_id !== (int) $category->category_id) {
+                $changes[] = "Category: {$old->old_category_name} → {$category->category_name}";
+            }
+            if (number_format((float) $old->price, 2) !== number_format($newPrice, 2)) {
+                $changes[] = "Price: ₱" . number_format((float) $old->price, 2) . " → ₱" . number_format($newPrice, 2);
+            }
+            if ($category->is_stock_tracked && (int) $old->stock !== $newStock) {
+                $changes[] = "Stock: {$old->stock} → {$newStock}";
+            }
+        }
+
+        $message = $changes
+            ? "{$request->name} was updated:\n" . implode("\n", $changes)
+            : "{$request->name} was updated (no field values changed).";
+
+        $this->notify('Product Updated', $message);
+        $this->checkStockAlert($request->id);
 
         return response()->json([
             'status'   => 'success',
@@ -310,7 +378,24 @@ class InventoryController extends Controller
     // ─── DELETE PRODUCT ───────────────────────────────
     public function destroy(Request $request)
     {
+        // Kunin ang buong record BAGO i-delete — kailangan ito para
+        // may laman pa ang notification pagkatapos matanggal sa DB.
+        $product = DB::table('products')
+            ->join('categories', 'products.category_id', '=', 'categories.category_id')
+            ->where('products.product_id', $request->id)
+            ->select('products.*', 'categories.category_name', 'categories.zone', 'categories.is_stock_tracked')
+            ->first();
+
         DB::table('products')->where('product_id', $request->id)->delete();
+
+        if ($product) {
+            $details = [
+                "Category: {$product->category_name} ({$product->zone})",
+                "Stock at deletion: " . ($product->is_stock_tracked ? $product->stock : 'Not tracked'),
+                "Price: ₱" . number_format((float) $product->price, 2),
+            ];
+            $this->notify('Product Deleted', "{$product->product_name} was removed from inventory.\n" . implode("\n", $details));
+        }
 
         return response()->json(['status' => 'success', 'message' => 'Product deleted!']);
     }
@@ -324,14 +409,49 @@ class InventoryController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Quantity must be greater than 0.']);
         }
 
+        $before = DB::table('products')->where('product_id', $request->id)->first();
+        $productName = $before->product_name ?? 'Product';
+        $oldStock = intval($before->stock ?? 0);
+
         DB::table('products')->where('product_id', $request->id)->increment('stock', $qty);
 
         $newStock = DB::table('products')->where('product_id', $request->id)->value('stock');
+
+        $details = [
+            "Added: +{$qty}",
+            "Before: {$oldStock}",
+            "After: {$newStock}",
+        ];
+        $this->notify('Product Restocked', "{$productName} was restocked.\n" . implode("\n", $details));
+        $this->checkStockAlert($request->id);
 
         return response()->json([
             'status'    => 'success',
             'message'   => "Stock updated! Added {$qty} units.",
             'new_stock' => $newStock
         ]);
+    }
+
+    // ─── STOCK ALERT CHECK (Low Stock / Out of Stock) ─────
+    private function checkStockAlert($productId)
+    {
+        $product = DB::table('products')
+            ->join('categories', 'products.category_id', '=', 'categories.category_id')
+            ->where('products.product_id', $productId)
+            ->select('products.*', 'categories.is_stock_tracked')
+            ->first();
+
+        if (!$product || !$product->is_stock_tracked) {
+            return;
+        }
+
+        $stock     = intval($product->stock);
+        $threshold = intval($product->low_stock_threshold ?? 20);
+
+        if ($stock <= 0) {
+            $this->notify('Out of Stock', "{$product->product_name} is out of stock.\nCurrent stock: 0\nThreshold: {$threshold}");
+        } elseif ($stock <= $threshold) {
+            $this->notify('Low Stock Alert', "{$product->product_name} is low on stock.\nCurrent stock: {$stock}\nThreshold: {$threshold}");
+        }
     }
 }

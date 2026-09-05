@@ -367,18 +367,49 @@ class PosController extends Controller
         return response()->json(['success' => true]);
     }
 
+    // ================= SHARED NOTIFICATION HELPER ================
+    // Parehong pattern gaya ng InventoryController::notify() — naka
+    // try/catch para hindi ito makasira sa pangunahing action kahit
+    // mag-fail ang broadcast. $message ay pwedeng multi-line (\n).
+    private function notify(string $title, string $message, ?string $url = null, string $type ='pos')
+    {
+        try {
+            $notif = \App\Models\Notification::create([
+                'type'    => $type,
+                'title'   => $title,
+                'message' => $message,
+                'url'     => $url ?: url('/pos'),
+            ]);
+            broadcast(new \App\Events\NewSystemNotification($notif));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Notification/broadcast failed: ' . $e->getMessage());
+        }
+    }
+
     // ================= SALES REPORT HELPER =================
     private function getItemsByTransaction(\Illuminate\Support\Collection $transactionIds)
     {
-        return DB::table('transaction_items')
-            ->whereIn('transaction_id', $transactionIds)
+        // Naka-leftJoin (hindi join) papunta sa products/categories para
+        // hindi mawala sa report yung mga item kahit na-delete na yung
+        // product o category nila — mapupunta na lang sa "Other" zone.
+        return DB::table('transaction_items as ti')
+            ->leftJoin('products as p', 'p.product_id', '=', 'ti.product_id')
+            ->leftJoin('categories as c', 'c.category_id', '=', 'p.category_id')
+            ->whereIn('ti.transaction_id', $transactionIds)
+            ->select(
+                'ti.*',
+                DB::raw('LOWER(c.zone) as item_zone'),
+                DB::raw('LOWER(c.category_name) as item_category')
+            )
             ->get()
             ->groupBy('transaction_id')
             ->map(function ($items) {
                 return $items->map(fn($i) => [
-                    'name'  => $i->product_name,
-                    'price' => (float) $i->price,
-                    'qty'   => (int)   $i->quantity,
+                    'name'     => $i->product_name,
+                    'price'    => (float) $i->price,
+                    'qty'      => (int)   $i->quantity,
+                    'zone'     => $i->item_zone ?: 'other',
+                    'category' => $i->item_category ?: '',
                 ])->toArray();
             })->toArray();
     }
@@ -390,6 +421,20 @@ class PosController extends Controller
         $overallDiscount = 0;
         $overallPayments = ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0];
         $byCashier = [];
+
+        // Dapat kapareho ng CATEGORIES_SNACKBAR sa pos.js — kung
+        // magdadagdag ng bagong snackbar category doon, idagdag din dito.
+        $snackbarCategories = ['sweets', 'beverages', 'snacks', 'noodles', 'icecream'];
+
+        // Fixed order/labels para laging consistent ang pagkakasunod-sunod
+        // ng mga zone sa report kahit walang benta sa isa (mafi-filter out
+        // na lang mamaya kung walang laman).
+        $byZone = [
+            'roller fever'   => ['zone_label' => 'Roller Fever',   'items' => [], 'total_sales' => 0],
+            'snackbar'       => ['zone_label' => 'Snackbar',       'items' => [], 'total_sales' => 0],
+            'field of rides' => ['zone_label' => 'Field of Rides', 'items' => [], 'total_sales' => 0],
+            'dino adventure' => ['zone_label' => 'Dino Adventure', 'items' => [], 'total_sales' => 0],
+        ];
 
         foreach ($transactions as $t) {
             $items = $itemsByTxn[$t->transaction_id] ?? [];
@@ -412,6 +457,15 @@ class PosController extends Controller
                 $qty = $it['qty'];
                 $line = $it['price'] * $it['qty'];
 
+                $rawZone  = $it['zone'] ?? 'other';
+                $category = $it['category'] ?? '';
+
+                // Roller Fever zone -> hatiin pa: Snackbar categories vs.
+                // skates/rides/rentals/billiards/massage/socks
+                $zoneKey = ($rawZone === 'roller fever' && in_array($category, $snackbarCategories))
+                    ? 'snackbar'
+                    : $rawZone;
+
                 if (!isset($overallItems[$name])) $overallItems[$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
                 $overallItems[$name]['qty'] += $qty;
                 $overallItems[$name]['total'] += $line;
@@ -421,6 +475,18 @@ class PosController extends Controller
                 }
                 $byCashier[$cashierName]['items'][$name]['qty'] += $qty;
                 $byCashier[$cashierName]['items'][$name]['total'] += $line;
+
+                // === ZONE BREAKDOWN (kasama na ang Snackbar) ===
+                if (!isset($byZone[$zoneKey])) {
+                    $byZone[$zoneKey] = ['zone_label' => ucwords($zoneKey), 'items' => [], 'total_sales' => 0];
+                }
+                if (!isset($byZone[$zoneKey]['items'][$name])) {
+                    $byZone[$zoneKey]['items'][$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
+                }
+                $byZone[$zoneKey]['items'][$name]['qty'] += $qty;
+                $byZone[$zoneKey]['items'][$name]['total'] += $line;
+                $byZone[$zoneKey]['total_sales'] += $line;
+                // =================================================
             }
 
             $overallTotal += $t->total_amount;
@@ -448,6 +514,10 @@ class PosController extends Controller
                 $c['items'] = array_values($c['items']);
                 return $c;
             }, array_values($byCashier)),
+            'zones' => array_values(array_map(function ($z) {
+                $z['items'] = array_values($z['items']);
+                return $z;
+            }, array_filter($byZone, fn($z) => count($z['items']) > 0))),
         ];
     }
 
@@ -492,6 +562,26 @@ class PosController extends Controller
             ->update(['cutoff_id' => $cutoffId]);
 
         $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
+        $report = $this->buildSalesReport($transactions, $itemsByTxn);
+
+        // ── Notify: sales report / cut-off was successfully printed ──
+        $periodStartLabel = \Illuminate\Support\Carbon::parse($periodStart)->format('M d, Y h:i A');
+        $periodEndLabel   = \Illuminate\Support\Carbon::parse($periodEnd)->format('M d, Y h:i A');
+
+        $lines = [
+            "Cut-off #: {$cutoffNumber}",
+            "Period: {$periodStartLabel} — {$periodEndLabel}",
+            "Authorized by: {$authorizedBy}",
+            "Transactions: " . $transactions->count(),
+            "Total Sales: ₱" . number_format($report['overall']['total_sales'], 2),
+            "Total Discount: ₱" . number_format($report['overall']['total_discount'], 2),
+            "Voided Items: " . $voidedItems->count() . " (₱" . number_format($voidedItems->sum('amount'), 2) . ")",
+        ];
+        $this->notify(
+            'Sales Report Printed',
+            "The daily sales cut-off report was generated and printed.\n" . implode("\n", $lines),
+            url('/pos')
+        );
 
         return response()->json([
             'success' => true,
@@ -500,7 +590,7 @@ class PosController extends Controller
             'authorized_by' => $authorizedBy,
             'void_count' => $voidedItems->count(),
             'void_total' => $voidedItems->sum('amount'),
-            'report' => $this->buildSalesReport($transactions, $itemsByTxn),
+            'report' => $report,
         ]);
     }
 

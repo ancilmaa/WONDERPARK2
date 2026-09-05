@@ -19,17 +19,18 @@
 @section('styles')
 <style>
 
+
   /* ============================================================
      DESIGN TOKENS — indigo / coral dashboard system
-     (shared with Inventory Forecast for a consistent product feel)
+     Shared across Zone Forecast, Store Forecast & Inventory Forecast
      ============================================================ */
   :root{
     --fc-bg:        #F5F6FB;
     --fc-card:      #FFFFFF;
     --fc-dark:      #1E1B3A;
     --fc-ink:       #1B1D28;
-    --fc-ink-soft:  #585B72;
-    --fc-muted:     #9195AA;
+    --fc-ink-soft:  #33344A;
+    --fc-muted:     #5B5D72;
     --fc-line:      #ECEDF6;
 
     --fc-primary:      #6C5CE0;
@@ -48,183 +49,185 @@
 
     --fc-shadow-sm: 0 2px 10px rgba(30,27,58,.05);
     --fc-shadow-md: 0 10px 28px rgba(30,27,58,.10);
-    --fc-radius-lg: 20px;
-    --fc-radius-md: 14px;
-    --fc-radius-sm: 10px;
+    --fc-radius-lg: 18px;
+    --fc-radius-md: 12px;
+    --fc-radius-sm: 9px;
   }
 
-  /* ===== MAIN ===== */
-  .content-body{padding:clamp(16px, 3vw, 36px);max-width:1320px;margin:0 auto;background:var(--fc-bg);}
+  .content-body{padding:clamp(14px, 2.4vw, 28px);max-width:1440px;margin:0 auto;background:var(--fc-bg);}
   .jak{ font-family:'Plus Jakarta Sans','Inter',sans-serif; }
+  * { box-sizing:border-box; }
 
-  .back-link{
-    display:inline-flex;align-items:center;gap:8px;color:var(--fc-ink-soft);font-weight:600;font-size:.82rem;
-    margin-bottom:16px;transition:.15s;
+  /* ===== HEADER ROW: title + live controls, same row to reclaim vertical space ===== */
+  .dash-header{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    flex-wrap:wrap; margin-bottom:12px;
   }
-  .back-link:hover{color:var(--fc-primary-dark);}
-
-  /* ===== TOOLBAR ===== */
-  .toolbar{
-      background:var(--fc-card);
-      padding:22px 26px;
-      margin-bottom:20px;
-      border-radius:var(--fc-radius-lg);
-      box-shadow:var(--fc-shadow-sm);
-      display:flex; justify-content:space-between; align-items:center;
-      flex-wrap:wrap; gap:18px;
+  .dash-header .eyebrow{ font-size:.68rem; font-weight:700; color:var(--fc-primary); text-transform:uppercase; letter-spacing:.09em; margin-bottom:4px; }
+  .dash-header h2{
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:1.32rem; font-weight:800; color:var(--fc-ink);
+    display:flex; align-items:center; gap:9px; letter-spacing:-.01em; margin:0;
   }
-  .toolbar .eyebrow{ font-size:.7rem; font-weight:700; color:var(--fc-primary); text-transform:uppercase; letter-spacing:.09em; margin-bottom:6px; }
-  .toolbar h2{
-    font-family:'Plus Jakarta Sans',sans-serif; font-size:1.5rem; font-weight:800; color:var(--fc-ink);
-    display:flex; align-items:center; gap:10px; letter-spacing:-.01em;
+  .dash-header h2 i{
+    width:32px;height:32px;border-radius:10px;background:var(--fc-primary-light);color:var(--fc-primary);
+    display:inline-flex;align-items:center;justify-content:center;font-size:.86rem;
   }
-  .toolbar h2 i{
-    width:38px;height:38px;border-radius:12px;background:var(--fc-primary-light);color:var(--fc-primary);
-    display:inline-flex;align-items:center;justify-content:center;font-size:1rem;
-  }
-  .toolbar p{ color:var(--fc-muted); font-size:.84rem; margin-top:5px; }
+  .dash-header p{ color:var(--fc-muted); font-size:.78rem; margin:3px 0 0; }
   .live-chip{
     display:inline-flex;align-items:center;gap:7px;background:var(--fc-primary-light);
-    color:var(--fc-primary-dark);padding:9px 16px;border-radius:999px;font-size:.78rem;font-weight:700;
+    color:var(--fc-primary-dark);padding:6px 13px;border-radius:999px;font-size:.72rem;font-weight:700;white-space:nowrap;
   }
-  .live-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--fc-teal);box-shadow:0 0 0 3px var(--fc-teal-bg);}
+  .live-chip::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--fc-teal);box-shadow:0 0 0 3px var(--fc-teal-bg);}
 
-  /* ===== FILTER BAR ===== */
+  /* ===== INLINE FILTER BAR — one compact row, not a stacked block ===== */
   .filter-bar{
-    display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
     background:var(--fc-card);border:1px solid var(--fc-line);border-radius:var(--fc-radius-md);
-    padding:16px 18px;margin-bottom:20px;box-shadow:var(--fc-shadow-sm);
+    padding:9px 12px;margin-bottom:12px;box-shadow:var(--fc-shadow-sm);
   }
-  .filter-field{display:flex;flex-direction:column;gap:6px;flex:1 1 150px;min-width:140px;}
-  .filter-field label{font-size:.66rem;font-weight:700;color:var(--fc-muted);text-transform:uppercase;letter-spacing:.06em;}
+  .filter-bar .live-chip{ margin-right:4px; }
+  .filter-field{display:flex;align-items:center;gap:6px;}
+  .filter-field label{font-size:.66rem;font-weight:700;color:var(--fc-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
   .filter-field input, .filter-field select{
-    border:1px solid var(--fc-line);border-radius:var(--fc-radius-sm);padding:9px 12px;
-    font-size:.82rem;font-family:inherit;color:var(--fc-ink);background:var(--fc-bg);width:100%;
+    border:1px solid var(--fc-line);border-radius:var(--fc-radius-sm);padding:6px 9px;
+    font-size:.78rem;font-family:inherit;color:var(--fc-ink);background:var(--fc-bg);
   }
+  .filter-field input{width:130px;}
   .filter-field input:focus, .filter-field select:focus{outline:none;border-color:var(--fc-primary);box-shadow:0 0 0 3px var(--fc-primary-light);}
+  .filter-spacer{ flex:1 1 auto; }
   .filter-btn{
-    background:var(--fc-primary);color:#fff;border:none;border-radius:var(--fc-radius-sm);padding:10px 20px;
-    font-weight:700;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.15s;height:39px;flex:0 0 auto;
+    background:var(--fc-primary);color:#fff;border:none;border-radius:var(--fc-radius-sm);padding:7px 15px;
+    font-weight:700;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;
   }
   .filter-btn:hover{background:var(--fc-primary-dark);}
   .filter-btn-clear{
     background:var(--fc-bg);color:var(--fc-ink-soft);border:1px solid var(--fc-line);
-    border-radius:var(--fc-radius-sm);padding:10px 18px;font-weight:700;font-size:.82rem;cursor:pointer;height:39px;flex:0 0 auto;
+    border-radius:var(--fc-radius-sm);padding:7px 13px;font-weight:700;font-size:.78rem;cursor:pointer;
   }
   .filter-btn-clear:hover{border-color:var(--fc-primary);color:var(--fc-primary-dark);}
 
-  /* ===== PERCENTAGE BARS ===== */
-  .pct-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--fc-line);flex-wrap:wrap;}
-  .pct-row:last-child{border-bottom:none;}
-  .pct-label{width:160px;flex-shrink:0;font-size:.82rem;font-weight:700;color:var(--fc-ink);}
-  .pct-track{flex:1;min-width:100px;height:20px;background:var(--fc-primary-light);border-radius:20px;overflow:hidden;position:relative;}
-  .pct-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--fc-primary),var(--fc-accent));display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .5s ease;}
-  .pct-fill span{color:#fff;font-size:.68rem;font-weight:700;white-space:nowrap;}
-  .pct-value{width:56px;flex-shrink:0;text-align:right;font-size:.82rem;font-weight:800;color:var(--fc-primary-dark);}
-  .best-tag{background:var(--fc-teal-bg);color:var(--fc-teal);padding:2px 10px;border-radius:20px;font-size:.65rem;font-weight:700;margin-left:8px;}
-  .worst-tag{background:var(--fc-red-bg);color:var(--fc-red);padding:2px 10px;border-radius:20px;font-size:.65rem;font-weight:700;margin-left:8px;}
-  .type-heading{font-size:.9rem;font-weight:800;color:var(--fc-primary-dark);margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
-  .type-heading:first-child{margin-top:0;}
+  /* ===== KPI STRIP — compact, icon + numbers side by side ===== */
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+  @media(max-width:980px){ .kpi-strip{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:520px){ .kpi-strip{grid-template-columns:1fr;} }
 
-  /* ===== STAT CARDS ===== */
-  .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
-  @media(max-width:980px){ .metrics-grid{grid-template-columns:repeat(2,1fr);} }
-  @media(max-width:480px){ .metrics-grid{grid-template-columns:1fr;} }
-
-  .metric-card{
-    background:var(--fc-card);border:none;border-radius:var(--fc-radius-lg);padding:20px 22px;
-    box-shadow:var(--fc-shadow-sm);position:relative;overflow:hidden;transition:.18s;
+  .kpi-card{
+    background:var(--fc-card);border-radius:var(--fc-radius-md);padding:12px 14px;
+    box-shadow:var(--fc-shadow-sm);display:flex;align-items:center;gap:11px;
+    border-left:3px solid var(--fc-primary);
   }
-  .metric-card:hover{box-shadow:var(--fc-shadow-md);transform:translateY(-2px);}
-  .metric-card:first-child{background:var(--fc-dark);}
-  .metric-card:first-child .metric-label{color:rgba(255,255,255,.55);}
-  .metric-card:first-child .metric-value{color:#fff;}
-  .metric-card:first-child .metric-sub{color:rgba(255,255,255,.6);}
-  .metric-label{font-size:.68rem;color:var(--fc-muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
-  .metric-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.7rem;font-weight:800;color:var(--fc-ink);line-height:1;letter-spacing:-.02em;}
-  .metric-sub{font-size:11px;color:var(--fc-muted);margin-top:8px;font-weight:600;}
+  .kpi-card.is-revenue{border-left-color:var(--fc-accent);}
+  .kpi-card.is-items{border-left-color:var(--fc-teal);}
+  .kpi-card.is-alert{border-left-color:var(--fc-red);}
+  .kpi-body{ min-width:0; }
+  .kpi-label{font-size:.63rem;color:var(--fc-muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+  .kpi-value{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.28rem;font-weight:800;color:var(--fc-ink);line-height:1.1;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .kpi-sub{font-size:10.5px;color:var(--fc-muted);margin-top:1px;font-weight:600;}
 
-  /* ===== SECTION CARD / TABS ===== */
-  .section-card{background:var(--fc-card);border:none;border-radius:var(--fc-radius-lg);box-shadow:var(--fc-shadow-sm);margin-bottom:24px;overflow:hidden;}
-  .tab-bar{
-    display:flex;gap:6px;padding:14px 14px 0;border-bottom:1px solid var(--fc-line);flex-wrap:nowrap;
-    background:var(--fc-bg);overflow-x:auto;scrollbar-width:none;
+  /* ===== DASHBOARD BODY — sidebar nav + content panel, side by side ===== */
+  .dash-body{ display:grid; grid-template-columns:196px 1fr; gap:14px; align-items:start; }
+  @media(max-width:900px){ .dash-body{ grid-template-columns:1fr; } }
+
+  .side-nav{
+    background:var(--fc-card); border-radius:var(--fc-radius-lg); box-shadow:var(--fc-shadow-sm);
+    padding:8px; display:flex; flex-direction:column; gap:2px; position:sticky; top:12px;
   }
-  .tab-bar::-webkit-scrollbar{display:none;}
+  @media(max-width:900px){
+    .side-nav{ position:static; flex-direction:row; overflow-x:auto; scrollbar-width:none; }
+    .side-nav::-webkit-scrollbar{ display:none; }
+  }
   .tab-btn{
-    flex:0 0 auto;
-    padding:9px 16px;border:none;background:none;cursor:pointer;font-weight:600;font-size:.82rem;
-    color:var(--fc-ink-soft);border-radius:10px 10px 0 0;margin-bottom:-1px;transition:.15s;font-family:'Inter',sans-serif;white-space:nowrap;
+    all:unset; box-sizing:border-box; cursor:pointer; display:flex; align-items:center; gap:9px;
+    padding:9px 11px; border-radius:var(--fc-radius-sm); font-size:.79rem; font-weight:600;
+    color:var(--fc-ink-soft); font-family:'Inter',sans-serif; transition:.12s; white-space:nowrap;
   }
-  .tab-btn.active{color:var(--fc-primary-dark);background:var(--fc-card);box-shadow:0 -3px 0 var(--fc-primary) inset;}
-  .tab-btn:hover:not(.active){color:var(--fc-primary-dark);background:rgba(108,92,224,.08);}
-  .tab-pane{display:none;padding:26px;}
-  .tab-pane.active{display:block;animation:fcFade .25s ease;}
-  @keyframes fcFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .tab-btn i{ width:16px; text-align:center; color:var(--fc-muted); font-size:.82rem; }
+  .tab-btn.active{ background:var(--fc-primary-light); color:var(--fc-primary-dark); }
+  .tab-btn.active i{ color:var(--fc-primary); }
+  .tab-btn:hover:not(.active){ background:var(--fc-bg); }
 
-  .pane-title{margin:0 0 14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;font-weight:700;color:var(--fc-ink);display:flex;align-items:center;gap:8px;}
+  .content-panel{ background:var(--fc-card); border-radius:var(--fc-radius-lg); box-shadow:var(--fc-shadow-sm); overflow:hidden; }
+  .tab-pane{display:none; padding:18px 20px;}
+  .tab-pane.active{display:block;animation:fcFade .2s ease;}
+  @keyframes fcFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 
-  .chart-wrap{position:relative;height:300px;margin-bottom:16px;}
+  .pane-title{margin:0 0 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;color:var(--fc-ink);display:flex;align-items:center;gap:7px;}
+  .pane-title i{ color:var(--fc-primary); font-size:.82rem; }
+
+  .fc-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:900px){ .fc-grid-2{ grid-template-columns:1fr !important; } }
+
+  .chart-wrap{position:relative;height:240px;margin-bottom:12px;}
 
   .info-note{
-    background:var(--fc-primary-light);border:1px solid #DED6FA;border-radius:var(--fc-radius-md);
-    padding:13px 16px;margin-bottom:18px;font-size:.8rem;color:var(--fc-ink-soft);
+    background:var(--fc-primary-light);border:1px solid #DED6FA;border-radius:var(--fc-radius-sm);
+    padding:9px 13px;margin-bottom:14px;font-size:.76rem;color:var(--fc-ink-soft);
+    display:flex; align-items:flex-start; gap:8px; line-height:1.45;
   }
+  .info-note i{ color:var(--fc-primary); margin-top:2px; flex:0 0 auto; }
   .info-note strong{color:var(--fc-primary-dark);}
 
-  /* ===== TABLES ===== */
-  .ml-table{width:100%;border-collapse:collapse;font-size:.82rem;}
-  .ml-table th{background:var(--fc-dark);color:#fff;padding:12px 14px;text-align:left;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:none;}
-  .ml-table td{padding:12px 14px;border-bottom:1px solid var(--fc-line);color:var(--fc-ink-soft);}
+  /* ===== TABLES — tighter rows ===== */
+  .ml-table{width:100%;border-collapse:collapse;font-size:.79rem;}
+  .ml-table th{background:var(--fc-dark);color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:none;}
+  .ml-table td{padding:8px 12px;border-bottom:1px solid var(--fc-line);color:var(--fc-ink-soft);}
+  .ml-table tr:nth-child(even) td{ background:#FBFBFD; }
   .ml-table tr:last-child td{border-bottom:none;}
-  .ml-table tr:hover td{background:var(--fc-primary-light);}
-  .cat-row:hover td{background:var(--fc-primary-light) !important;}
+  .ml-table tr:hover td{background:var(--fc-primary-light) !important;}
   .table-scroll{width:100%;overflow-x:auto;}
 
+  /* ===== PERCENTAGE BARS ===== */
+  .pct-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--fc-line);flex-wrap:wrap;}
+  .pct-row:last-child{border-bottom:none;}
+  .pct-label{width:150px;flex-shrink:0;font-size:.79rem;font-weight:700;color:var(--fc-ink);}
+  .pct-track{flex:1;min-width:100px;height:17px;background:var(--fc-primary-light);border-radius:20px;overflow:hidden;position:relative;}
+  .pct-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--fc-primary),var(--fc-accent));display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .5s ease;}
+  .pct-fill span{color:#fff;font-size:.65rem;font-weight:700;white-space:nowrap;}
+  .pct-value{width:50px;flex-shrink:0;text-align:right;font-size:.79rem;font-weight:800;color:var(--fc-primary-dark);}
+  .best-tag{background:var(--fc-teal-bg);color:var(--fc-teal);padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:700;margin-left:7px;}
+  .worst-tag{background:var(--fc-red-bg);color:var(--fc-red);padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:700;margin-left:7px;}
+
   /* ===== BADGES ===== */
-  .trend-up{background:var(--fc-teal-bg);color:var(--fc-teal);padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;}
-  .trend-down{background:var(--fc-red-bg);color:var(--fc-red);padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;}
-  .trend-stable{background:var(--fc-amber-bg);color:#946600;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;}
-  .peak-badge{background:var(--fc-primary);color:#fff;padding:6px 14px;border-radius:20px;font-size:.72rem;font-weight:700;display:inline-block;margin:3px;}
-  .staff-card{background:var(--fc-primary-light);border-left:4px solid var(--fc-primary);padding:12px 16px;border-radius:var(--fc-radius-sm);margin-bottom:10px;}
-  .staff-card .hour{font-weight:700;color:var(--fc-primary-dark);font-size:.88rem;}
-  .staff-card .note{color:var(--fc-ink-soft);font-size:.78rem;margin-top:4px;}
+  .trend-up{background:var(--fc-teal-bg);color:var(--fc-teal);padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .trend-down{background:var(--fc-red-bg);color:var(--fc-red);padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .trend-stable{background:var(--fc-amber-bg);color:#946600;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .peak-badge{background:var(--fc-primary);color:#fff;padding:5px 12px;border-radius:20px;font-size:.7rem;font-weight:700;display:inline-block;margin:0 6px 6px 0;}
+
+  /* Compact horizontal manpower chips instead of tall stacked cards */
+  .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(215px,1fr)); gap:8px; }
+  .staff-card{background:var(--fc-primary-light);border-left:3px solid var(--fc-primary);padding:9px 12px;border-radius:var(--fc-radius-sm);}
+  .staff-card .hour{font-weight:700;color:var(--fc-primary-dark);font-size:.81rem;}
+  .staff-card .note{color:var(--fc-ink-soft);font-size:.72rem;margin-top:3px;line-height:1.35;}
 
   /* ===== LOADING / ERROR ===== */
-  .loading{text-align:center;padding:40px;color:var(--fc-muted);}
-  .loading i{font-size:28px;animation:spin 1s linear infinite;color:var(--fc-primary);}
+  .loading{text-align:center;padding:28px;color:var(--fc-muted);}
+  .loading i{font-size:22px;animation:spin 1s linear infinite;color:var(--fc-primary);}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .error-msg{background:var(--fc-red-bg);color:var(--fc-red);padding:14px;border-radius:var(--fc-radius-sm);text-align:center;font-size:.82rem;}
+  .error-msg{background:var(--fc-red-bg);color:var(--fc-red);padding:11px;border-radius:var(--fc-radius-sm);text-align:center;font-size:.79rem;}
 
   /* ===== TOAST ===== */
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--fc-dark);color:#fff;padding:12px 18px;border-radius:var(--fc-radius-sm);display:none;box-shadow:var(--fc-shadow-md);z-index:3000;font-weight:700;font-size:.82rem;}
+  .toast{position:fixed;bottom:18px;right:18px;background:var(--fc-dark);color:#fff;padding:11px 16px;border-radius:var(--fc-radius-sm);display:none;box-shadow:var(--fc-shadow-md);z-index:3000;font-weight:700;font-size:.79rem;}
   .toast.error{background:var(--fc-red);}
 
   /* ===== RESPONSIVE ===== */
-  @media(max-width:900px){
-    .content-body{padding:16px;}
-    .toolbar{flex-direction:column;align-items:flex-start;}
-  }
-  @media(max-width:640px){
-    .tab-pane{padding:18px;}
-    .chart-wrap{height:230px;}
-  }
+  @media(max-width:900px){ .content-body{padding:14px;} }
+  @media(max-width:640px){ .tab-pane{padding:14px;} .chart-wrap{height:200px;} .pct-label{width:110px;} }
 </style>
 @endsection
 
 @section('content')
 
-<div class="toolbar">
+<div class="dash-header">
   <div>
     <div class="eyebrow">{{ $zone }} &middot; ML Forecast</div>
-    <h2><i class="fa-solid {{ $zoneIcon }}"></i> {{ $zone }} Forecast</h2>
+    <h2>{{ $zone }} Forecast</h2>
     <p>ML-powered sales trends and demand predictions for {{ $zone }}</p>
   </div>
-  <span class="live-chip">Live · <span id="generatedAt">Loading…</span></span>
 </div>
 
-{{-- Filters --}}
+{{-- Filters + live status, single compact row --}}
 <div class="filter-bar">
+  <span class="live-chip">Live · <span id="generatedAt">Loading…</span></span>
   <div class="filter-field">
     <label for="fDateFrom">From</label>
     <input type="date" id="fDateFrom">
@@ -234,164 +237,164 @@
     <input type="date" id="fDateTo">
   </div>
   <div class="filter-field">
-    <label for="fPayment">Payment Method</label>
+    <label for="fPayment">Payment</label>
     <select id="fPayment">
       <option value="all">All Methods</option>
     </select>
   </div>
-  <button class="filter-btn" id="applyFilters"><i class="fas fa-filter"></i> Apply</button>
+  <div class="filter-spacer"></div>
+  <button class="filter-btn" id="applyFilters">Apply</button>
   <button class="filter-btn-clear" id="clearFilters">Clear</button>
 </div>
 
-{{-- Summary Metrics --}}
-<div class="metrics-grid">
-  <div class="metric-card">
-    <div class="metric-label">This Month Transactions</div>
-    <div class="metric-value" id="mTxn">—</div>
-    <div class="metric-sub">Completed sales</div>
+{{-- KPI strip --}}
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <div class="kpi-body">
+      <div class="kpi-label">Transactions</div>
+      <div class="kpi-value" id="mTxn">—</div>
+      <div class="kpi-sub">This month, completed</div>
+    </div>
   </div>
-  <div class="metric-card">
-    <div class="metric-label">This Month Revenue</div>
-    <div class="metric-value" id="mRevenue">—</div>
-    <div class="metric-sub">Total amount</div>
+  <div class="kpi-card is-revenue">
+    <div class="kpi-body">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value" id="mRevenue">—</div>
+      <div class="kpi-sub">This month total</div>
+    </div>
   </div>
-  <div class="metric-card">
-    <div class="metric-label">Items Sold (Month)</div>
-    <div class="metric-value" id="mItems">—</div>
-    <div class="metric-sub">Units sold</div>
+  <div class="kpi-card is-items">
+    <div class="kpi-body">
+      <div class="kpi-label">Items Sold</div>
+      <div class="kpi-value" id="mItems">—</div>
+      <div class="kpi-sub">Units this month</div>
+    </div>
   </div>
-  <div class="metric-card">
-    <div class="metric-label">Low Stock Alerts</div>
-    <div class="metric-value" id="mLowStock">—</div>
-    <div class="metric-sub">Need restocking</div>
+  <div class="kpi-card is-alert">
+    <div class="kpi-body">
+      <div class="kpi-label">Low Stock</div>
+      <div class="kpi-value" id="mLowStock">—</div>
+      <div class="kpi-sub">Need restocking</div>
+    </div>
   </div>
 </div>
 
-{{-- Main Tabs --}}
-<div class="section-card">
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="top">🏆 Top Products</button>
-    <button class="tab-btn" data-tab="dayofweek">📅 Day of Week</button>
-    <button class="tab-btn" data-tab="hourly">🕐 Peak Hours</button>
-    <button class="tab-btn" data-tab="forecast">🔮 Next Month Forecast</button>
-    <button class="tab-btn" data-tab="monthly">📈 Monthly Trend</button>
-    <button class="tab-btn" data-tab="payment">💳 Payment Methods</button>
-    <button class="tab-btn" data-tab="category">📦 Category Breakdown</button>
+{{-- Sidebar nav + content panel --}}
+<div class="dash-body">
+  <div class="side-nav">
+    <button class="tab-btn active" data-tab="top"><i class="fas fa-trophy"></i> Top Products</button>
+    <button class="tab-btn" data-tab="dayofweek"><i class="fas fa-calendar-week"></i> Day of Week</button>
+    <button class="tab-btn" data-tab="hourly"><i class="fas fa-clock"></i> Peak Hours</button>
+    <button class="tab-btn" data-tab="forecast"><i class="fas fa-wand-magic-sparkles"></i> Next Month</button>
+    <button class="tab-btn" data-tab="monthly"><i class="fas fa-chart-line"></i> Monthly Trend</button>
+    <button class="tab-btn" data-tab="payment"><i class="fas fa-credit-card"></i> Payment</button>
+    <button class="tab-btn" data-tab="category"><i class="fas fa-boxes-stacked"></i> Categories</button>
   </div>
 
-  {{-- TAB: TOP PRODUCTS --}}
-  <div id="tab-top" class="tab-pane active">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="fc-grid-2">
-      <div>
-        <h3 class="pane-title">🔥 Top Products This Month</h3>
-        <div class="chart-wrap"><canvas id="chartTopMonth"></canvas></div>
+  <div class="content-panel">
+
+    {{-- TAB: TOP PRODUCTS --}}
+    <div id="tab-top" class="tab-pane active">
+      <div class="fc-grid-2">
+        <div>
+          <h3 class="pane-title">Top Products This Month</h3>
+          <div class="chart-wrap"><canvas id="chartTopMonth"></canvas></div>
+        </div>
+        <div>
+          <h3 class="pane-title">All-Time Top Products</h3>
+          <div class="chart-wrap"><canvas id="chartTopAll"></canvas></div>
+        </div>
       </div>
-      <div>
-        <h3 class="pane-title">🏅 All-Time Top Products</h3>
-        <div class="chart-wrap"><canvas id="chartTopAll"></canvas></div>
-      </div>
+      <div id="topTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
     </div>
-    <div id="topTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
-  </div>
 
-  {{-- TAB: DAY OF WEEK --}}
-  <div id="tab-dayofweek" class="tab-pane">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="fc-grid-2">
-      <div>
-        <h3 class="pane-title">📊 Transactions by Day</h3>
-        <div class="chart-wrap"><canvas id="chartDow"></canvas></div>
+    {{-- TAB: DAY OF WEEK --}}
+    <div id="tab-dayofweek" class="tab-pane">
+      <div class="fc-grid-2">
+        <div>
+          <h3 class="pane-title">Transactions by Day</h3>
+          <div class="chart-wrap"><canvas id="chartDow"></canvas></div>
+        </div>
+        <div>
+          <h3 class="pane-title">Revenue by Day</h3>
+          <div class="chart-wrap"><canvas id="chartDowRev"></canvas></div>
+        </div>
       </div>
-      <div>
-        <h3 class="pane-title">🗓️ Revenue by Day</h3>
-        <div class="chart-wrap"><canvas id="chartDowRev"></canvas></div>
-      </div>
+      <h3 class="pane-title">Weekend Top-Sellers (Sat &amp; Sun)</h3>
+      <div id="weekendTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
     </div>
-    <h3 class="pane-title" style="margin-top:16px">🏖️ Weekend Top-Sellers (Sat &amp; Sun)</h3>
-    <div id="weekendTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
-  </div>
 
-  {{-- TAB: PEAK HOURS --}}
-  <div id="tab-hourly" class="tab-pane">
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px" class="fc-grid-2">
-      <div>
-        <h3 class="pane-title">🕐 Hourly Transactions</h3>
-        <div class="chart-wrap"><canvas id="chartHourly"></canvas></div>
+    {{-- TAB: PEAK HOURS --}}
+    <div id="tab-hourly" class="tab-pane">
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px" class="fc-grid-2">
+        <div>
+          <h3 class="pane-title">Hourly Transactions</h3>
+          <div class="chart-wrap"><canvas id="chartHourly"></canvas></div>
+        </div>
+        <div>
+          <h3 class="pane-title">Peak Hours</h3>
+          <div id="peakHoursDisplay" class="loading"><i class="fas fa-spinner"></i></div>
+        </div>
       </div>
-      <div>
-        <h3 class="pane-title">⚡ Peak Hours</h3>
-        <div id="peakHoursDisplay" class="loading"><i class="fas fa-spinner"></i></div>
-      </div>
+      <h3 class="pane-title">Manpower Recommendations</h3>
+      <div id="manpowerAdvice" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
     </div>
-    <h3 class="pane-title" style="margin-top:16px">👷 Manpower Recommendations</h3>
-    <div id="manpowerAdvice" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
-  </div>
 
-  {{-- TAB: NEXT MONTH FORECAST --}}
-  <div id="tab-forecast" class="tab-pane">
-    <div class="info-note">
-      <i class="fas fa-info-circle"></i>
-      <strong>How this works:</strong> Linear regression on the last 90 days of daily sales per product,
-      scoped to the {{ $zone }} zone only.
-      The trend arrow shows whether demand is growing, shrinking, or stable.
-      Use the next-month forecast to plan restocking quantities.
-    </div>
-    <div id="forecastTable" class="loading"><i class="fas fa-spinner"></i><br>Calculating forecasts…</div>
-  </div>
-
-  {{-- TAB: MONTHLY TREND --}}
-  <div id="tab-monthly" class="tab-pane">
-    <h3 class="pane-title">📈 Monthly Revenue Trend (Last 12 Months)</h3>
-    <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
-    <div id="monthlyTable" class="loading" style="margin-top:16px"><i class="fas fa-spinner"></i><br>Loading…</div>
-  </div>
-
-  {{-- TAB: PAYMENT METHODS --}}
-  <div id="tab-payment" class="tab-pane">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="fc-grid-2">
-      <div>
-        <h3 class="pane-title">💳 Revenue Share by Payment Method</h3>
-        <div class="chart-wrap"><canvas id="chartPayment"></canvas></div>
+    {{-- TAB: NEXT MONTH FORECAST --}}
+    <div id="tab-forecast" class="tab-pane">
+      <div class="info-note">
+        <span><strong>How this works:</strong> Linear regression on the last 90 days of daily sales per product, scoped to the {{ $zone }} zone only. The trend arrow shows whether demand is growing, shrinking, or stable &mdash; use the next-month forecast to plan restocking quantities.</span>
       </div>
-      <div>
-        <h3 class="pane-title">📊 Breakdown</h3>
-        <div id="paymentBars" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
-      </div>
+      <div id="forecastTable" class="loading"><i class="fas fa-spinner"></i><br>Calculating forecasts…</div>
     </div>
-  </div>
 
-  {{-- TAB: CATEGORY BREAKDOWN --}}
-  <div id="tab-category" class="tab-pane">
-    <div class="info-note">
-      <i class="fas fa-info-circle"></i>
-      <strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, F&amp;B) and by
-      individual category — never combined into one bucket. Percentages are share of total revenue for {{ $zone }}
-      and always add up to 100%. <strong>Click any category row</strong> to see exactly which products generated
-      its revenue.
+    {{-- TAB: MONTHLY TREND --}}
+    <div id="tab-monthly" class="tab-pane">
+      <h3 class="pane-title">Monthly Revenue Trend (Last 12 Months)</h3>
+      <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+      <div id="monthlyTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
     </div>
-    <div id="categoryByType" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px" class="fc-grid-2">
-      <div>
-        <h3 class="pane-title">🏆 Best Sellers (Products)</h3>
-        <div id="bestSellers" class="loading"><i class="fas fa-spinner"></i></div>
-      </div>
-      <div>
-        <h3 class="pane-title">📉 Least Sellers (Products)</h3>
-        <div id="worstSellers" class="loading"><i class="fas fa-spinner"></i></div>
+    {{-- TAB: PAYMENT METHODS --}}
+    <div id="tab-payment" class="tab-pane">
+      <div class="fc-grid-2">
+        <div>
+          <h3 class="pane-title">Revenue Share by Payment Method</h3>
+          <div class="chart-wrap"><canvas id="chartPayment"></canvas></div>
+        </div>
+        <div>
+          <h3 class="pane-title">Breakdown</h3>
+          <div id="paymentBars" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
+        </div>
       </div>
     </div>
 
-    <h3 class="pane-title" style="margin-top:24px">📋 Full Category Breakdown <small style="font-weight:500;color:var(--fc-muted)">(click a row to expand)</small></h3>
-    <div id="categoryTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
-  </div>
+    {{-- TAB: CATEGORY BREAKDOWN --}}
+    <div id="tab-category" class="tab-pane">
+      <div class="info-note">
+        <span><strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, F&amp;B) and by individual category &mdash; never combined into one bucket. Percentages are share of total revenue for {{ $zone }} and always add up to 100%. <strong>Click any category row</strong> to see exactly which products generated its revenue.</span>
+      </div>
+      <div id="categoryByType" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
 
-</div>{{-- /section-card --}}
+      <div class="fc-grid-2" style="margin-top:18px">
+        <div>
+          <h3 class="pane-title">Best Sellers (Products)</h3>
+          <div id="bestSellers" class="loading"><i class="fas fa-spinner"></i></div>
+        </div>
+        <div>
+          <h3 class="pane-title">Least Sellers (Products)</h3>
+          <div id="worstSellers" class="loading"><i class="fas fa-spinner"></i></div>
+        </div>
+      </div>
+
+      <h3 class="pane-title" style="margin-top:18px">Full Category Breakdown <small style="font-weight:500;color:var(--fc-muted)">&nbsp;(click a row to expand)</small></h3>
+      <div id="categoryTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
+    </div>
+
+  </div>{{-- /content-panel --}}
+</div>{{-- /dash-body --}}
 
 <div id="toast" class="toast"></div>
-
-<style>
-  @media(max-width:900px){ .fc-grid-2{ grid-template-columns:1fr !important; } }
-</style>
 
 @endsection
 
@@ -440,8 +443,8 @@
 
   /* Indigo / coral chart palette, matched to the dashboard design system */
   const COLORS = [
-      '#6C5CE0','#FF7A59','#22C3AE','#FFB020','#5445C4',
-      '#FF9F80','#8B7CF6','#1FAE9E','#F0506E','#B9AFF8'
+      '#A8B8F0','#F5B8A8','#9DDBC4','#F5D98A','#C9A8E8',
+      '#F0A8C4','#8FCCE8','#C4E0A0','#F0C48F','#B8A8D9'
   ];
 
   function makeChart(id, type, labels, datasets, opts = {}) {
@@ -455,10 +458,10 @@
           options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: opts.legend !== false, labels: { color: '#585B72', font: { family: 'Inter' }, usePointStyle: true, boxWidth: 8 } } },
+              plugins: { legend: { display: opts.legend !== false, labels: { color: '#1B1D28', font: { family: 'Inter' }, usePointStyle: true, boxWidth: 8 } } },
               scales: type === 'bar' || type === 'line' ? {
-                  y: { beginAtZero: true, grid: { color: '#ECEDF6' }, ticks: { color: '#9195AA' } },
-                  x: { grid: { display: false }, ticks: { color: '#9195AA' } }
+                  y: { beginAtZero: true, grid: { color: '#ECEDF6' }, ticks: { color: '#1B1D28' } },
+                  x: { grid: { display: false }, ticks: { color: '#1B1D28' } }
               } : undefined,
               ...opts.extra
           }
@@ -494,21 +497,21 @@
           const tm = d.this_month.slice(0, 8);
           makeChart('chartTopMonth', 'bar',
               tm.map(r => r.product_name),
-              [{ label: 'Units Sold', data: tm.map(r => r.total_qty), backgroundColor: COLORS, borderRadius: 8 }],
+              [{ label: 'Units Sold', data: tm.map(r => r.total_qty), backgroundColor: COLORS, borderRadius: 6 }],
               { legend: false }
           );
           const at = d.all_time.slice(0, 8);
           makeChart('chartTopAll', 'bar',
               at.map(r => r.product_name),
-              [{ label: 'Units Sold', data: at.map(r => r.total_qty), backgroundColor: COLORS.slice().reverse(), borderRadius: 8 }],
+              [{ label: 'Units Sold', data: at.map(r => r.total_qty), backgroundColor: COLORS.slice().reverse(), borderRadius: 6 }],
               { legend: false }
           );
           if (!d.this_month.length) {
-              div.innerHTML = '<div class="error-msg">No sales data this month yet for ' + ZONE + '.</div>';
+              div.innerHTML = '<div class="error-msg">No sales data this month yet.</div>';
               return;
           }
           div.innerHTML = `
-          <h3 class="pane-title" style="margin-top:16px">📋 This Month Details</h3>
+          <h3 class="pane-title">This Month Details</h3>
           <div class="table-scroll">
           <table class="ml-table">
             <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
@@ -525,7 +528,7 @@
           </table>
           </div>`;
       } catch(e) {
-          div.innerHTML = `<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> Could not load data. Is the ML server running?<br><small>${e}</small></div>`;
+          div.innerHTML = `<div class="error-msg">Could not load data. Is the ML server running?<br><small>${e}</small></div>`;
       }
   }
 
@@ -538,17 +541,17 @@
           makeChart('chartDow', 'bar',
               days.map(r => r.day_name),
               [{ label: 'Transactions', data: days.map(r => r.num_transactions),
-                 backgroundColor: days.map(r => (r.day_name==='Saturday'||r.day_name==='Sunday') ? '#FF7A59' : '#6C5CE0'), borderRadius: 8 }],
+                 backgroundColor: days.map(r => (r.day_name==='Saturday'||r.day_name==='Sunday') ? '#F5B8A8' : '#A8B8F0'), borderRadius: 6 }],
               { legend: false }
           );
           makeChart('chartDowRev', 'bar',
               days.map(r => r.day_name),
               [{ label: 'Revenue', data: days.map(r => parseFloat(r.total_revenue || 0)),
-                 backgroundColor: days.map(r => (r.day_name==='Saturday'||r.day_name==='Sunday') ? '#FFB020' : '#22C3AE'), borderRadius: 8 }],
+                 backgroundColor: days.map(r => (r.day_name==='Saturday'||r.day_name==='Sunday') ? '#F5D98A' : '#9DDBC4'), borderRadius: 6 }],
               { legend: false }
           );
           if (!d.weekend_top.length) {
-              div.innerHTML = '<div class="error-msg">No weekend sales data yet for ' + ZONE + '.</div>';
+              div.innerHTML = '<div class="error-msg">No weekend sales data yet.</div>';
               return;
           }
           div.innerHTML = `
@@ -586,24 +589,24 @@
                   return disp + ':00 ' + s;
               }),
               [{ label: 'Transactions', data: d.hourly.map(r => r.num_transactions),
-                 borderColor: '#6C5CE0', backgroundColor: 'rgba(108,92,224,.12)',
-                 fill: true, tension: 0.4, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#5445C4' }]
+                 borderColor: '#8FA3E8', backgroundColor: 'rgba(168,184,240,.28)',
+                 fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#6B85DE' }]
           );
           peakDiv.innerHTML = d.peak_hours.length
-              ? '<p style="color:#585B72;margin-bottom:10px;font-size:.8rem">Hours with highest customer traffic:</p>' +
-                d.peak_hours.map(h => `<span class="peak-badge"><i class="fas fa-fire"></i> ${h}</span>`).join('')
-              : '<p style="color:#9195AA">Not enough data yet.</p>';
+              ? '<p style="color:#33344A;margin-bottom:8px;font-size:.78rem">Hours with highest customer traffic:</p>' +
+                d.peak_hours.map(h => `<span class="peak-badge">${h}</span>`).join('')
+              : '<p style="color:#5B5D72">Not enough data yet.</p>';
           if (!d.manpower_advice.length) {
               manpDiv.innerHTML = '<div class="error-msg">Not enough data for manpower suggestions.</div>';
               return;
           }
-          manpDiv.innerHTML = d.manpower_advice.map(a => `
+          manpDiv.innerHTML = '<div class="staff-grid">' + d.manpower_advice.map(a => `
           <div class="staff-card">
-            <div class="hour"><i class="fas fa-clock"></i> ${a.hour}
-              &nbsp;·&nbsp; <span style="color:#1B1D28;font-size:.78rem;font-weight:500">${a.transactions} avg transactions</span>
+            <div class="hour">${a.hour}
+              &nbsp;·&nbsp; <span style="color:#1B1D28;font-size:.72rem;font-weight:500">${a.transactions} avg txns</span>
             </div>
-            <div class="note">👷 ${a.note}</div>
-          </div>`).join('');
+            <div class="note">${a.note}</div>
+          </div>`).join('') + '</div>';
       } catch(e) {
           peakDiv.innerHTML = `<div class="error-msg">Could not load data.</div>`;
           manpDiv.innerHTML = `<div class="error-msg">Could not load data.</div>`;
@@ -617,7 +620,7 @@
           const d = await apiFetch('/next_month_forecast');
           document.getElementById('generatedAt').textContent = d.generated_at || '';
           if (!d.forecasts.length) {
-              div.innerHTML = '<div class="error-msg">Not enough historical data for forecasting in ' + ZONE + '. Need at least 3 days of sales per product.</div>';
+              div.innerHTML = '<div class="error-msg">Not enough historical data for forecasting. Need at least 3 days of sales per product.</div>';
               return;
           }
           div.innerHTML = `
@@ -642,13 +645,13 @@
                   ${r.trend==='down'   ? '<span class="trend-down">▼ Declining</span>' : ''}
                   ${r.trend==='stable' ? '<span class="trend-stable">→ Stable</span>'  : ''}
                 </td>
-                <td style="color:#9195AA;font-size:.72rem">${r.data_points} days</td>
+                <td style="color:#5B5D72;font-size:.7rem">${r.data_points} days</td>
               </tr>`).join('')}
             </tbody>
           </table>
           </div>`;
       } catch(e) {
-          div.innerHTML = `<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> Could not load forecast. Is the ML server running?<br><small>${e}</small></div>`;
+          div.innerHTML = `<div class="error-msg">Could not load forecast. Is the ML server running?<br><small>${e}</small></div>`;
       }
   }
 
@@ -662,24 +665,24 @@
               rows.map(r => r.month),
               [
                   { label: 'Revenue (₱)', data: rows.map(r => parseFloat(r.total_revenue || 0)),
-                    borderColor: '#6C5CE0', backgroundColor: 'rgba(108,92,224,.10)',
+                    borderColor: '#8FA3E8', backgroundColor: 'rgba(168,184,240,.25)',
                     fill: true, tension: 0.4, yAxisID: 'y' },
                   { label: 'Units Sold', data: rows.map(r => parseInt(r.total_qty || 0)),
-                    borderColor: '#FF7A59', backgroundColor: 'rgba(255,122,89,.10)',
+                    borderColor: '#E89A85', backgroundColor: 'rgba(245,184,168,.25)',
                     fill: true, tension: 0.4, yAxisID: 'y1' }
               ],
               { extra: { scales: {
-                  y:  { type:'linear', position:'left',  beginAtZero:true, grid:{color:'#ECEDF6'}, ticks:{color:'#9195AA'} },
-                  y1: { type:'linear', position:'right', beginAtZero:true, grid:{display:false}, ticks:{color:'#9195AA'} },
-                  x:  { grid:{display:false}, ticks:{color:'#9195AA'} }
+                  y:  { type:'linear', position:'left',  beginAtZero:true, grid:{color:'#ECEDF6'}, ticks:{color:'#1B1D28'} },
+                  y1: { type:'linear', position:'right', beginAtZero:true, grid:{display:false}, ticks:{color:'#1B1D28'} },
+                  x:  { grid:{display:false}, ticks:{color:'#1B1D28'} }
               }}}
           );
           if (!rows.length) {
-              div.innerHTML = '<div class="error-msg">No monthly data yet for ' + ZONE + '.</div>';
+              div.innerHTML = '<div class="error-msg">No monthly data yet.</div>';
               return;
           }
           div.innerHTML = `
-          <h3 class="pane-title">📋 Monthly Breakdown</h3>
+          <h3 class="pane-title">Monthly Breakdown</h3>
           <div class="table-scroll">
           <table class="ml-table">
             <thead><tr><th>Month</th><th>Transactions</th><th>Units Sold</th><th>Revenue</th></tr></thead>
@@ -717,7 +720,7 @@
           }
 
           if (!methods.length) {
-              barsDiv.innerHTML = '<div class="error-msg">No payment data yet for ' + ZONE + '.</div>';
+              barsDiv.innerHTML = '<div class="error-msg">No payment data yet.</div>';
               makeChart('chartPayment', 'doughnut', [], []);
               return;
           }
@@ -751,7 +754,7 @@
           const byCategory = d.by_category || [];
 
           if (!byType.length) {
-              byTypeDiv.innerHTML = '<div class="error-msg">No category sales data yet for ' + ZONE + '.</div>';
+              byTypeDiv.innerHTML = '<div class="error-msg">No category sales data yet.</div>';
               bestDiv.innerHTML = '';
               worstDiv.innerHTML = '';
               tableDiv.innerHTML = '';
@@ -759,7 +762,7 @@
           }
 
           byTypeDiv.innerHTML = `
-            <h3 class="pane-title">🗂️ By Category Type</h3>
+            <h3 class="pane-title">By Category Type</h3>
             ${byType.map(t => `
               <div class="pct-row">
                 <div class="pct-label">${t.category_type}</div>
@@ -771,13 +774,13 @@
             <div class="staff-card">
               <div class="hour">#${i+1} · ${r.product_name} <span class="best-tag">${r.category_name}</span></div>
               <div class="note">${Number(r.total_qty).toLocaleString()} units · ${peso(r.total_revenue)} · ${r.percentage}% of total revenue</div>
-            </div>`).join('') || '<p style="color:#9195AA">Not enough data yet.</p>';
+            </div>`).join('') || '<p style="color:#5B5D72">Not enough data yet.</p>';
 
           worstDiv.innerHTML = (d.worst_sellers || []).map((r,i) => `
             <div class="staff-card" style="border-left-color:#F0506E">
               <div class="hour">#${i+1} · ${r.product_name} <span class="worst-tag">${r.category_name}</span></div>
               <div class="note">${Number(r.total_qty).toLocaleString()} units · ${peso(r.total_revenue)} · ${r.percentage}% of total revenue</div>
-            </div>`).join('') || '<p style="color:#9195AA">Not enough data yet.</p>';
+            </div>`).join('') || '<p style="color:#5B5D72">Not enough data yet.</p>';
 
           tableDiv.innerHTML = `
             <div class="table-scroll">
@@ -797,7 +800,7 @@
                 <tr id="cat-${i}" style="display:none">
                   <td colspan="7" style="background:var(--fc-primary-light);padding:0">
                     ${(r.products && r.products.length) ? `
-                      <table class="ml-table" style="margin:8px 12px;width:calc(100% - 24px)">
+                      <table class="ml-table" style="margin:6px 10px;width:calc(100% - 20px)">
                         <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th><th>% of ${r.category_name} Revenue</th></tr></thead>
                         <tbody>
                           ${r.products.map(p => `
@@ -808,7 +811,7 @@
                             <td>${p.percentage_of_category}%</td>
                           </tr>`).join('')}
                         </tbody>
-                      </table>` : '<p style="color:#9195AA;padding:10px 16px">No product-level data.</p>'}
+                      </table>` : '<p style="color:#5B5D72;padding:10px 14px">No product-level data.</p>'}
                   </td>
                 </tr>`).join('')}
               </tbody>

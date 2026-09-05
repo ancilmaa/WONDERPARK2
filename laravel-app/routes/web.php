@@ -26,6 +26,8 @@ use App\Http\Controllers\VisitorSummaryController;
 use App\Http\Controllers\ZoneForecastController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CmsController;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 // Auth
@@ -185,3 +187,55 @@ Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.
 
 Route::get('/analytics/live-count', [VisitorSummaryController::class, 'liveCount'])
     ->name('analytics.live-count');
+
+   Route::get('/notifications', [NotificationController::class, 'index'])
+    ->name('notifications.index');
+
+Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+    ->name('notifications.read');
+
+Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])
+    ->name('notifications.mark-all-read');
+
+    Route::delete('/notifications/bulk-destroy', [NotificationController::class, 'bulkDestroy'])
+    ->name('notifications.bulk-destroy');
+
+Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
+    ->name('notifications.destroy');
+
+    Route::patch('/notifications/bulk-read', [NotificationController::class, 'bulkMarkRead'])
+    ->name('notifications.bulk-read');
+
+Route::delete('/notifications/bulk-destroy', [NotificationController::class, 'bulkDestroy'])
+    ->name('notifications.bulk-destroy');
+
+Route::prefix('admin/cms')->name('cms.')->group(function () {
+
+    Route::get('/', [CmsController::class, 'index'])->name('index');
+
+    // Simple text sections: hero, split, contact, footer
+    Route::get('/section/{section}', [CmsController::class, 'editSection'])->name('section.edit');
+    Route::put('/section/{section}', [CmsController::class, 'updateSection'])->name('section.update');
+
+    // Card-based sections: pass, attraction, service, step
+    Route::get('/cards/{type}', [CmsController::class, 'cards'])->name('cards');
+    Route::get('/cards/{type}/create', [CmsController::class, 'createCard'])->name('cards.create');
+    Route::post('/cards/{type}', [CmsController::class, 'storeCard'])->name('cards.store');
+    Route::get('/card/{card}/edit', [CmsController::class, 'editCard'])->name('cards.edit');
+    Route::put('/card/{card}', [CmsController::class, 'updateCard'])->name('cards.update');
+    Route::delete('/card/{card}', [CmsController::class, 'destroyCard'])->name('cards.destroy');
+});
+
+Route::get('/', function () {
+    return view('landing', [
+        'hero'    => \App\Models\SiteContent::section('hero'),
+        'split'   => \App\Models\SiteContent::section('split'),
+        'contact' => \App\Models\SiteContent::section('contact'),
+        'footer'  => \App\Models\SiteContent::section('footer'),
+
+        'passes'      => \App\Models\SiteCard::type('pass')->active()->ordered()->get(),
+        'attractions' => \App\Models\SiteCard::type('attraction')->active()->ordered()->get(),
+        'services'    => \App\Models\SiteCard::type('service')->active()->ordered()->get(),
+        'steps'       => \App\Models\SiteCard::type('step')->active()->ordered()->get(),
+    ]);
+})->name('home');
