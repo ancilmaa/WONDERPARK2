@@ -153,6 +153,7 @@ class PosController extends Controller
             'maya'      => 'Maya',
             'stardeals' => 'StarDeals',
             'klook'     => 'Klook',
+            'online'    => 'Online',
         ];
         $rawPayment    = strtolower(trim($data['payment_method'] ?? 'cash'));
         $paymentMethod = $paymentMap[$rawPayment] ?? ucfirst($rawPayment);
@@ -419,7 +420,7 @@ class PosController extends Controller
         $overallItems = [];
         $overallTotal = 0;
         $overallDiscount = 0;
-        $overallPayments = ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0];
+        $overallPayments = ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0, 'online' => 0];
         $byCashier = [];
 
         // Dapat kapareho ng CATEGORIES_SNACKBAR sa pos.js — kung
@@ -448,7 +449,7 @@ class PosController extends Controller
                     'total_discount' => 0,
                     'klook_total' => 0,
                     'stardeals_total' => 0,
-                    'payment_breakdown' => ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0],
+                    'payment_breakdown' => ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0, 'online' => 0],
                 ];
             }
 
@@ -532,6 +533,7 @@ class PosController extends Controller
         $transactions = DB::table('sales_transactions as t')
             ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
             ->whereNull('t.cutoff_id')
+             ->where('t.transaction_status', '!=', 'Voided') 
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
@@ -599,6 +601,7 @@ class PosController extends Controller
         $transactions = DB::table('sales_transactions as t')
             ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
             ->whereNull('t.cutoff_id')
+            ->where('t.transaction_status', '!=', 'Voided') 
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
@@ -634,6 +637,7 @@ class PosController extends Controller
         $transactions = DB::table('sales_transactions as t')
             ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
             ->where('t.cutoff_id', $id)
+            ->where('t.transaction_status', '!=', 'Voided')
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
@@ -651,6 +655,22 @@ class PosController extends Controller
             'report' => $this->buildSalesReport($transactions, $itemsByTxn),
         ]);
     }
+    private function buildReportFooter(string $authorizedBy, int $voidCount, float $voidTotal, bool $isPreview, $voidedTxnCount = 0, $voidedTxnTotal = 0)
+{
+    return "
+        <div class=\"report-receipt\" style=\"border-top:2px dashed #ccc;margin-top:6px;padding-top:6px;\">
+            <div class=\"receipt-vat-section\">
+                <div class=\"vat-row\"><span>Voided Item(s)</span><span>{$voidCount}</span></div>
+                <div class=\"vat-row\"><span>Voided Amount</span><span>−₱" . number_format($voidTotal, 2) . "</span></div>
+                <div class=\"vat-row\"><span>Voided Transaction(s)</span><span>{$voidedTxnCount}</span></div>
+                <div class=\"vat-row\"><span>Voided Txn Amount</span><span>−₱" . number_format($voidedTxnTotal, 2) . "</span></div>
+            </div>
+            <hr class=\"dashed\">
+            <div style=\"text-align:center;font-size:12px;font-weight:700;margin-top:4px;\">
+                " . ($isPreview ? 'Prepared by' : 'Cut-off Authorized by') . ": " . htmlspecialchars($authorizedBy) . "
+            </div>
+        </div>";
+}
     // ================= DAY LOCK (cut-off) =================
     private function isDayLocked(): bool
     {
@@ -669,4 +689,113 @@ class PosController extends Controller
                 : null,
         ]);
     }
+
+public function voidTransaction(Request $request)
+{
+    if (!session()->has('user_id')) {
+        return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+    }
+
+    $data = $request->validate([
+        'invoice_number' => 'required|integer',
+        'reason'         => 'required|string|max:255',
+        'authorized_by'  => 'required|string',
+    ]);
+
+    $transactionId = (int) $data['invoice_number'];
+
+    $txn = DB::table('sales_transactions')->where('transaction_id', $transactionId)->first();
+
+    if (!$txn) {
+        return response()->json(['success' => false, 'message' => 'Invoice #' . $transactionId . ' not found.']);
+    }
+
+    if ($txn->transaction_status === 'Voided') {
+        return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
+    }
+
+    // Kunin muna ang items BAGO tayo mag-void, gagamitin natin ito
+    // para sa "voided receipt" na ipapakita pagkatapos.
+    $items = DB::table('transaction_items')
+        ->where('transaction_id', $transactionId)
+        ->get()
+        ->map(fn($i) => [
+            'name'  => $i->product_name,
+            'price' => (float) $i->price,
+            'qty'   => (int)   $i->quantity,
+        ])->toArray();
+
+    try {
+        DB::transaction(function () use ($transactionId, $data, $txn) {
+            // I-mark bilang Voided — hindi natin dini-delete ang record para
+            // sa audit trail (BIR-compliant, dapat traceable lahat ng void).
+            DB::table('sales_transactions')
+                ->where('transaction_id', $transactionId)
+                ->update([
+                    'transaction_status' => 'Voided',
+                    'void_reason'        => $data['reason'],
+                    'voided_by'          => $data['authorized_by'],
+                    'voided_at'          => now(),
+                ]);
+
+            // I-restore ang stock ng mga tracked items na na-deduct noong
+            // orihinal na checkout.
+            $items = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
+
+            foreach ($items as $item) {
+                DB::table('products')
+                    ->where('product_id', $item->product_id)
+                    ->whereIn('category_id', function ($q) {
+                        $q->select('category_id')->from('categories')->where('is_stock_tracked', 1);
+                    })
+                    ->whereNotNull('stock')
+                    ->increment('stock', $item->quantity);
+            }
+
+            // I-log din sa voided_items para consistent sa existing void-log
+            // pattern mo (item-level void kanina), pero naka-tag na
+            // "Full Transaction Void" ito.
+            foreach ($items as $item) {
+                DB::table('voided_items')->insert([
+                    'item_name'     => $item->product_name . ' (Full Txn Void — Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . ')',
+                    'price'         => $item->price,
+                    'qty'           => $item->quantity,
+                    'amount'        => $item->subtotal,
+                    'cashier_name'  => session('username') ?? session('fullname'),
+                    'authorized_by' => $data['authorized_by'],
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+            }
+        });
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => 'Failed to void: ' . $e->getMessage()], 500);
+    }
+
+    $this->notify(
+        'Transaction Voided',
+        "Invoice #" . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . " was voided.\n" .
+        "Reason: {$data['reason']}\nAuthorized by: {$data['authorized_by']}",
+        url('/pos')
+    );
+
+    // I-balik ang buong details ng na-void na transaction para
+    // maipakita sa "Voided Receipt" sa frontend.
+    return response()->json([
+        'success' => true,
+        'message' => 'Transaction voided successfully.',
+        'transaction' => [
+            'invoice_number' => str_pad($transactionId, 11, '0', STR_PAD_LEFT),
+            'customer_name'  => $txn->customer_name,
+            'service_type'   => $txn->service_type,
+            'payment_method' => $txn->payment_method,
+            'total'          => (float) $txn->total_amount,
+            'discount'       => (float) $txn->discount_amount,
+            'items'          => $items,
+            'void_reason'    => $data['reason'],
+            'voided_by'      => $data['authorized_by'],
+            'voided_at'      => now()->format('m/d/Y h:i:s A'),
+        ],
+    ]);
+}
 }

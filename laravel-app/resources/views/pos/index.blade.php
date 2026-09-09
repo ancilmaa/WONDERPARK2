@@ -42,63 +42,108 @@
         }
 
         .payment-box {
-            width: 560px;
-            max-width: 94vw;
+            width: 780px;
+            max-width: 95vw;
+            padding: 0;
+            overflow: hidden;
         }
 
-        .payment-grid {
-            display: grid;
-            grid-template-columns: 130px 1fr 190px;
-            gap: 14px;
-            margin-top: 16px;
+        .pt-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 20px 24px 16px;
+        }
+
+        .pt-header-text h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .pt-header-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .pt-close-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: var(--pink-pale);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all .15s;
+        }
+
+        .pt-close-btn:hover { background: var(--pink-light); color: var(--pink-deep); }
+
+        .pt-section-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 10px;
         }
 
         .pay-method-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .pay-method-btn {
-            padding: 10px 8px;
-            text-align: center;
+            padding: 12px 14px;
+            text-align: left;
             font-weight: 700;
-            font-size: 11px;
-            letter-spacing: .3px;
+            font-size: 13px;
             border-radius: var(--radius);
-            background: var(--pink-pale);
-            color: var(--text-secondary);
+            background: var(--white);
+            color: var(--text-primary);
             cursor: pointer;
-            border: 1.5px solid transparent;
+            border: 1.5px solid var(--border-mid);
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
             gap: 4px;
             transition: .15s ease;
         }
 
-        .pay-method-btn i {
-            font-size: 16px;
+        .pay-method-btn .pmb-badge {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: var(--text-muted);
+            text-transform: uppercase;
         }
 
-        .pay-method-btn:hover {
-            background: var(--pink-light);
-        }
+        .pay-method-btn:hover { background: var(--pink-pale); border-color: var(--pink-light); }
 
         .pay-method-btn.active {
-            background: var(--pink);
+            background: var(--pink-deep);
             color: #fff;
-            border-color: var(--pink);
+            border-color: var(--pink-deep);
         }
 
+        .pay-method-btn.active .pmb-badge { color: rgba(255,255,255,.75); }
+
         .amount-due-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-left: 3px solid var(--pink-deep);
+            background: var(--pink-pale);
+            border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 14px 16px;
             color: var(--ink);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .amount-due-label {
@@ -110,35 +155,30 @@
         }
 
         .amount-due-val {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 800;
             margin-top: 2px;
-            color: var(--pink-deep);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
         }
 
-        .pay-amounts {
-            display: flex;
-            flex-direction: column;
-        }
+        .pay-amounts { display: flex; flex-direction: column; }
 
         .amt-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 9px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .amt-row:last-child {
-            border-bottom: none;
         }
 
         .amt-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: .05em;
+            letter-spacing: .06em;
+            margin-bottom: 6px;
+            display: block;
         }
 
         .amt-val {
@@ -148,16 +188,16 @@
         }
 
         .amt-input {
-            width: 150px;
+            width: 100%;
             text-align: right;
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 800;
-            border: 1.5px solid var(--border-mid);
+            border: 1.5px solid var(--pink);
             border-radius: var(--radius-sm);
-            padding: 5px 9px;
+            padding: 10px 12px;
             background: var(--white);
             color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Courier New', monospace;
         }
 
         .amt-input:focus {
@@ -169,21 +209,41 @@
         .ref-input {
             font-size: 14px;
             font-weight: 600;
-            width: 150px;
             text-align: left;
         }
 
-        .cash-change-card {
-            background: #EAF3DE;
-            border-radius: var(--radius);
-            padding: 8px 12px;
-            margin-top: 4px;
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 12px 0;
         }
 
-        .cash-change-card .amt-row {
-            border: none;
-            padding: 0;
+        .qa-btn {
+            padding: 9px 6px;
+            border: 1.5px solid var(--border-mid);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .12s;
+            font-family: 'Inter', sans-serif;
         }
+
+        .qa-btn:hover { background: var(--pink-light); border-color: var(--pink); color: var(--pink-dark); }
+
+        .cash-change-card {
+            background: #EAF3DE;
+            border: 1px solid #cde8b3;
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cash-change-card .amt-row { padding: 0; }
 
         .change-val {
             color: var(--green-dark);
@@ -191,57 +251,42 @@
             font-weight: 800;
         }
 
-        #cashChangeRow.insufficient .cash-change-card {
-            background: #FCEBEB;
-        }
-
-        #cashChangeRow.insufficient .change-val {
-            color: #E24B4A;
-        }
+        #cashChangeRow.insufficient .cash-change-card { background: #FCEBEB; border-color: #f5b8b8; }
+        #cashChangeRow.insufficient .change-val { color: #E24B4A; }
 
         .pay-keypad {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .keypad-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            gap: 8px;
         }
 
         .pay-keypad button {
             padding: 14px 0;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
-            border-radius: var(--radius-sm);
-            border: none;
-            background: var(--bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--white);
             cursor: pointer;
             color: var(--text-primary);
         }
 
-        .pay-keypad button:hover {
-            background: var(--border);
-        }
+        .pay-keypad button:hover { background: var(--pink-pale); border-color: var(--pink-light); }
 
-        .kp-backspace {
-            background: var(--border-mid);
-        }
-
-        .kp-clear-full {
-            grid-column: 1 / -1;
-            background: var(--pink-light);
-            color: var(--pink-deep);
-        }
+        .kp-backspace { background: var(--pink-pale); }
 
         .kp-confirm-full {
             background: var(--green);
             color: #fff;
             border: none;
-            border-radius: var(--radius-sm);
-            padding: 12px 0;
+            border-radius: var(--radius);
+            padding: 13px 0;
             font-weight: 700;
             font-size: 14px;
             cursor: pointer;
@@ -249,47 +294,75 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            margin-top: 4px;
         }
 
-        .kp-confirm-full:hover {
-            background: var(--green-dark);
-        }
+        .kp-confirm-full:hover { background: var(--green-dark); }
 
         .kp-cancel {
-            background: #FCEBEB;
-            color: #E24B4A;
-            border: none;
-            border-radius: var(--radius-sm);
-            padding: 10px 0;
+            background: var(--white);
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border-mid);
+            border-radius: var(--radius);
+            padding: 11px 0;
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
         }
 
-        .kp-cancel:hover {
-            background: #F09595;
-            color: #fff;
+        .kp-cancel:hover { background: var(--pink-pale); }
+
+        .pt-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--pink-pale);
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
-        @media (max-width: 640px) {
+        .pt-footer b { color: var(--text-primary); }
+
+        .pt-kbd {
+            background: var(--white);
+            border: 1px solid var(--border-mid);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        /* ═══ PAYMENT GRID — single source of truth, no duplicates ═══ */
+        .pt-methods-col { grid-area: methods; }
+        .pay-amounts     { grid-area: amounts; }
+        .pay-keypad      { grid-area: keypad; }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 190px 1fr 210px;
+            grid-template-areas: "methods amounts keypad";
+            align-items: start;
+            gap: 18px;
+            margin-top: 0;
+            padding: 0 24px 20px;
+            border-top: 1px solid var(--border);
+            padding-top: 18px;
+        }
+
+        @media (max-width: 680px) {
+            .payment-box { width: 95vw; }
             .payment-grid {
-                grid-template-columns: 1fr 1fr;
-                grid-template-areas: "methods amounts" "keypad  keypad";
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "methods"
+                    "amounts"
+                    "keypad";
+                row-gap: 16px;
             }
-
-            .pay-method-list {
-                grid-area: methods;
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-
-            .pay-amounts {
-                grid-area: amounts;
-            }
-
-            .pay-keypad {
-                grid-area: keypad;
-            }
+            .pt-footer { flex-direction: column; gap: 4px; align-items: flex-start; }
         }
 
         /* ═══ LOADING OVERLAY ═══ */
@@ -384,12 +457,10 @@
                         <i class="ti ti-search"></i>
                         <input type="text" id="searchInput" placeholder="Search item..." oninput="renderProducts()">
                     </div>
-                    <div id="skatesCatWrap" class="skates-body">
-                        <div class="cats-sidebar">
-                            <div id="catRow"></div>
-                        </div>
-                        <div class="products-grid" id="prodGridSkates"></div>
-                    </div>
+                   <div id="skatesCatWrap" class="skates-body">
+                    <div class="snack-sidebar" id="catRow"></div>
+                    <div class="products-grid" id="prodGridSkates"></div>
+                </div>
                     <div id="snackbarBody" class="snackbar-body" style="display:none;">
                         <div class="snack-sidebar" id="snackSidebar"></div>
                         <div class="products-grid" id="prodGrid"></div>
@@ -401,38 +472,50 @@
                 <!-- RIGHT: 4 Stacked Boxes -->
                 <div class="right-col">
 
-                    <!-- BOX 1: Options | Reports -->
+                                   <!-- BOX 1: Options | Reports -->
                     <div class="rbox rbox1">
                         <div class="rbox1-inner">
                             <div class="rbox1-col">
                                 <div class="rbox1-head">Options</div>
-                                <button class="qbtn green" onclick="openDrawer()"><i
-                                        class="ti ti-cash-register"></i>Open Drawer</button>
-                                <button class="qbtn" onclick="reprintReceipt()"><i class="ti ti-printer"></i>Reprint
-                                    Receipt</button>
-                                <button class="qbtn red" onclick="removeDiscount()"><i
-                                        class="ti ti-discount-off"></i>Remove Discount</button>
-                                <button class="qbtn" onclick="openCashflow()"><i
-                                        class="ti ti-cash"></i>Cashflow</button>
-                                <button class="qbtn" onclick="openPwdSeniorDiscount()"><i
-                                        class="ti ti-id-badge-2"></i>Discount</button>
+                                <button class="qbtn green" onclick="openDrawer()">
+                                    <i class="ti ti-cash-register"></i>Open Drawer
+                                </button>
+                                <button class="qbtn" onclick="reprintReceipt()">
+                                    <i class="ti ti-printer"></i>Reprint Receipt
+                                </button>
+                                <button class="qbtn red" onclick="removeDiscount()">
+                                    <i class="ti ti-discount-off"></i>Remove Discount
+                                </button>
+                                <button class="qbtn" onclick="openCashflow()">
+                                    <i class="ti ti-cash"></i>Cashflow
+                                </button>
+                                <button class="qbtn" onclick="openPwdSeniorDiscount()">
+                                    <i class="ti ti-id-badge-2"></i>Discount
+                                </button>
                             </div>
                             <div class="rbox1-col">
                                 <div class="rbox1-head">Reports</div>
-                                <button class="qbtn" onclick="printSalesReport()"><i
-                                        class="ti ti-report-analytics"></i>Print Sales Report</button>
-                                <button class="qbtn" onclick="openReport('present')"><i
-                                        class="ti ti-file-analytics"></i>Present Reports</button>
-                                <button class="qbtn" onclick="openReport('historical')"><i
-                                        class="ti ti-history"></i>Historical Reports</button>
-                                <button class="qbtn" onclick="openReport('bir')"><i
-                                        class="ti ti-building-bank"></i>BIR Backend Reports</button>
-                                <button class="qbtn red" onclick="openCorrection()"><i
-                                        class="ti ti-edit"></i>Correction</button>
+                                <button class="qbtn" onclick="printSalesReport()">
+                                    <i class="ti ti-report-analytics"></i>Print Sales Report
+                                </button>
+                                <button class="qbtn" onclick="openReport('present')">
+                                    <i class="ti ti-file-analytics"></i>Present Reports
+                                </button>
+                                <button class="qbtn" onclick="openReport('historical')">
+                                    <i class="ti ti-history"></i>Historical Reports
+                                </button>
+                                <button class="qbtn" onclick="openReport('bir')">
+                                    <i class="ti ti-building-bank"></i>BIR Backend Reports
+                                </button>
+                                <button class="qbtn red" onclick="openCorrection()">
+                                    <i class="ti ti-edit"></i>Correction
+                                </button>
+                                <button class="qbtn red" onclick="openVoidTransaction()">
+                                <i class="ti ti-receipt-off"></i>Void Transaction
+                            </button>
                             </div>
                         </div>
                     </div>
-
                     <!-- BOX 2: Invoice | Quick Service -->
                     <div class="rbox rbox2">
                         <div class="rbox2-inner">
@@ -486,8 +569,10 @@
                                 style="display:flex;flex-direction:column;justify-content:flex-end;">
                                 <div class="pay-head" style="opacity:.6;">Press Checkout to select payment method
                                 </div>
-                                <button class="co-btn" onclick="doCheckout()"><i
-                                        class="ti ti-check"></i>Checkout</button>
+                               <button class="co-btn" onclick="doCheckout()">
+                                    <i class="ti ti-check"></i>Checkout
+                                    <span class="co-btn-kbd">F9</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -501,121 +586,107 @@
         <div class="loading-text" id="loadingText">Processing…</div>
     </div>
     <!-- RECEIPT MODAL -->
-    <div class="modal-overlay" id="receiptModal">
-        <div class="modal-box receipt-box">
-            <div class="receipt-header">
-                <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
-                <div class="receipt-owned">Owned &amp; Optd. by:</div>
-                <div class="receipt-owned">WONDERPARK AMUSEMENT COM. INC.</div>
-                <div class="receipt-address">Lower Deck, Building J., The Outlets at Lipa<br>Lima Estates, San Lucas,
-                    City of Lipa, Batangas</div>
-                <div class="receipt-tin">VAT Reg. TIN : 010-412-741-00006</div>
-                <div class="receipt-min">MIN : 240903083555678750</div>
-                <div class="receipt-min">MSN : 8500324000925</div>
-                <div class="receipt-title">SALES INVOICE</div>
+<div class="modal-overlay" id="receiptModal">
+    <div class="modal-box receipt-box">
+        <div class="receipt-header">
+            <div id="rVoidedBanner" style="display:none;text-align:center;color:#E24B4A;font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:6px;border:2px dashed #E24B4A;padding:4px;">
+                ** VOIDED **
             </div>
-            <hr class="dashed">
-            <div class="receipt-meta">
-                <div class="meta-row"><span class="meta-label">No. of Guest:</span><span class="meta-val"
-                        id="rGuestCount">1</span></div>
-                <div class="meta-row"><span class="meta-label">Order #:</span><span class="meta-val"
-                        id="rOrderNum"></span></div>
-                <div class="meta-row"><span class="meta-label">Invoice #:</span><span class="meta-val"
-                        id="rInvNum"></span></div>
-                <div class="meta-row">
-                    <span class="meta-label">Term #: 1&nbsp;&nbsp;&nbsp;Cshr: <span
-                            id="rCashier">CASHIER</span></span>
-                </div>
-                <div style="font-weight:700;font-size:12px;margin-top:3px" id="rServiceLabel">WALK-IN</div>
+            <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+            <div class="receipt-owned">Owned &amp; Optd. by:</div>
+            <div class="receipt-owned">WONDERPARK AMUSEMENT COM. INC.</div>
+            <div class="receipt-address">Lower Deck, Building J., The Outlets at Lipa<br>Lima Estates, San Lucas,
+                City of Lipa, Batangas</div>
+            <div class="receipt-tin">VAT Reg. TIN : 010-412-741-00006</div>
+            <div class="receipt-min">MIN : 240903083555678750</div>
+            <div class="receipt-min">MSN : 8500324000925</div>
+            <div class="receipt-title">SALES INVOICE</div>
+        </div>
+        <hr class="dashed">
+        <div class="receipt-meta">
+            <div class="meta-row"><span class="meta-label">No. of Guest:</span><span class="meta-val"
+                    id="rGuestCount">1</span></div>
+            <div class="meta-row"><span class="meta-label">Order #:</span><span class="meta-val"
+                    id="rOrderNum"></span></div>
+            <div class="meta-row"><span class="meta-label">Invoice #:</span><span class="meta-val"
+                    id="rInvNum"></span></div>
+            <div class="meta-row">
+                <span class="meta-label">Term #: 1&nbsp;&nbsp;&nbsp;Cshr: <span
+                        id="rCashier">CASHIER</span></span>
             </div>
-            <hr class="dashed">
-            <div class="receipt-items-head">
-                <span>Qty</span>
-                <span>Description(s)</span>
-                <span style="text-align:right">Price</span>
+            <div style="font-weight:700;font-size:12px;margin-top:3px" id="rServiceLabel">WALK-IN</div>
+        </div>
+        <hr class="dashed">
+        <div class="receipt-items-head">
+            <span>Qty</span>
+            <span>Description(s)</span>
+            <span style="text-align:right">Price</span>
+        </div>
+        <div id="rItems"></div>
+        <div style="font-size:11px;color:#666;text-align:center;margin:4px 0;font-family:'Courier New',monospace">
+            -------- <span id="rItemCount">0</span> item(s) --------
+        </div>
+        <div class="receipt-totals-section">
+            <div class="rt-row"><span class="rt-label">Sub Total</span><span class="rt-val"
+                    id="rSubTotal">0.00</span></div>
+            <div class="rt-row" id="rDiscountRow" style="display:none;"><span class="rt-label">Discount</span><span class="rt-val"
+                    id="rDiscount">0.00</span></div>
+        </div>
+        <hr class="solid">
+        <div class="receipt-totals-section">
+            <div class="rt-row rt-total"><span>TOTAL</span><span id="rTotal">0.00</span></div>
+            <div class="rt-row rt-tendered">
+                <span class="rt-label">Tendered:<br><span id="rPaymentMethod"
+                        style="font-weight:700">CASH</span></span>
+                <span class="rt-val" id="rTendered">0.00</span>
             </div>
-            <div id="rItems"></div>
-            <div style="font-size:11px;color:#666;text-align:center;margin:4px 0;font-family:'Courier New',monospace">
-                -------- <span id="rItemCount">0</span> item(s) --------
-            </div>
-            <div class="receipt-totals-section">
-                <div class="rt-row"><span class="rt-label">Sub Total</span><span class="rt-val"
-                        id="rSubTotal">0.00</span></div>
-                <div class="rt-row" id="rDiscountRow" style="display:none;"><span class="rt-label">Discount</span><span class="rt-val"
-                        id="rDiscount">0.00</span></div>
-            </div>
-            <hr class="solid">
-            <div class="receipt-totals-section">
-                <div class="rt-row rt-total"><span>TOTAL</span><span id="rTotal">0.00</span></div>
-                <div class="rt-row rt-tendered">
-                    <span class="rt-label">Tendered:<br><span id="rPaymentMethod"
-                            style="font-weight:700">CASH</span></span>
-                    <span class="rt-val" id="rTendered">0.00</span>
-                </div>
-                <div class="rt-row rt-change" style="font-weight:700">
-                    <span class="rt-label">Change:</span>
-                    <span class="rt-val" id="rChange">0.00</span>
-                </div>
-            </div>
-            <hr class="dashed">
-            <div class="receipt-vat-section">
-                <div class="vat-row"><span>VATable Sales(V)</span><span id="rVatable">0.00</span></div>
-                <div class="vat-row"><span>VAT Amount</span><span id="rVatAmt">0.00</span></div>
-                <div class="vat-row"><span>VAT Exempt Sales(E)</span><span id="rVatExempt">0.00</span></div>
-                <div class="vat-row"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
-            </div>
-            <hr class="dashed">
-            <div class="receipt-datetime" id="rDateTime"></div>
-            <div class="receipt-buyer-section">
-                <div class="buyer-row"><span class="blabel">Name :</span><span class="bval" id="rCust"></span>
-                </div>
-                <div class="buyer-row"><span class="blabel">Address :</span><span class="bval"></span></div>
-                <div class="buyer-row"><span class="blabel">TIN :</span><span class="bval"></span></div>
-                <div class="buyer-row"><span class="blabel">Business Style :</span><span class="bval"></span></div>
-            </div>
-            <div class="receipt-machine-section">
-                <div class="machine-company">BSIT SM-3201</div>
-                <div>Balintawak rd</div>
-                <div>Lipa City, Batangas</div>
-                <div>VAT Reg. TIN : 006-737-173-00000</div>
-                <div>BIR Accr. No.: 046-006737173-000611</div>
-                <div>Date Issued: 03/01/2013&nbsp;&nbsp;Valid Until: 07/31/2025</div>
-                <br>
-                <div>PTU No : FP092024-059-0465680-0090989</div>
-                <div>Date Issued : 09/10/2024</div>
-            </div>
-            <hr class="dashed">
-            <div class="receipt-thank">This serves as a SALES INVOICE</div>
-            <div class="receipt-thank">Thank you... Come Again...</div>
-            <div class="modal-buttons">
-                <button class="mbtn print" onclick="printReceipt()"><i class="ti ti-printer"></i> Print</button>
-                <button class="mbtn close-btn" onclick="closeReceiptModal()"><i class="ti ti-x"></i> Close</button>
+            <div class="rt-row rt-change" style="font-weight:700">
+                <span class="rt-label">Change:</span>
+                <span class="rt-val" id="rChange">0.00</span>
             </div>
         </div>
-    </div>
-
-    <!-- REPRINT MODAL -->
-    <div class="modal-overlay" id="reprintModal">
-        <div class="modal-box small-box">
-            <h3><i class="ti ti-printer"></i> Reprint Receipt</h3>
-            <p style="font-size:12px;color:#888;margin-bottom:12px">Enter the invoice number to look up and reprint.
-            </p>
-            <div class="form-group">
-                <label>Invoice Number</label>
-                <input type="text" id="reprintInvInput" class="form-control"
-                    placeholder="e.g. 14988 or 00000014988" onkeydown="if(event.key==='Enter') confirmReprint()">
+        <hr class="dashed">
+        <div class="receipt-vat-section">
+            <div class="vat-row"><span>VATable Sales(V)</span><span id="rVatable">0.00</span></div>
+            <div class="vat-row"><span>VAT Amount</span><span id="rVatAmt">0.00</span></div>
+            <div class="vat-row"><span>VAT Exempt Sales(E)</span><span id="rVatExempt">0.00</span></div>
+            <div class="vat-row"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+        </div>
+        <hr class="dashed">
+        <div class="receipt-datetime" id="rDateTime"></div>
+        <div class="receipt-buyer-section">
+            <div class="buyer-row"><span class="blabel">Name :</span><span class="bval" id="rCust"></span>
             </div>
-            <div id="reprintError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
-            <div class="modal-buttons">
-                <button class="mbtn print" id="reprintLookupBtn" onclick="confirmReprint()">
-                    <i class="ti ti-search"></i> Find &amp; Reprint
-                </button>
-                <button class="mbtn close-btn" onclick="closeModal('reprintModal')">
-                    <i class="ti ti-x"></i> Cancel
-                </button>
-            </div>
+            <div class="buyer-row"><span class="blabel">Address :</span><span class="bval"></span></div>
+            <div class="buyer-row"><span class="blabel">TIN :</span><span class="bval"></span></div>
+            <div class="buyer-row"><span class="blabel">Business Style :</span><span class="bval"></span></div>
+        </div>
+        <div class="receipt-machine-section">
+            <div class="machine-company">BSIT SM-3201</div>
+            <div>Balintawak rd</div>
+            <div>Lipa City, Batangas</div>
+            <div>VAT Reg. TIN : 006-737-173-00000</div>
+            <div>BIR Accr. No.: 046-006737173-000611</div>
+            <div>Date Issued: 03/01/2013&nbsp;&nbsp;Valid Until: 07/31/2025</div>
+            <br>
+            <div>PTU No : FP092024-059-0465680-0090989</div>
+            <div>Date Issued : 09/10/2024</div>
+        </div>
+        <hr class="dashed">
+        <div id="rVoidedDetails" style="display:none;text-align:left;font-size:11px;color:#E24B4A;border-top:1px dashed #E24B4A;padding-top:6px;margin-top:6px;">
+            <div><strong>Void Reason:</strong> <span id="rVoidReason"></span></div>
+            <div><strong>Voided By:</strong> <span id="rVoidedBy"></span></div>
+            <div><strong>Voided At:</strong> <span id="rVoidedAt"></span></div>
+        </div>
+        <div class="receipt-thank">This serves as a SALES INVOICE</div>
+        <div class="receipt-thank">Thank you... Come Again...</div>
+        <div class="modal-buttons">
+            <button class="mbtn print" onclick="printReceipt()"><i class="ti ti-printer"></i> Print</button>
+            <button class="mbtn close-btn" onclick="closeVoidedReceiptModal()" id="voidedCloseBtn" style="display:none;"><i class="ti ti-x"></i> Close</button>
+            <button class="mbtn close-btn" onclick="closeReceiptModal()" id="normalCloseBtn"><i class="ti ti-x"></i> Close</button>
         </div>
     </div>
+</div>
 
     <!-- DISCOUNT MODAL -->
     <div class="modal-overlay" id="discountModal">
@@ -681,48 +752,89 @@
     <!-- PAYMENT MODAL -->
     <div class="modal-overlay" id="paymentModal">
         <div class="modal-box payment-box">
-            <h3><i class="ti ti-credit-card"></i> Payment</h3>
+            <div class="pt-header">
+                <div class="pt-header-text">
+                    <h3>Payment Tender</h3>
+                    <p>Select tender method and confirm transaction</p>
+                </div>
+                <button type="button" class="pt-close-btn" onclick="closeModal('paymentModal')">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+
             <div class="payment-grid">
-                <div class="pay-method-list" id="payModalOpts">
-                    <div class="pay-method-btn active" onclick="selPayModal(this,'cash')"><i
-                            class="ti ti-cash"></i>Cash</div>
-                    <div class="pay-method-btn" onclick="selPayModal(this,'card')"><i
-                            class="ti ti-credit-card"></i>Card</div>
-                    <div class="pay-method-btn" onclick="selPayModal(this,'gcash')"><i
-                            class="ti ti-device-mobile"></i>GCash</div>
-                    <div class="pay-method-btn" onclick="selPayModal(this,'maya')"><i class="ti ti-wallet"></i>Maya
-                    </div>
-                    <div class="pay-method-btn" onclick="selPayModal(this,'stardeals')"><i
-                            class="ti ti-star"></i>StarDeals</div>
-                    <div class="pay-method-btn" onclick="selPayModal(this,'klook')"><i class="ti ti-ticket"></i>Klook
+                <div class="pt-methods-col">
+                    <div class="pt-section-label">Payment Method</div>
+                    <div class="pay-method-list" id="payModalOpts">
+                        <div class="pay-method-btn active" onclick="selPayModal(this,'cash')">
+                            <span>Cash</span><span class="pmb-badge">PHP</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'card')">
+                            <span>Card</span><span class="pmb-badge">Terminal</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'gcash')">
+                            <span>GCash</span><span class="pmb-badge">QR</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'maya')">
+                            <span>Maya</span><span class="pmb-badge">Wallet</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'stardeals')">
+                            <span>StarDeals</span><span class="pmb-badge">Promo</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'klook')">
+                            <span>Klook</span><span class="pmb-badge">Voucher</span>
+                        </div>
+                        <div class="pay-method-btn" onclick="selPayModal(this,'online')">
+                            <span>Online</span><span class="pmb-badge">Online</span>
+                        </div>
                     </div>
                 </div>
+
                 <div class="pay-amounts">
                     <div class="amount-due-card">
                         <div class="amount-due-label">Amount Due</div>
                         <div class="amount-due-val" id="cashDueDisplay">₱0.00</div>
                     </div>
+
                     <div class="amt-row" id="discountRow" style="display:none;">
-                        <span class="amt-label">Discount</span>
+                        <span class="amt-label" style="margin-bottom:0">Discount</span>
                         <span class="amt-val" id="discountDisplay" style="color:#E24B4A;">−₱0.00</span>
                     </div>
-                    <div class="amt-row" id="tenderedRow">
+
+                    <div id="tenderedRow">
                         <span class="amt-label">Tendered</span>
                         <input type="text" id="cashTenderedInput" class="amt-input" inputmode="decimal"
                             autocomplete="off" placeholder="0.00" value="0.00" oninput="updateCashChangePreview()"
                             onfocus="this.select()" onkeydown="if(event.key==='Enter') confirmPayment()">
                     </div>
-                    <div class="amt-row" id="payRefGroup" style="display:none;">
+
+                    <div class="amt-row" id="payRefGroup" style="display:none;flex-direction:column;align-items:stretch;">
                         <span class="amt-label">Reference No.</span>
                         <input type="text" id="refInput" class="amt-input ref-input" placeholder="Enter ref #">
                     </div>
+
+                    <div class="quick-amounts" id="quickAmounts">
+                        <button type="button" class="qa-btn" onclick="setQuickAmount('exact')">Exact</button>
+                        <button type="button" class="qa-btn" onclick="setQuickAmount(500)">₱500</button>
+                        <button type="button" class="qa-btn" onclick="setQuickAmount(1000)">₱1,000</button>
+                        <button type="button" class="qa-btn" onclick="setQuickAmount(2000)">₱2,000</button>
+                    </div>
+
                     <div class="cash-change-card" id="cashChangeRow">
                         <div class="amt-row">
-                            <span class="amt-label">Change</span>
+                            <span class="amt-label" style="margin-bottom:0">Change</span>
                             <span class="amt-val change-val" id="cashChangeDisplay">₱0.00</span>
                         </div>
                     </div>
+
+                    <button type="button" class="kp-confirm-full" onclick="confirmPayment()">
+                        <i class="ti ti-check"></i> Confirm Payment
+                    </button>
+                    <button type="button" class="kp-cancel" style="margin-top:8px" onclick="closeModal('paymentModal')">
+                        Cancel
+                    </button>
                 </div>
+
                 <div class="pay-keypad" id="payKeypad">
                     <div class="keypad-grid" id="keypadDigits">
                         <button type="button" onclick="keypadDigit('7')">7</button>
@@ -738,15 +850,13 @@
                         <button type="button" onclick="keypadDigit('0')">0</button>
                         <button type="button" class="kp-backspace" onclick="keypadBackspace()" title="Backspace"><i
                                 class="ti ti-backspace"></i></button>
-                        <button type="button" class="kp-clear-full" onclick="keypadClear()">Clear</button>
                     </div>
-                    <button type="button" class="kp-confirm-full" onclick="confirmPayment()">
-                        <i class="ti ti-check"></i> Confirm Payment
-                    </button>
-                    <button type="button" class="kp-cancel" onclick="closeModal('paymentModal')">
-                        <i class="ti ti-x"></i> Cancel
-                    </button>
                 </div>
+            </div>
+
+            <div class="pt-footer">
+                <span>Payment Method: <b id="ptFooterMethod">Cash</b></span>
+                <span>Press <span class="pt-kbd">Enter</span> to confirm payment</span>
             </div>
         </div>
     </div>
@@ -840,7 +950,35 @@
             </div>
         </div>
     </div>
-
+<!-- VOID TRANSACTION MODAL -->
+<div class="modal-overlay" id="voidTxnModal">
+    <div class="modal-box small-box">
+        <h3><i class="ti ti-receipt-off"></i> Void Transaction</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:12px">
+            Enter the invoice number of the completed transaction to void.
+            This requires Manager/TL authorization and will reflect in the sales report.
+        </p>
+        <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="voidTxnInvInput" class="form-control"
+                placeholder="e.g. 14988 or 00000014988">
+        </div>
+        <div id="voidTxnPreview" style="display:none;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;"></div>
+        <div class="form-group">
+            <label>Reason for Void</label>
+            <textarea id="voidTxnReason" class="form-control" rows="2" placeholder="e.g. Wrong item, customer changed order..."></textarea>
+        </div>
+        <div id="voidTxnError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+        <div class="modal-buttons">
+            <button class="mbtn print" id="voidTxnLookupBtn" onclick="lookupVoidTransaction()">
+                <i class="ti ti-search"></i> Find Transaction
+            </button>
+            <button class="mbtn close-btn" onclick="closeModal('voidTxnModal')">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
     <!-- Pass PHP data to JS via data attributes -->
     <div id="posData" data-products="{{ json_encode($products) }}" data-start-invoice="{{ $last_inv }}"
         data-user-role="{{ session('role') }}" data-user-name="{{ $cashier_name }}"
@@ -856,6 +994,8 @@
         const currentUserId = posDataEl.dataset.currentUserId;
     </script>
     <script src="{{ asset('js/pos.js') }}"></script>
+
+    
 
 </body>
 

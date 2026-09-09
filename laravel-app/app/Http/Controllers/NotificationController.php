@@ -136,4 +136,29 @@ class NotificationController extends Controller
 
         return back()->with('status', $deleted . ' notification(s) deleted.');
     }
+
+public function poll(Request $request): JsonResponse
+{
+    $notifications = Notification::latestFirst()
+        ->limit(6)
+        ->get()
+        ->map(function (Notification $n) {
+            return [
+                'id'       => $n->id,
+                'title'    => $n->title,
+                'message'  => $n->message,
+                'type'     => $n->type,
+                'url'      => $n->url,
+                'is_read'  => (bool) $n->is_read,
+                'time'     => $n->created_at->diffForHumans(),
+                'read_url' => route('notifications.read', $n->id),
+            ];
+        });
+
+    return response()->json([
+        'unread_count' => Notification::unread()->count(),
+        'total_count'  => Notification::count(),
+        'notifications' => $notifications,
+    ]);
+}
 }

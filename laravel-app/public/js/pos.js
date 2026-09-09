@@ -25,20 +25,31 @@ let activePendingId = null;
 const TAX_RATE = 0.12;
 
 const PAYMENT_LABELS = {
-  cash:  'Cash',
-  card:  'Card',
-  gcash: 'GCash',
-  maya:  'Maya',
+  cash:      'Cash',
+  card:      'Card',
+  gcash:     'GCash',
+  maya:      'Maya',
   stardeals: 'StarDeals',
-  klook: "Klook"
+  klook:     "Klook",
+  online:   'Online'
 };
 
 const ZONE_ROLLER_FEVER   = 'roller fever';
 const ZONE_FIELD_OF_RIDES = 'field of rides';
 const ZONE_DINO_ADVENTURE = 'dino adventure';
 
+
 const CATEGORIES_SKATES = [
   'all','ticket','rentals','billiards','massage','socks'
+];
+
+const SKATES_SIDEBAR = [
+  { cat: 'all',       icon: 'ti-apps',            label: 'All' },
+  { cat: 'ticket',    icon: 'ti-ticket',          label: 'Ticket' },
+  { cat: 'rentals',   icon: 'ti-shoe',            label: 'Rentals' },
+  { cat: 'billiards', icon: 'ti-disc',            label: 'Billiards' },
+  { cat: 'massage',   icon: 'ti-hand-stop',       label: 'Massage' },
+  { cat: 'socks',     icon: 'ti-socks',           label: 'Socks' },
 ];
 
 const CATEGORIES_SNACKBAR = ['sweets','beverages','snacks','noodles','icecream'];
@@ -137,7 +148,7 @@ function switchMode(mode) {
     if (skatesCatWrap)  skatesCatWrap.style.display = '';
     if (prodGridSkates) prodGridSkates.style.display = '';
     currentCategory = 'all';
-    document.querySelectorAll('#catRow .cat-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.querySelectorAll('#catRow .snack-sidebar-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === 'all'));
 
   } else if (mode === 'snackbar') {
     if (snackbarBody) snackbarBody.style.display = 'flex';
@@ -159,21 +170,22 @@ function switchMode(mode) {
 }
 
 // ============================================================
-//  CATEGORY TABS
+//  CATEGORY TABS (Skates) — same style as Snackbar sidebar
 // ============================================================
 function buildCategoryTabs() {
   const row = document.getElementById('catRow');
   if (!row) return;
   row.innerHTML = '';
 
-  CATEGORIES_SKATES.forEach((cat, i) => {
+  SKATES_SIDEBAR.forEach(item => {
     const btn = document.createElement('button');
-    btn.className = 'cat-btn' + (i === 0 ? ' active' : '');
-    btn.textContent = cat === 'all' ? 'All' : capitalize(cat);
+    btn.className = 'snack-sidebar-btn' + (item.cat === 'all' ? ' active' : '');
+    btn.dataset.cat = item.cat;
+    btn.innerHTML = `<i class="ti ${item.icon}"></i><span>${item.label}</span>`;
     btn.onclick = () => {
-      document.querySelectorAll('#catRow .cat-btn').forEach(b => b.classList.remove('active'));
+      currentCategory = item.cat;
+      document.querySelectorAll('#catRow .snack-sidebar-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentCategory = cat;
       renderProducts();
     };
     row.appendChild(btn);
@@ -683,6 +695,8 @@ function doCheckout() {
 
   selectedPayment = 'cash';
   document.querySelectorAll('#payModalOpts .pay-method-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  const footerEl = document.getElementById('ptFooterMethod');
+  if (footerEl) footerEl.textContent = 'Cash';
 
   document.getElementById('tenderedRow').style.display   = '';
   document.getElementById('cashChangeRow').style.display = '';
@@ -709,6 +723,12 @@ function selPayModal(el, method) {
   const isCash = method === 'cash';
   const { total } = calcTotals();
 
+  const footerEl = document.getElementById('ptFooterMethod');
+  if (footerEl) footerEl.textContent = PAYMENT_LABELS[method] || method;
+
+  const quickAmounts = document.getElementById('quickAmounts');
+  if (quickAmounts) quickAmounts.style.display = isCash ? '' : 'none';
+
   document.getElementById('tenderedRow').style.display   = isCash ? '' : 'none';
   document.getElementById('cashChangeRow').style.display = isCash ? '' : 'none';
   document.getElementById('keypadDigits').style.display  = isCash ? '' : 'none';
@@ -731,15 +751,16 @@ function keypadDigit(d) {
   el.value = cur + d;
   updateCashChangePreview();
 }
+function setQuickAmount(val) {
+  const { total } = calcTotals();
+  const amount = val === 'exact' ? total : val;
+  document.getElementById('cashTenderedInput').value = amount.toFixed(2);
+  updateCashChangePreview();
+}
 
 function keypadBackspace() {
   const el = document.getElementById('cashTenderedInput');
   el.value = el.value.slice(0, -1);
-  updateCashChangePreview();
-}
-
-function keypadClear() {
-  document.getElementById('cashTenderedInput').value = '';
   updateCashChangePreview();
 }
 
@@ -896,6 +917,12 @@ function updateCashChangePreview() {
 //  RECEIPT MODAL
 // ============================================================
 function showReceipt(invNum, custName, gross, vatAmount, total, refNumber = null) {
+  // I-reset ang voided-specific UI kung nandoon pa mula sa dating void
+  document.getElementById('rVoidedBanner').style.display  = 'none';
+  document.getElementById('rVoidedDetails').style.display = 'none';
+  document.getElementById('voidedCloseBtn').style.display = 'none';
+  document.getElementById('normalCloseBtn').style.display = '';
+
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', {
     month: '2-digit', day: '2-digit', year: 'numeric'
@@ -1131,6 +1158,37 @@ function viewHistoricalCutoff(id) {
     })
     .catch(() => { hideLoading(); alert('Could not load report.'); });
 }
+function searchHistorical() {
+  const date = document.getElementById('histDate').value;
+  const list = document.getElementById('histList');
+  list.innerHTML = 'Loading...';
+  showLoading('Searching cut-offs…');
+
+  fetch('/pos/historical-cutoffs' + (date ? '?date=' + encodeURIComponent(date) : ''))
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      const cutoffs = Array.isArray(res.cutoffs) ? res.cutoffs : [];
+      if (cutoffs.length === 0) {
+        list.innerHTML = '<div style="color:#aaa;text-align:center;padding:14px;font-size:13px">No cut-off reports found for this date.</div>';
+        return;
+      }
+      list.innerHTML = cutoffs.map(c => `
+        <div onclick="viewHistoricalCutoff(${c.id})"
+             style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;">
+          <div>
+            <div style="font-weight:700;font-size:13px">Cut-off #${c.cutoff_number}</div>
+            <div style="font-size:11px;color:#888">${new Date(c.period_end).toLocaleString('en-PH')}</div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:#aaa"></i>
+        </div>
+      `).join('');
+    })
+    .catch(() => {
+      hideLoading();
+      list.innerHTML = '<div style="color:#E24B4A;text-align:center;padding:14px;font-size:13px">Could not load historical reports.</div>';
+    });
+}
 
 // ============================================================
 //  SALES REPORT RENDERING
@@ -1149,7 +1207,10 @@ function renderSalesReport(res, isPreview, isReprint = false) {
     title, dateStr, r.overall.items, r.overall.total_sales, r.overall.total_discount,
     r.overall.payment_breakdown, null, isReprint
   );
-  html += buildReportFooter(res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview);
+  html += buildReportFooter(
+  res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview,
+  res.voided_txn_count || 0, res.voided_txn_total || 0
+);
 
   // === SALES BY ZONE (Roller Fever / Snackbar / Field of Rides / Dino Adventure) ===
   (r.zones || []).forEach(z => {
@@ -1169,12 +1230,14 @@ function renderSalesReport(res, isPreview, isReprint = false) {
   document.getElementById('salesReportModal').classList.add('show');
 }
 
-function buildReportFooter(authorizedBy, voidCount, voidTotal, isPreview) {
-  return `
+function buildReportFooter(authorizedBy, voidCount, voidTotal, isPreview, voidedTxnCount = 0, voidedTxnTotal = 0) {
+  return `  
     <div class="report-receipt" style="border-top:2px dashed #ccc;margin-top:6px;padding-top:6px;">
       <div class="receipt-vat-section">
         <div class="vat-row"><span>Voided Item(s)</span><span>${voidCount}</span></div>
         <div class="vat-row"><span>Voided Amount</span><span>−₱${parseFloat(voidTotal).toFixed(2)}</span></div>
+        <div class="vat-row"><span>Voided Transaction(s)</span><span>${voidedTxnCount}</span></div>
+        <div class="vat-row"><span>Voided Txn Amount</span><span>−₱${parseFloat(voidedTxnTotal).toFixed(2)}</span></div>
       </div>
       <hr class="dashed">
       <div style="text-align:center;font-size:12px;font-weight:700;margin-top:4px;">
@@ -1277,14 +1340,14 @@ function confirmAuth() {
           persistCart();
         }
 
-      } else if (pendingAction === 'correction') {
-        pendingAction = null;
-        showCorrectionModal();
+     } else if (pendingAction === 'void_transaction' && pendingVoidTxnInvoice) {
+      pendingAction = null;
+      confirmVoidTransaction(lastAuthorizedBy);
 
-      } else if (pendingAction === 'print_report') {
-        pendingAction = null;
-        runCutoffReport();
-      }
+    } else if (pendingAction === 'print_report') {
+      pendingAction = null;
+      runCutoffReport();
+    }
 
     } else {
       document.getElementById('authError').textContent = res.message || 'Invalid credentials.';
@@ -1414,6 +1477,12 @@ function confirmReprint() {
 
 
 function showReprintedReceipt(t) {
+  
+  document.getElementById('rVoidedBanner').style.display  = 'none';
+  document.getElementById('rVoidedDetails').style.display = 'none';
+  document.getElementById('voidedCloseBtn').style.display = 'none';
+  document.getElementById('normalCloseBtn').style.display = '';
+
   const invNum      = String(t.invoice_number || t.transaction_id || '').padStart(11, '0');
   const gross       = parseFloat(t.gross    || 0);
   const disc        = parseFloat(t.discount || 0);
@@ -1530,4 +1599,277 @@ function applyDayLock(locked, message) {
     coBtn.style.opacity = dayLocked ? '0.5' : '';
     coBtn.style.cursor  = dayLocked ? 'not-allowed' : '';
   }
+}
+// ============================================================
+//  KEYBOARD SHORTCUTS — Options / Reports / Checkout
+// ============================================================
+document.addEventListener('keydown', function (e) {
+  // F9 — Checkout (works anywhere, even while typing)
+  if (e.key === 'F9') {
+    e.preventDefault();
+    doCheckout();
+    return;
+  }
+
+  // Lahat ng iba pa ay Alt+Shift+<letter>
+  if (!e.altKey || !e.shiftKey) return;
+
+  const key = e.key.toLowerCase();
+
+  const shortcutMap = {
+    d: openDrawer,              // Open Drawer
+    r: reprintReceipt,          // Reprint Receipt
+    m: removeDiscount,          // Remove Discount
+    f: openCashflow,            // Cashflow
+    i: openPwdSeniorDiscount,   // PWD/Senior Discount
+    p: printSalesReport,        // Print Sales Report
+    e: () => openReport('present'),     // Present Reports
+    h: () => openReport('historical'),  // Historical Reports
+    b: () => openReport('bir'),         // BIR Backend Reports
+    v: openCorrection,          // Correction
+  };
+
+  if (shortcutMap[key]) {
+    e.preventDefault();
+    shortcutMap[key]();
+  }
+});
+
+let pendingVoidTxnInvoice = null;
+
+function openVoidTransaction() {
+  document.getElementById('voidTxnInvInput').value = '';
+  document.getElementById('voidTxnReason').value = '';
+  document.getElementById('voidTxnError').textContent = '';
+  document.getElementById('voidTxnPreview').style.display = 'none';
+  document.getElementById('voidTxnModal').classList.add('show');
+  setTimeout(() => document.getElementById('voidTxnInvInput').focus(), 100);
+}
+
+
+function lookupVoidTransaction() {
+  const raw    = document.getElementById('voidTxnInvInput').value.trim();
+  const reason = document.getElementById('voidTxnReason').value.trim();
+ 
+  if (!raw) {
+    document.getElementById('voidTxnError').textContent = 'Please enter an invoice number.';
+    return;
+  }
+  if (!reason) {
+    document.getElementById('voidTxnError').textContent = 'Please enter a reason for the void.';
+    return;
+  }
+ 
+  const invNum = raw.padStart(11, '0');
+  document.getElementById('voidTxnError').textContent = '';
+ 
+  const btn = document.getElementById('voidTxnLookupBtn');
+  btn.disabled  = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> Looking up...';
+  showLoading('Looking up invoice…');
+ 
+  fetch('/pos/get_transaction?invoice=' + encodeURIComponent(invNum), {
+    headers: {
+      'Accept':           'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    }
+  })
+    .then(async res => {
+      // Kahit 200 status, i-guard pa rin natin sa case na naka-redirect
+      // sa login page (session expired) na nagbabalik ng HTML.
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          res.status === 302 || res.redirected
+            ? 'Session may have expired. Please refresh the page and log in again.'
+            : `Unexpected server response (HTTP ${res.status}).`
+        );
+      }
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.message || `Request failed (HTTP ${res.status}).`);
+      }
+      return res.json();
+    })
+    .then(res => {
+      btn.disabled  = false;
+      btn.innerHTML = '<i class="ti ti-search"></i> Find Transaction';
+      hideLoading();
+ 
+      if (!res.success) {
+        document.getElementById('voidTxnError').textContent = res.message || 'Invoice not found.';
+        return;
+      }
+ 
+      const t = res.transaction;
+      document.getElementById('voidTxnPreview').style.display = '';
+      document.getElementById('voidTxnPreview').innerHTML = `
+        <strong>Invoice #${t.invoice_number}</strong><br>
+        Customer: ${escHtml(t.customer_name || 'Walk-in')}<br>
+        Total: ₱${parseFloat(t.total).toFixed(2)}<br>
+        Payment: ${t.payment_method}<br>
+        Items: ${(t.items || []).length} item(s)
+      `;
+ 
+      // I-store yung invoice number, ipasa sa auth flow
+      pendingVoidTxnInvoice = raw.padStart(11, '0');
+      pendingAction = 'void_transaction';
+ 
+      document.querySelector('#authModal h3').innerHTML =
+        '<i class="ti ti-lock"></i> Admin Authorization — Void Transaction';
+      document.getElementById('authUser').value = '';
+      document.getElementById('authPass').value = '';
+      document.getElementById('authError').textContent = '';
+      closeModal('voidTxnModal');
+      document.getElementById('authModal').classList.add('show');
+    })
+    .catch(err => {
+      btn.disabled  = false;
+      btn.innerHTML = '<i class="ti ti-search"></i> Find Transaction';
+      hideLoading();
+      console.error('lookupVoidTransaction error:', err);
+      document.getElementById('voidTxnError').textContent =
+        err.message || 'Something went wrong.';
+    });
+}
+ 
+function confirmVoidTransaction(authorizedBy) {
+  const reason = document.getElementById('voidTxnReason').value.trim();
+
+  const authBtn = document.querySelector('#authModal .mbtn.print');
+  if (authBtn) authBtn.disabled = true;
+
+  showLoading('Voiding transaction…');
+
+  fetch('/pos/void-transaction', {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/json',
+      'Accept':            'application/json',   
+      'X-Requested-With':  'XMLHttpRequest',      
+      'X-CSRF-TOKEN':      document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    },
+    body: JSON.stringify({
+      invoice_number: parseInt(pendingVoidTxnInvoice, 10),
+      reason:         reason,
+      authorized_by:  authorizedBy
+    })
+  })
+    .then(async res => {
+      const contentType = res.headers.get('content-type') || '';
+
+      if (!contentType.includes('application/json')) {
+        if (res.status === 419) {
+          throw new Error('Your session/CSRF token expired. Please refresh the page and try again.');
+        }
+        if (res.redirected || res.status === 302) {
+          throw new Error('Request was redirected by the server (expired session or failed validation). Please refresh and try again.');
+        }
+        throw new Error(`Unexpected server response (HTTP ${res.status}). Void was NOT confirmed — please check before retrying.`);
+      }
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const firstValidationMsg = errBody.errors
+          ? Object.values(errBody.errors)[0]?.[0]
+          : null;
+        throw new Error(firstValidationMsg || errBody.message || `Request failed (HTTP ${res.status}).`);
+      }
+
+      return res.json();
+    })
+    .then(res => {
+      hideLoading();
+      if (authBtn) authBtn.disabled = false;
+
+      if (res.success) {
+        showVoidedReceipt(res.transaction);
+      } else {
+        alert('Error: ' + (res.message || 'Could not void transaction.'));
+      }
+      pendingVoidTxnInvoice = null;
+    })
+    .catch(err => {
+      hideLoading();
+      if (authBtn) authBtn.disabled = false;
+      console.error('confirmVoidTransaction error:', err);
+      alert(err.message || 'Something went wrong. Void was NOT processed.');
+      pendingVoidTxnInvoice = null;
+    });
+}
+
+// ============================================================
+//  VOIDED TRANSACTION RECEIPT
+// ============================================================
+function showVoidedReceipt(t) {
+  const total = parseFloat(t.total || 0);
+  const disc  = parseFloat(t.discount || 0);
+  const items = Array.isArray(t.items) ? t.items : [];
+
+  document.getElementById('rVoidedBanner').style.display  = '';
+  document.getElementById('rVoidedDetails').style.display = '';
+
+  document.getElementById('rDateTime').textContent    = t.voided_at || '';
+  document.getElementById('rInvNum').textContent       = t.invoice_number;
+  document.getElementById('rOrderNum').textContent     = String(parseInt(t.invoice_number, 10));
+  document.getElementById('rCust').textContent         = t.customer_name || 'Walk-in Customer';
+  document.getElementById('rServiceLabel').textContent = (t.service_type || 'WALK-IN').toUpperCase();
+  document.getElementById('rCashier').textContent      = (typeof userName !== 'undefined' ? userName : 'CASHIER');
+  document.getElementById('rGuestCount').textContent   = items.reduce((s, i) => s + parseFloat(i.qty || 0), 0) || 1;
+
+  document.getElementById('rItems').innerHTML =
+    `<div class="receipt-item-row"><span class="item-service-label">${escHtml((t.service_type || 'WALK-IN').toUpperCase())}</span></div>` +
+    items.map(item => `
+      <div class="receipt-item-row">
+        <span>${parseFloat(item.qty).toFixed(2)}</span>
+        <span>${escHtml(item.name)}</span>
+        <span style="text-align:right">${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)} V</span>
+      </div>
+    `).join('');
+
+  document.getElementById('rItemCount').textContent = items.reduce((s, i) => s + parseFloat(i.qty || 0), 0).toFixed(2);
+  document.getElementById('rSubTotal').textContent   = total.toFixed(2);
+  document.getElementById('rTotal').textContent      = total.toFixed(2);
+
+  const rDiscountRow = document.getElementById('rDiscountRow');
+  if (rDiscountRow) {
+    if (disc > 0) {
+      rDiscountRow.style.display = '';
+      document.getElementById('rDiscount').textContent = '−' + disc.toFixed(2);
+    } else {
+      rDiscountRow.style.display = 'none';
+    }
+  }
+
+  document.getElementById('rTendered').textContent      = total.toFixed(2);
+  document.getElementById('rChange').textContent        = '0.00';
+  document.getElementById('rPaymentMethod').textContent = (t.payment_method || 'CASH').toUpperCase();
+
+  const vatableBase = total / (1 + TAX_RATE);
+  const vatAmount   = total - vatableBase;
+  document.getElementById('rVatable').textContent   = vatableBase.toFixed(2);
+  document.getElementById('rVatAmt').textContent    = vatAmount.toFixed(2);
+  document.getElementById('rVatExempt').textContent = '0.00';
+
+  document.getElementById('rVoidReason').textContent = t.void_reason || '';
+  document.getElementById('rVoidedBy').textContent    = t.voided_by || '';
+  document.getElementById('rVoidedAt').textContent    = t.voided_at || '';
+
+  // Ipakita ang "voided" close button, itago ang normal na close button
+  // — para hindi ma-trigger ang resetAfterCheckout() na pwedeng
+  // makabura sa kasalukuyang cart ng cashier.
+  document.getElementById('voidedCloseBtn').style.display = '';
+  document.getElementById('normalCloseBtn').style.display = 'none';
+
+  document.getElementById('receiptModal').classList.add('show');
+}
+
+function closeVoidedReceiptModal() {
+  document.getElementById('receiptModal').classList.remove('show');
+
+  // I-reset lang ang voided-specific na UI state, HINDI ang cart.
+  document.getElementById('rVoidedBanner').style.display  = 'none';
+  document.getElementById('rVoidedDetails').style.display = 'none';
+  document.getElementById('voidedCloseBtn').style.display = 'none';
+  document.getElementById('normalCloseBtn').style.display = '';
 }

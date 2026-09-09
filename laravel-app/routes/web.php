@@ -28,6 +28,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
+use App\Http\Controllers\User\BookingController;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 // Auth
@@ -208,6 +209,7 @@ Route::delete('/notifications/{notification}', [NotificationController::class, '
 
 Route::delete('/notifications/bulk-destroy', [NotificationController::class, 'bulkDestroy'])
     ->name('notifications.bulk-destroy');
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
 
 Route::prefix('admin/cms')->name('cms.')->group(function () {
 
@@ -226,6 +228,11 @@ Route::prefix('admin/cms')->name('cms.')->group(function () {
     Route::delete('/card/{card}', [CmsController::class, 'destroyCard'])->name('cards.destroy');
 });
 
+Route::get('/app/bookings/{booking}/receipt', [BookingController::class, 'receipt'])
+    ->name('user.bookings.receipt');
+
+    Route::post('/pos/void-transaction', [PosController::class, 'voidTransaction']);
+    
 Route::get('/', function () {
     return view('landing', [
         'hero'    => \App\Models\SiteContent::section('hero'),

@@ -246,46 +246,6 @@ a { text-decoration: none; color: inherit; }
   min-height: 0;
   overflow: hidden;
 }
-.cats-sidebar {
-  width: 100px;
-  background: var(--pink-pale);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex-shrink: 0;
-  padding: 8px 6px;
-}
-.cats-sidebar #catRow {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.cats-sidebar .cat-btn {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: left;
-  white-space: normal;
-  line-height: 1.3;
-}
-.cat-btn {
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border-mid);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--white);
-  color: var(--text-secondary);
-  transition: all .12s;
-  white-space: nowrap;
-}
-.cat-btn:hover { background: var(--pink-light); border-color: var(--pink); color: var(--pink-dark); }
-.cat-btn.active { background: var(--pink); color: #fff; border-color: var(--pink); }
-
 /* ===== SNACKBAR LAYOUT ===== */
 .snackbar-body {
   display: flex;
@@ -431,6 +391,36 @@ a { text-decoration: none; color: inherit; }
 .qbtn i { font-size: 14px; color: var(--text-muted); }
 .qbtn.red i  { color: #E24B4A; }
 .qbtn.green i { color: var(--green); }
+
+.qbtn-kbd {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
+  padding: 1px 5px;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.qbtn:hover .qbtn-kbd {
+  background: var(--white);
+  border-color: var(--pink);
+  color: var(--pink-dark);
+}
+
+.co-btn-kbd {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,255,255,.25);
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: .02em;
+}
 
 /* BOX 2 — Invoice + Service */
 .rbox2 { flex-shrink: 0; }

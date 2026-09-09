@@ -233,18 +233,18 @@
         }
 
         .notif-panel {
-            display: none;
-            position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
-            width: 320px;
-            max-width: 82vw;
-            background: var(--card);
-            border-radius: 14px;
-            box-shadow: var(--shadow-md);
-            overflow: hidden;
-            z-index: 10000;
-        }
+        display: none;
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 0;
+        width: 320px;
+        max-width: 82vw;
+        background: var(--card);
+        border-radius: 14px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        z-index: 10000;
+    }
 
         .notif-panel.open {
             display: block;
@@ -658,6 +658,18 @@
         .nav-submenu a.active {
             border-left: 2px solid var(--pink);
         }
+        .nav-label-count.is-zero {
+            display: none;
+        }
+
+        .sidebar-nav a.has-unread {
+            background: rgba(255, 92, 133, .13);
+            color: #fff;
+        }
+
+        .sidebar-nav a.has-unread i {
+            color: var(--pink);
+        }
 
         /* --- Footer / account card --- */
         .sidebar-footer {
@@ -747,96 +759,120 @@
         }
 
         .logout-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(26, 21, 35, .55);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-        }
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 21, 35, .55);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
 
-        .logout-modal-overlay.active {
-            display: flex;
-        }
+.logout-modal-overlay.active {
+    display: flex;
+}
 
-        .logout-modal {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 32px 28px;
-            width: 90%;
-            max-width: 360px;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-            animation: modalPop .18s ease;
-        }
+.logout-modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 38px 32px 26px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    animation: modalPop .18s ease;
+}
 
-        @keyframes modalPop {
-            from { transform: scale(.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
+@keyframes modalPop {
+    from { transform: scale(.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
 
-        .logout-modal-icon {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 16px;
-            border-radius: 50%;
-            background: var(--pink-light);
-            color: var(--pink-deep);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-        }
+.logout-modal-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--pink-light);
+    color: var(--pink-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
 
-        .logout-modal h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 8px;
-        }
+.logout-modal h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 10px;
+}
 
-        .logout-modal p {
-            font-size: .88rem;
-            color: var(--ink-soft);
-            margin-bottom: 22px;
-        }
+.logout-modal p {
+    font-size: .92rem;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+}
 
-        .logout-modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
+.logout-modal .logout-modal-subtext {
+    font-size: .8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 26px;
+}
 
-        .logout-modal-actions button,
-        .logout-modal-actions a {
-            flex: 1;
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: .86rem;
-            cursor: pointer;
-            border: none;
-            display: inline-block;
-        }
+.logout-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
 
-        .btn-cancel {
-            background: var(--pink-pale);
-            color: var(--ink-soft);
-        }
+.logout-modal-actions button,
+.logout-modal-actions a {
+    flex: 1;
+    padding: 13px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: .92rem;
+    cursor: pointer;
+    border: none;
+    display: inline-block;
+}
 
-        .btn-cancel:hover {
-            background: var(--line);
-        }
+.btn-cancel {
+    background: var(--pink-pale);
+    color: var(--ink-soft);
+}
 
-        .btn-confirm-logout {
-            background: var(--pink);
-            color: #fff;
-        }
+.btn-cancel:hover {
+    background: var(--line);
+}
 
-        .btn-confirm-logout:hover {
-            background: var(--pink-dark);
-        }
+.btn-confirm-logout {
+    background: var(--pink);
+    color: #fff;
+}
+
+.btn-confirm-logout:hover {
+    background: var(--pink-dark);
+}
+
+.logout-modal-hint {
+    margin-top: 20px;
+    font-size: .76rem;
+    color: var(--muted);
+}
+
+.logout-modal-hint .lm-kbd {
+    background: var(--pink-pale);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    padding: 1px 7px;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin: 0 2px;
+}
 
         /* --- Notification DETAIL popup (opens when a notif-item is clicked) --- */
         .notif-detail-overlay {
@@ -950,6 +986,25 @@
         .btn-notif-goto:hover {
             background: var(--pink-dark);
         }
+        .notif-btn:hover,
+        .notif-btn.open {
+            background: rgba(255, 92, 133, .16);
+            color: var(--pink);
+        }
+
+        .notif-btn.has-unread {
+            background: rgba(255, 92, 133, .16);
+            color: var(--pink);
+        }
+
+        .notif-btn.has-unread .notif-badge {
+            animation: notifPulse 1.6s ease-in-out infinite;
+        }
+
+@keyframes notifPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
 
         .content-body {
             padding: clamp(20px, 3vw, 40px);
@@ -1020,7 +1075,7 @@
         <div class="mobile-topbar-actions">
             @if ($canViewNotifications)
                 <div class="notif-trigger">
-                    <button type="button" class="notif-btn" id="notifBtnMobile" aria-label="Notifications">
+                    <button type="button" class="notif-btn {{ $unreadNotifCount > 0 ? 'has-unread' : '' }}" id="notifBtnMobile" aria-label="Notifications">
                         <i class="fa-solid fa-bell"></i>
                         @if ($unreadNotifCount > 0)
                             <span class="notif-badge">{{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}</span>
@@ -1085,7 +1140,7 @@
                 </div>
                 @if ($canViewNotifications)
                     <div class="notif-trigger">
-                        <button type="button" class="notif-btn" id="notifBtnDesktop" aria-label="Notifications">
+                        <button type="button" class="notif-btn {{ $unreadNotifCount > 0 ? 'has-unread' : '' }}" id="notifBtnDesktop" aria-label="Notifications">
                             <i class="fa-solid fa-bell"></i>
                             @if ($unreadNotifCount > 0)
                                 <span class="notif-badge">{{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}</span>
@@ -1156,12 +1211,10 @@
                 @if ($canViewNotifications)
                     <div class="nav-section">
                         <div class="nav-label">Notifications</div>
-                        <a href="{{ route('notifications.index') }}" class="{{ request()->routeIs('notifications.index') ? 'active' : '' }}">
-                            <i class="fa-solid fa-bell"></i>
-                            <span>Notifications</span>
-                            @if ($unreadNotifCount > 0)
-                                <span class="nav-label-count" style="margin-left:auto;">{{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}</span>
-                            @endif
+                        <a href="{{ route('notifications.index') }}"id="navNotifLink"
+                        class="{{ request()->routeIs('notifications.index') ? 'active' : '' }} {{ $unreadNotifCount > 0 ? 'has-unread' : '' }}">
+                            <i class="fa-solid fa-bell"></i><span>Notifications</span>
+                            <span id="navNotifCount" class="nav-label-count {{ $unreadNotifCount > 0 ? '' : 'is-zero' }}" style="margin-left:auto;">{{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}</span>
                         </a>
 
                         @if ($notifTotalCount > 4)
@@ -1350,20 +1403,27 @@
 
     </div>
 
-    <!-- Logout Confirmation Modal -->
-    <div class="logout-modal-overlay" id="logoutModalOverlay">
-        <div class="logout-modal">
-            <div class="logout-modal-icon">
-                <i class="fas fa-sign-out-alt"></i>
-            </div>
-            <h3>Confirm Logout</h3>
-            <p>Are you sure you want to logout?</p>
-            <div class="logout-modal-actions">
-                <button type="button" class="btn-cancel" onclick="closeLogoutModal()">Cancel</button>
-                <a href="/logout" class="btn-confirm-logout">Yes, Logout</a>
-            </div>
+   <!-- Logout Confirmation Modal -->
+<div class="logout-modal-overlay" id="logoutModalOverlay">
+    <div class="logout-modal">
+        <div class="logout-modal-icon">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+        </div>
+        <h3>Confirm Logout</h3>
+        <p>Are you sure you want to log out?</p>
+        <div class="logout-modal-subtext">
+            Active {{ session('role') === 'cashier' ? 'cashier ' : '' }}session for
+            <strong>{{ session('fullname', 'this account') }}</strong> will be ended.
+        </div>
+        <div class="logout-modal-actions">
+            <button type="button" class="btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <a href="/logout" class="btn-confirm-logout">Yes, Logout</a>
+        </div>
+        <div class="logout-modal-hint">
+            Press <span class="lm-kbd">Esc</span> to cancel &bull; <span class="lm-kbd">Enter</span> to confirm
         </div>
     </div>
+</div>
 
     <!-- Notification DETAIL Popup (opens when any notif-item is clicked) -->
     <div class="notif-detail-overlay" id="notifDetailOverlay">
@@ -1564,6 +1624,9 @@
             document.querySelectorAll('.notif-item.unread, .nav-notif-item.unread').forEach(item => item.classList.remove('unread'));
             document.querySelectorAll('.notif-dot').forEach(dot => dot.remove());
             document.querySelectorAll('.notif-badge').forEach(badge => badge.remove());
+            // All notifications are now read, so remove the persistent highlight from both bell buttons.
+            document.querySelectorAll('.notif-btn').forEach(b => b.classList.remove('has-unread'));
+            document.getElementById('navNotifLink')?.classList.remove('has-unread');
             const navCount = document.getElementById('navNotifCount');
             if (navCount) {
                 navCount.textContent = '0';
@@ -1583,23 +1646,56 @@
         document.getElementById('logoutModalOverlay')?.addEventListener('click', function(e) {
             if (e.target === this) closeLogoutModal();
         });
+        document.addEventListener('keydown', function(e) {
+        const overlay = document.getElementById('logoutModalOverlay');
+        if (!overlay || !overlay.classList.contains('active')) return;
+
+        if (e.key === 'Escape') {
+            closeLogoutModal();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            window.location.href = '/logout';
+        }
+    });
     </script>
 <script>
 (function() {
-    if (typeof Echo === 'undefined') return;
     @if (!$canViewNotifications)
         return;
     @endif
 
     const iconMap = { low_stock: 'fa-boxes-stacked', inventory: 'fa-boxes-stacked', pos: 'fa-receipt' };
-    const NOTIF_READ_URL_PATTERN_GLOBAL = @json(route('notifications.read', ['notification' => '__ID__']));
+    const NOTIF_POLL_URL = @json(route('notifications.poll'));
+
+    // ---- Badge + bell highlight helpers ----
+    function setBadgeCount(btnSel, count) {
+        const btn = document.querySelector(btnSel);
+        if (!btn) return;
+
+        let el = btn.querySelector('.notif-badge');
+
+        if (count <= 0) {
+            el?.remove();
+            btn.classList.remove('has-unread');
+            return;
+        }
+
+        if (!el) {
+            el = document.createElement('span');
+            el.className = 'notif-badge';
+            btn.appendChild(el);
+        }
+        el.textContent = count > 9 ? '9+' : count;
+        btn.classList.add('has-unread');
+    }
 
     function buildItemHtml(n) {
         const icon = iconMap[n.type] || 'fa-ticket';
-        const readUrl = NOTIF_READ_URL_PATTERN_GLOBAL.replace('__ID__', n.id);
+        const unreadClass = n.is_read ? '' : 'unread';
+        const dot = n.is_read ? '' : '<span class="notif-dot"></span>';
         return `
-            <div class="notif-item unread" role="button" tabindex="0"
-                 data-id="${n.id}" data-read-url="${readUrl}"
+            <div class="notif-item ${unreadClass}" role="button" tabindex="0"
+                 data-id="${n.id}" data-read-url="${n.read_url}"
                  data-title="${n.title}" data-message="${n.message}"
                  data-time="${n.time}" data-url="${n.url || '#'}" data-type="${n.type}">
                 <div class="notif-icon type-${n.type}">
@@ -1608,7 +1704,7 @@
                 <div class="notif-body">
                     <div class="notif-title-row">
                         <span class="notif-title">${n.title}</span>
-                        <span class="notif-dot"></span>
+                        ${dot}
                     </div>
                     <div class="notif-message">${n.message}</div>
                     <div class="notif-time">${n.time}</div>
@@ -1616,40 +1712,53 @@
             </div>`;
     }
 
-    function prependToList(sel, n) {
+    function renderList(sel, notifications) {
         const list = document.querySelector(sel);
         if (!list) return;
-        const empty = list.querySelector('.notif-empty');
-        if (empty) empty.remove();
-        list.insertAdjacentHTML('afterbegin', buildItemHtml(n));
-    }
 
-    function bumpBadge(btnSel) {
-        const btn = document.querySelector(btnSel);
-        if (!btn) return;
-        let el = btn.querySelector('.notif-badge');
-        if (!el) {
-            el = document.createElement('span');
-            el.className = 'notif-badge';
-            btn.appendChild(el);
+        if (!notifications.length) {
+            list.innerHTML = '<div class="notif-empty"><span class="notif-empty-text">No notifications yet.</span></div>';
+            return;
         }
-        const current = parseInt(el.textContent) || 0;
-        el.textContent = current + 1 > 9 ? '9+' : current + 1;
+
+        list.innerHTML = notifications.map(buildItemHtml).join('');
     }
 
-    Echo.private('admin-notifications')
-        .listen('.new-notification', (n) => {
-            prependToList('#notifPanelDesktop .notif-list', n);
-            prependToList('#notifPanelMobile .notif-list', n);
-            bumpBadge('#notifBtnDesktop');
-            bumpBadge('#notifBtnMobile');
+    // ---- Core refresh routine, used by both polling and manual triggers ----
+        window.refreshNotifications = function refreshNotifications() {
+        fetch(NOTIF_POLL_URL, {
+            headers: { 'Accept': 'application/json' },
+        })
+            .then(r => r.json())
+            .then(data => {
+                setBadgeCount('#notifBtnDesktop', data.unread_count);
+                setBadgeCount('#notifBtnMobile', data.unread_count);
+                renderList('#notifPanelDesktop .notif-list', data.notifications);
+                renderList('#notifPanelMobile .notif-list', data.notifications);
 
-            const navCount = document.getElementById('navNotifCount');
-            if (navCount) {
-                navCount.textContent = (parseInt(navCount.textContent) || 0) + 1;
-                navCount.classList.remove('is-zero');
-            }
-        });
+                const navCount = document.getElementById('navNotifCount');
+                const navLink = document.getElementById('navNotifLink');
+                const hasUnread = data.unread_count > 0;
+
+                if (navCount) {
+                    navCount.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                    navCount.classList.toggle('is-zero', !hasUnread);
+                }
+                if (navLink) {
+                    navLink.classList.toggle('has-unread', hasUnread);
+                }
+            })
+            .catch(() => {});
+    };
+
+    // Poll every 15 seconds for new notifications, no full page reload needed.
+    setInterval(refreshNotifications, 15000);
+
+    // Real-time push via Echo, if configured, updates instantly on top of polling.
+    if (typeof Echo !== 'undefined') {
+        Echo.private('admin-notifications')
+            .listen('.new-notification', () => refreshNotifications());
+    }
 })();
 </script>
 
