@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $fillable = [
-        'user_id', 'service', 'tier', 'price', 'visit_date', 'visit_time', 'payment_method',
+        'user_id', 'service', 'tier', 'price', 'addons', 'visit_date', 'visit_time', 'payment_method',
         'customer_id', 'customer_name', 'customer_contact', 'pax', 'reservation_date', 'reservation_time',
         'package', 'notes', 'status', 'payment_method', 'receipt_path',
     ];
@@ -15,6 +15,7 @@ class Booking extends Model
     protected $casts = [
         'visit_date' => 'date',
         'reservation_date' => 'date',
+        'addons' => 'array',
     ];
 
     // Customer-facing booking flow (BookingController)

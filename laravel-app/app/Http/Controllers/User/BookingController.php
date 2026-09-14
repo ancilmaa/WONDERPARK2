@@ -466,6 +466,8 @@ class BookingController extends Controller
             'service'    => ['required', 'string', 'in:' . implode(',', array_keys($this->services))],
             'package'    => ['required', 'string'],
             'tier'       => ['required', 'integer'],
+            'addons'     => ['nullable', 'array'],
+            'addons.*'   => ['integer', 'min:0'],
         ]);
 
         $servicePackages = $this->packages[$validated['service']] ?? [];
@@ -484,12 +486,32 @@ class BookingController extends Controller
                 ->withErrors(['tier' => 'Please choose a valid pax tier for this package.']);
         }
 
+        // Only keep add-ons that are actually offered for this service, with
+        // qty > 0. Anything else (unknown code, tampered field, other
+        // service's codes) is silently dropped rather than trusted from the
+        // request.
+        $serviceAddons = $this->addons[$validated['service']] ?? [];
+        $selectedAddons = [];
+        $addonsTotal = 0;
+
+        foreach ($request->input('addons', []) as $code => $qty) {
+            $qty = (int) $qty;
+
+            if ($qty <= 0 || !array_key_exists($code, $serviceAddons)) {
+                continue;
+            }
+
+            $selectedAddons[$code] = $qty;
+            $addonsTotal += $serviceAddons[$code]['price'] * $qty;
+        }
+
         $booking = Booking::create([
             'user_id'    => session('user_id'),
             'service'    => $validated['service'],
             'package'    => $validated['package'],
             'tier'       => $validated['tier'],
-            'price'      => $package['tiers'][$validated['tier']],
+            'price'      => $package['tiers'][$validated['tier']] + $addonsTotal,
+            'addons'     => $selectedAddons ?: null,
             'visit_date' => $validated['visit_date'],
             'visit_time' => $validated['visit_time'],
             'status'     => 'pending_payment',
