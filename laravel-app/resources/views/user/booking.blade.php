@@ -199,6 +199,11 @@
     border-color: var(--pink-deep);
 }
 .promo-pagination button:disabled { opacity: .35; cursor: not-allowed; }
+.promo-pagination button.active {
+    background: var(--pink-deep);
+    color: #fff;
+    border-color: var(--pink-deep);
+}
 .promo-pagination .promo-page-info {
     font-size: 12px;
     font-weight: 700;
@@ -236,7 +241,7 @@
     padding: 9px 16px;
     border-radius: 10px;
     border: 1.5px solid transparent;
-    background: #fd81d8ee;
+    background: #fff;
     color: var(--ink-deep);
     font-size: 12px;
     font-weight: 700;
@@ -424,6 +429,12 @@
                 @endphp
                 <div class="promo-panel service-packages" data-service-group="{{ $svcCode }}" {{ $loop->first ? '' : 'hidden' }}>
 
+                    {{--
+                        All/Solo/Packages filter bar — disabled per request (2026-09-13).
+                        Kept here as a comment (not deleted) in case it's needed again later.
+                        The pagination below already works fine without it — filterBar just
+                        resolves to null in the JS and applyFilter('all') runs by default.
+
                     @if (count($categoriesInService) > 1)
                         @php
                             $catIcons = [
@@ -447,6 +458,7 @@
                             @endforeach
                         </div>
                     @endif
+                    --}}
 
                     <div class="promo-grid" data-promo-grid>
                     @foreach ($servicePackages as $code => $package)
@@ -494,12 +506,12 @@
                                     <div class="promo-inclusions">
                                         <p class="promo-inclusions-title">What's included</p>
                                         <ul class="promo-inclusions-list" data-inclusions-list>
-                                            @foreach ($inclusions[$svcCode] as $i => $item)
+                                            @foreach (($inclusions[$svcCode][$code] ?? []) as $i => $item)
                                                 <li {{ $i >= 3 ? 'data-extra hidden' : '' }}>{{ $item }}</li>
                                             @endforeach
                                         </ul>
-                                        @if (count($inclusions[$svcCode]) > 3)
-                                            <button type="button" class="promo-seemore-btn" data-seemore>See more ({{ count($inclusions[$svcCode]) - 3 }}) ›</button>
+                                        @if (count($inclusions[$svcCode][$code] ?? []) > 3)
+                                            <button type="button" class="promo-seemore-btn" data-seemore>See more ({{ count($inclusions[$svcCode][$code]) - 3 }}) ›</button>
                                         @endif
                                     </div>
                                 </div>
@@ -509,11 +521,7 @@
                     </div>
 
                     <p class="promo-empty-filter" data-promo-empty hidden>No packages match this filter.</p>
-                    <div class="promo-pagination" data-promo-pagination hidden>
-                        <button type="button" data-page-prev aria-label="Previous page">&lsaquo;</button>
-                        <span class="promo-page-info" data-page-info>1 / 1</span>
-                        <button type="button" data-page-next aria-label="Next page">&rsaquo;</button>
-                    </div>
+                    <div class="promo-pagination" data-promo-pagination hidden></div>
                 </div>
                 @endforeach
 
@@ -694,15 +702,18 @@
     var grid       = group.querySelector('[data-promo-grid]');
     var emptyMsg   = group.querySelector('[data-promo-empty]');
     var pagination = group.querySelector('[data-promo-pagination]');
-    var pageInfo   = group.querySelector('[data-page-info]');
-    var prevBtn    = group.querySelector('[data-page-prev]');
-    var nextBtn    = group.querySelector('[data-page-next]');
     if (!grid) return;
 
-    var PAGE_SIZE = 4; // 2x2 — humigit-kumulang katapat ng height ng calendar
+    var PAGE_SIZE = 2; // 1x2 — 2 cards per page, matches target pagination (1 2 3 for 6 packages)
     var cards = Array.prototype.slice.call(grid.children);
     var matched = cards;
     var currentPage = 1;
+
+    function goToPage(p) {
+        currentPage = p;
+        renderPage();
+        grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
     function renderPage() {
         var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
@@ -716,12 +727,42 @@
 
         if (emptyMsg) emptyMsg.hidden = matched.length > 0;
 
-        if (pagination) {
-            pagination.hidden = matched.length <= PAGE_SIZE;
-            if (pageInfo) pageInfo.textContent = currentPage + ' / ' + totalPages;
-            if (prevBtn) prevBtn.disabled = currentPage <= 1;
-            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+        if (!pagination) return;
+
+        pagination.hidden = matched.length <= PAGE_SIZE;
+        pagination.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        var prev = document.createElement('button');
+        prev.type = 'button';
+        prev.innerHTML = '&lsaquo;';
+        prev.setAttribute('aria-label', 'Previous page');
+        prev.disabled = currentPage <= 1;
+        prev.addEventListener('click', function () {
+            if (currentPage > 1) goToPage(currentPage - 1);
+        });
+        pagination.appendChild(prev);
+
+        for (var p = 1; p <= totalPages; p++) {
+            (function (p) {
+                var num = document.createElement('button');
+                num.type = 'button';
+                num.textContent = p;
+                num.classList.toggle('active', p === currentPage);
+                num.addEventListener('click', function () { goToPage(p); });
+                pagination.appendChild(num);
+            })(p);
         }
+
+        var next = document.createElement('button');
+        next.type = 'button';
+        next.innerHTML = '&rsaquo;';
+        next.setAttribute('aria-label', 'Next page');
+        next.disabled = currentPage >= totalPages;
+        next.addEventListener('click', function () {
+            if (currentPage < totalPages) goToPage(currentPage + 1);
+        });
+        pagination.appendChild(next);
     }
 
     function applyFilter(cat) {
@@ -740,26 +781,6 @@
                 });
                 applyFilter(btn.dataset.cat);
             });
-        });
-    }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', function () {
-            if (currentPage > 1) {
-                currentPage--;
-                renderPage();
-                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
-    }
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function () {
-            var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderPage();
-                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
         });
     }
 
