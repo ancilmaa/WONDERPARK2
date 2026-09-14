@@ -12,12 +12,14 @@
       $packageCategories -> ['solo' => 'Solo', 'bundle' => 'Bundle', 'packages' => 'Packages']
 
     Layout: two-column 50/50 split.
-      - LEFT  column: a big, always-visible (no popup) calendar + time slots,
-        so the visit date/time being booked is clearly visible at all times.
-      - RIGHT column: "Choose your experience" service switch + package
-        cards, filterable by category (Solo / Bundle / Packages) instead
-        of paginated — packages are already price-sorted ascending, so
-        the cheapest option in the active filter always shows first.
+      - LEFT  column: service switch + package cards, filterable by
+        category (Solo / Bundle / Packages) and paginated, plus the
+        "+ Booking" submit button at the bottom. Packages are already
+        price-sorted ascending, so the cheapest option in the active
+        filter always shows first.
+      - RIGHT column: a big, always-visible (no popup) calendar + time
+        slots, so the visit date/time being booked is clearly visible
+        at all times.
 
     Date & time are picked straight from the inline calendar (built client
     side in JS, always reflects the real current date/month). Visit duration
@@ -241,7 +243,7 @@
     padding: 9px 16px;
     border-radius: 10px;
     border: 1.5px solid transparent;
-    background: #fff;
+    background: #fd81d8ee;
     color: var(--ink-deep);
     font-size: 12px;
     font-weight: 700;
@@ -358,51 +360,7 @@
 
         <div class="booking-split">
 
-            {{-- ================= LEFT: big inline calendar ================= --}}
-            <div class="booking-col booking-col-cal">
-                <div class="cal-embed" id="calEmbed">
-                    <div class="cal-embed-inner">
-                        <div class="cal-month">
-                            <div class="cal-month-head">
-                                <button type="button" id="calPrev" aria-label="Previous month">&lsaquo;</button>
-                                <span id="calMonthLabel"></span>
-                                <button type="button" id="calNext" aria-label="Next month">&rsaquo;</button>
-                            </div>
-                            <div class="cal-weekdays">
-                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-                            </div>
-                            <div class="cal-days" id="calDays"></div>
-                        </div>
-
-                        <div class="cal-times">
-                            <div class="cal-times-head">
-                                <span id="calSelectedDayLabel">Pick a date</span>
-                                <div class="cal-fmt-toggle">
-                                    <button type="button" data-fmt="12" class="active">12h</button>
-                                    <button type="button" data-fmt="24">24h</button>
-                                </div>
-                            </div>
-                            <div class="cal-slots" id="calSlots">
-                                <p class="cal-slots-empty">Select a date first</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calSelectedBar" class="promo-selection-summary empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
-                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-                        <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
-                    </svg>
-                    <span id="dateTimeLabel">No date &amp; time selected yet</span>
-                </div>
-                <input type="hidden" name="visit_date" id="visitDateInput" required>
-                <input type="hidden" name="visit_time" id="visitTimeInput" required>
-                <button type="submit" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Booking</button>
-                 <span id="bookingBtnAnchor" style="display:none;"></span>
-            </div>
-
-            {{-- ================= RIGHT: experience + filterable packages ================= --}}
+            {{-- ================= LEFT: experience + filterable packages ================= --}}
             <div class="booking-col booking-col-pkg">
                 <div class="service-switch" id="serviceSwitch">
                     @foreach ($services as $svcCode => $svc)
@@ -429,12 +387,6 @@
                 @endphp
                 <div class="promo-panel service-packages" data-service-group="{{ $svcCode }}" {{ $loop->first ? '' : 'hidden' }}>
 
-                    {{--
-                        All/Solo/Packages filter bar — disabled per request (2026-09-13).
-                        Kept here as a comment (not deleted) in case it's needed again later.
-                        The pagination below already works fine without it — filterBar just
-                        resolves to null in the JS and applyFilter('all') runs by default.
-
                     @if (count($categoriesInService) > 1)
                         @php
                             $catIcons = [
@@ -458,7 +410,6 @@
                             @endforeach
                         </div>
                     @endif
-                    --}}
 
                     <div class="promo-grid" data-promo-grid>
                     @foreach ($servicePackages as $code => $package)
@@ -525,6 +476,50 @@
                 </div>
                 @endforeach
 
+                <button type="submit" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Booking</button>
+                 <span id="bookingBtnAnchor" style="display:none;"></span>
+            </div>
+
+            {{-- ================= RIGHT: big inline calendar ================= --}}
+            <div class="booking-col booking-col-cal">
+                <div class="cal-embed" id="calEmbed">
+                    <div class="cal-embed-inner">
+                        <div class="cal-month">
+                            <div class="cal-month-head">
+                                <button type="button" id="calPrev" aria-label="Previous month">&lsaquo;</button>
+                                <span id="calMonthLabel"></span>
+                                <button type="button" id="calNext" aria-label="Next month">&rsaquo;</button>
+                            </div>
+                            <div class="cal-weekdays">
+                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                            </div>
+                            <div class="cal-days" id="calDays"></div>
+                        </div>
+
+                        <div class="cal-times">
+                            <div class="cal-times-head">
+                                <span id="calSelectedDayLabel">Pick a date</span>
+                                <div class="cal-fmt-toggle">
+                                    <button type="button" data-fmt="12" class="active">12h</button>
+                                    <button type="button" data-fmt="24">24h</button>
+                                </div>
+                            </div>
+                            <div class="cal-slots" id="calSlots">
+                                <p class="cal-slots-empty">Select a date first</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="calSelectedBar" class="promo-selection-summary empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
+                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                        <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
+                    </svg>
+                    <span id="dateTimeLabel">No date &amp; time selected yet</span>
+                </div>
+                <input type="hidden" name="visit_date" id="visitDateInput" required>
+                <input type="hidden" name="visit_time" id="visitTimeInput" required>
             </div>
 
         </div>
@@ -704,7 +699,7 @@
     var pagination = group.querySelector('[data-promo-pagination]');
     if (!grid) return;
 
-    var PAGE_SIZE = 2; // 1x2 — 2 cards per page, matches target pagination (1 2 3 for 6 packages)
+    var PAGE_SIZE = 2; // 1 row of 2 — matches the narrower packages column width
     var cards = Array.prototype.slice.call(grid.children);
     var matched = cards;
     var currentPage = 1;

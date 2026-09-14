@@ -80,10 +80,14 @@
                                         <form method="POST"
                                               action="{{ route('user.bookings.cancel', $booking['id']) }}"
                                               style="flex:1;"
-                                              onsubmit="return confirm('Cancel this booking?');">
+                                              id="cancelForm-{{ $booking['id'] }}"
+                                              class="cancel-form">
                                             @csrf
-                                            <button type="submit"
-                                                    class="u-btn ghost"
+                                            <button type="button"
+                                                    class="u-btn ghost cancel-trigger"
+                                                    data-form-id="cancelForm-{{ $booking['id'] }}"
+                                                    data-package="{{ $booking['package'] }}"
+                                                    data-date="{{ $booking['date'] }}"
                                                     style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#e24b4a;border-color:#e24b4a;white-space:nowrap;">
                                                 Cancel
                                             </button>
@@ -156,4 +160,192 @@
         </div>
     @endif
 
+    <!-- Cancel Confirmation Modal -->
+    <div class="booking-modal-overlay" id="cancelModalOverlay">
+        <div class="booking-modal">
+            <div class="booking-modal-icon" style="background:#ffe6e6;color:#e24b4a;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8v4"></path><path d="M12 16h.01"></path>
+                </svg>
+            </div>
+            <h3>Cancel This Booking?</h3>
+            <p class="booking-modal-sub">This action cannot be undone.</p>
+
+            <div class="booking-modal-summary">
+                <div class="booking-modal-row">
+                    <span>Package</span>
+                    <b id="confirmCancelPackageText">—</b>
+                </div>
+                <div class="booking-modal-row">
+                    <span>Date</span>
+                    <b id="confirmCancelDateText">—</b>
+                </div>
+            </div>
+
+            <div class="booking-modal-actions">
+                <button type="button" class="btn-cancel" id="cancelModalDismiss">Keep Booking</button>
+                <button type="button" class="btn-confirm danger" id="cancelModalConfirm">Yes, Cancel</button>
+            </div>
+        </div>
+    </div>
+
 @endsection
+
+@push('styles')
+<style>
+    /* ── confirmation modal + loading state (shared pattern with booking.blade.php) ── */
+    .booking-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .55);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+    }
+    .booking-modal-overlay.active { display: flex; }
+    .booking-modal {
+        background: #fff;
+        border-radius: 16px;
+        padding: 30px 26px;
+        width: 90%;
+        max-width: 380px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0,0,0,.25);
+        animation: bookingModalPop .18s ease;
+    }
+    @keyframes bookingModalPop {
+        from { transform: scale(.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .booking-modal-icon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: var(--pink-pale, #ffe6ee);
+        color: var(--pink-deep, #b82850);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .booking-modal h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #1a1523;
+    }
+    .booking-modal-sub {
+        font-size: .85rem;
+        color: #635c72;
+        margin-bottom: 18px;
+    }
+    .booking-modal-summary {
+        background: #f8f6f9;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    .booking-modal-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: .82rem;
+        padding: 5px 0;
+    }
+    .booking-modal-row span { color: #9c94ab; }
+    .booking-modal-row b { color: #1a1523; text-align: right; }
+    .booking-modal-actions { display: flex; gap: 10px; }
+    .booking-modal-actions button {
+        flex: 1;
+        padding: 11px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: .86rem;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-cancel { background: #f1eef2; color: #635c72; }
+    .btn-cancel:hover { background: #e5e0e8; }
+    .btn-confirm { background: var(--pink-deep, #b82850); color: #fff; }
+    .btn-confirm:hover { background: var(--pink-dark, #d63e63); }
+    .btn-confirm.danger { background: #e24b4a; }
+    .btn-confirm.danger:hover { background: #c93f3e; }
+
+    .is-loading {
+        opacity: .75;
+        cursor: not-allowed;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-spinner {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, .4);
+        border-top-color: #fff;
+        display: inline-block;
+        animation: btnSpin .7s linear infinite;
+    }
+    @keyframes btnSpin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+// ── Cancel confirmation modal + loading state (same pattern as booking.blade.php) ──
+(function () {
+    var overlay = document.getElementById('cancelModalOverlay');
+    var confirmBtn = document.getElementById('cancelModalConfirm');
+    var dismissBtn = document.getElementById('cancelModalDismiss');
+    var packageText = document.getElementById('confirmCancelPackageText');
+    var dateText = document.getElementById('confirmCancelDateText');
+    if (!overlay || !confirmBtn) return;
+
+    var activeForm = null;
+
+    function openModal(trigger) {
+        activeForm = document.getElementById(trigger.dataset.formId);
+        packageText.textContent = trigger.dataset.package || '—';
+        dateText.textContent = trigger.dataset.date || '—';
+        overlay.classList.add('active');
+    }
+
+    function closeModal() {
+        overlay.classList.remove('active');
+        activeForm = null;
+    }
+
+    document.querySelectorAll('.cancel-trigger').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+            openModal(trigger);
+        });
+    });
+
+    dismissBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+    });
+
+    confirmBtn.addEventListener('click', function () {
+        if (!activeForm) return;
+
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('is-loading');
+        confirmBtn.innerHTML = '<span class="btn-spinner"></span> Cancelling...';
+
+        if (activeForm.requestSubmit) {
+            activeForm.requestSubmit();
+        } else {
+            activeForm.submit();
+        }
+    });
+})();
+</script>
+@endpush
