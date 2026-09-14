@@ -1,0 +1,801 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+class PosController extends Controller
+{
+    public function index()
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $products = DB::table('products')
+            ->join('categories', 'products.category_id', '=', 'categories.category_id')
+            ->select(
+                'products.product_id',
+                'products.product_name',
+                'products.price',
+                'products.stock',
+                'products.status',
+                'categories.category_id',
+                'categories.category_name',
+                'categories.zone',
+                'categories.is_stock_tracked'
+            )
+            ->orderBy('categories.zone')
+            ->orderBy('categories.category_name')
+            ->orderBy('products.product_name')
+            ->get()
+            ->map(fn($row) => [
+                'id'          => (int) $row->product_id,
+                'name'        => $row->product_name,
+                'price'       => (float) $row->price,
+                'category'    => strtolower($row->category_name),
+                'category_id' => (int) $row->category_id,
+                'zone'        => strtolower($row->zone),
+                'tracked'     => (bool) $row->is_stock_tracked,
+                'stock'       => $row->stock,
+                'status'      => $row->status,
+            ])->toArray();
+
+        $last_inv = DB::table('sales_transactions')->max('transaction_id');
+        $last_inv = $last_inv ? intval($last_inv) + 1 : 1;
+        $invoice_number = str_pad($last_inv, 11, '0', STR_PAD_LEFT);
+
+        $cashier_name = session('username') ?? session('fullname') ?? 'CASHIER';
+
+        return view('pos.index', compact('products', 'last_inv', 'invoice_number', 'cashier_name'));
+    }
+
+    public function verifyManager(Request $request)
+    {
+        $data = $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $user = DB::table('users')->where('username', $data['username'])->first();
+
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Invalid credentials.']);
+        }
+
+        if ($user->status !== 'active') {
+            return response()->json(['success' => false, 'message' => 'Account is inactive.']);
+        }
+
+        if (!Hash::check($data['password'], $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Invalid credentials.']);
+        }
+
+        if (!in_array($user->role, ['tl', 'admin'])) {
+            return response()->json(['success' => false, 'message' => 'Not authorized. TL or Manager only.']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'manager_name' => $user->fullname ?? $user->username,
+        ]);
+    }
+
+    public function logVoid(Request $request)
+    {
+        $data = $request->validate([
+            'item_name'     => 'required|string',
+            'price'         => 'required|numeric',
+            'qty'           => 'required|integer|min:1',
+            'authorized_by' => 'nullable|string',
+        ]);
+
+        DB::table('voided_items')->insert([
+            'item_name'     => $data['item_name'],
+            'price'         => $data['price'],
+            'qty'           => $data['qty'],
+            'amount'        => $data['price'] * $data['qty'],
+            'cashier_name'  => session('username') ?? session('fullname'),
+            'authorized_by' => $data['authorized_by'] ?? null,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function saveTransaction(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['success' => false, 'message' => 'Not authenticated. Please log in again.'], 401);
+        }
+
+        if ($this->isDayLocked()) {
+            return response()->json([
+                'success' => false,
+                'locked'  => true,
+                'message' => 'Transactions are closed for today after cut-off. Please try again tomorrow.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'customer_name'    => 'nullable|string',
+            'service_type'     => 'nullable|string',
+            'payment_method'   => 'nullable|string',
+            'reference_number' => 'nullable|string',
+            'gross'            => 'required|numeric',
+            'discount'         => 'nullable|numeric',
+            'tax'              => 'nullable|numeric',
+            'total'            => 'required|numeric',
+            'tendered'         => 'nullable|numeric',
+            'vatable_sales'        => 'nullable|numeric',
+            'vat_exempt_sales'     => 'nullable|numeric',
+            'pwd_senior_type'      => 'nullable|string|in:Senior Citizen,PWD',
+            'pwd_senior_name'      => 'nullable|string',
+            'pwd_senior_id_number' => 'nullable|string',
+            'items'            => 'required|array|min:1',
+            'items.*.id'       => 'required|integer',
+            'items.*.name'     => 'required|string',
+            'items.*.price'    => 'required|numeric',
+            'items.*.qty'      => 'required|integer|min:1',
+        ]);
+
+        $cashierId    = (int) session('user_id');
+        $customerName = trim($data['customer_name'] ?? '') ?: 'Walk-in Customer';
+        $serviceType  = trim($data['service_type'] ?? 'Walk-In');
+
+        $paymentMap = [
+            'cash'      => 'Cash',
+            'card'      => 'Card',
+            'gcash'     => 'GCash',
+            'maya'      => 'Maya',
+            'stardeals' => 'StarDeals',
+            'klook'     => 'Klook',
+            'online'    => 'Online',
+        ];
+        $rawPayment    = strtolower(trim($data['payment_method'] ?? 'cash'));
+        $paymentMethod = $paymentMap[$rawPayment] ?? ucfirst($rawPayment);
+
+        $referenceNumber = !empty($data['reference_number']) ? trim($data['reference_number']) : null;
+
+        // === PWD/Senior + VAT breakdown ===
+        $vatableSales   = $data['vatable_sales']    ?? null;
+        $vatExemptSales = $data['vat_exempt_sales'] ?? null;
+        $pwdSeniorType  = $data['pwd_senior_type']      ?? null;
+        $pwdSeniorName  = $data['pwd_senior_name']      ?? null;
+        $pwdSeniorIdNum = $data['pwd_senior_id_number'] ?? null;
+        // ===================================
+
+        $gross        = (float) ($data['gross']    ?? 0);
+        $discount     = (float) ($data['discount'] ?? 0);
+        $vat          = (float) ($data['tax']      ?? 0);
+        $total        = (float) ($data['total']    ?? 0);
+        $cashReceived = (float) ($data['tendered'] ?? $total);
+        $changeAmount = max(0, $cashReceived - $total);
+        $subtotal     = $gross - $discount;
+        $items        = $data['items'];
+
+        try {
+            $transactionId = DB::transaction(function () use (
+                $cashierId,
+                $customerName,
+                $serviceType,
+                $subtotal,
+                $discount,
+                $vat,
+                $total,
+                $paymentMethod,
+                $referenceNumber,
+                $cashReceived,
+                $changeAmount,
+                $items,
+                $vatableSales,
+                $vatExemptSales,
+                $pwdSeniorType,
+                $pwdSeniorName,
+                $pwdSeniorIdNum
+            ) {
+                $transactionId = DB::table('sales_transactions')->insertGetId([
+                    'cashier_id'         => $cashierId,
+                    'customer_name'      => $customerName,
+                    'service_type'       => $serviceType,
+                    'subtotal'           => $subtotal,
+                    'discount_amount'    => $discount,
+                    'vat_amount'         => $vat,
+                    'total_amount'       => $total,
+                    'payment_method'     => $paymentMethod,
+                    'reference_number'   => $referenceNumber,
+                    'cash_received'      => $cashReceived,
+                    'change_amount'      => $changeAmount,
+                    'transaction_status' => 'Completed',
+                    'vatable_sales'        => $vatableSales,
+                    'vat_exempt_sales'     => $vatExemptSales,
+                    'pwd_senior_type'      => $pwdSeniorType,
+                    'pwd_senior_name'      => $pwdSeniorName,
+                    'pwd_senior_id_number' => $pwdSeniorIdNum,
+                    'created_at'         => now(),
+                ]);
+
+                foreach ($items as $item) {
+                    $price = (float) $item['price'];
+                    $qty   = (int)   $item['qty'];
+
+                    DB::table('transaction_items')->insert([
+                        'transaction_id' => $transactionId,
+                        'product_id'     => (int) $item['id'],
+                        'product_name'   => trim($item['name']),
+                        'price'          => $price,
+                        'quantity'       => $qty,
+                        'subtotal'       => $price * $qty,
+                    ]);
+
+                    // Bawas stock ng products na naka-tag sa mga category
+                    // na is_stock_tracked = 1 sa categories table.
+                    // Zone/category-agnostic na — awtomatikong susunod ang
+                    // bagong categories na idadagdag mula sa Inventory.
+                    DB::table('products')
+                        ->where('product_id', (int) $item['id'])
+                        ->whereIn('category_id', function ($q) {
+                            $q->select('category_id')->from('categories')->where('is_stock_tracked', 1);
+                        })
+                        ->whereNotNull('stock')
+                        ->where('stock', '>', 0)
+                        ->decrement('stock', $qty);
+                }
+
+                return $transactionId;
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save transaction: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json([
+            'success'        => true,
+            'transaction_id' => $transactionId,
+            'message'        => 'Transaction saved successfully.',
+        ]);
+    }
+
+    public function getTransaction(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+        }
+
+        $invoice = $request->query('invoice');
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice number required.']);
+        }
+
+        $transactionId = (int) $invoice;
+
+        $txn = DB::table('sales_transactions as t')
+            ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
+            ->where('t.transaction_id', $transactionId)
+            ->select('t.*', 'u.fullname as cashier_name')
+            ->first();
+
+        if (!$txn) {
+            return response()->json(['success' => false, 'message' => 'Invoice #' . $invoice . ' not found.']);
+        }
+
+        $items = DB::table('transaction_items')
+            ->where('transaction_id', $transactionId)
+            ->get()
+            ->map(fn($i) => [
+                'name'  => $i->product_name,
+                'price' => (float) $i->price,
+                'qty'   => (int)   $i->quantity,
+            ])->toArray();
+
+        return response()->json([
+            'success'     => true,
+            'transaction' => [
+                'transaction_id'   => $txn->transaction_id,
+                'invoice_number'   => str_pad($txn->transaction_id, 11, '0', STR_PAD_LEFT),
+                'customer_name'    => $txn->customer_name,
+                'service_type'     => $txn->service_type,
+                'cashier_name'     => $txn->cashier_name ?? session('username'),
+                'payment_method'   => $txn->payment_method,
+                'reference_number' => $txn->reference_number ?? null,
+                'gross'            => (float) $txn->subtotal + (float) $txn->discount_amount,
+                'discount'         => (float) $txn->discount_amount,
+                'total'            => (float) $txn->total_amount,
+                'tendered'         => (float) ($txn->cash_received ?? $txn->total_amount),
+                'created_at'       => $txn->created_at,
+                'items'            => $items,
+                'vatable_sales'        => (float) ($txn->vatable_sales ?? ($txn->total_amount / 1.12)),
+                'vat_exempt_sales'     => (float) ($txn->vat_exempt_sales ?? 0),
+                'pwd_senior_type'      => $txn->pwd_senior_type ?? null,
+                'pwd_senior_name'      => $txn->pwd_senior_name ?? null,
+                'pwd_senior_id_number' => $txn->pwd_senior_id_number ?? null,
+            ],
+        ]);
+    }
+
+    // ================= CASHFLOW =================
+    public function getCashflow(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $cashSales = DB::table('sales_transactions')
+            ->whereDate('created_at', $date)
+            ->where('payment_method', 'cash')
+            ->sum('total');
+
+        $movementsIn = DB::table('cash_movements')
+            ->whereDate('created_at', $date)->where('type', 'in')->sum('amount');
+        $movementsOut = DB::table('cash_movements')
+            ->whereDate('created_at', $date)->where('type', 'out')->sum('amount');
+
+        $movements = DB::table('cash_movements')
+            ->whereDate('created_at', $date)->orderByDesc('created_at')->get();
+
+        return response()->json([
+            'rows' => $movements->map(fn($m) => [
+                'date' => $m->created_at,
+                'description' => $m->description,
+                'cash_in'  => $m->type === 'in'  ? $m->amount : 0,
+                'cash_out' => $m->type === 'out' ? $m->amount : 0,
+            ]),
+            'cash_sales' => $cashSales,
+            'net' => ($cashSales + $movementsIn) - $movementsOut,
+        ]);
+    }
+
+    public function addCashMovement(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:in,out',
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'nullable|string|max:191',
+        ]);
+
+        DB::table('cash_movements')->insert([
+            'type' => $request->type,
+            'amount' => $request->amount,
+            'description' => $request->description,
+            'user_id' => session('user_id'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    // ================= SHARED NOTIFICATION HELPER ================
+    // Parehong pattern gaya ng InventoryController::notify() — naka
+    // try/catch para hindi ito makasira sa pangunahing action kahit
+    // mag-fail ang broadcast. $message ay pwedeng multi-line (\n).
+    private function notify(string $title, string $message, ?string $url = null, string $type ='pos')
+    {
+        try {
+            $notif = \App\Models\Notification::create([
+                'type'    => $type,
+                'title'   => $title,
+                'message' => $message,
+                'url'     => $url ?: url('/pos'),
+            ]);
+            broadcast(new \App\Events\NewSystemNotification($notif));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Notification/broadcast failed: ' . $e->getMessage());
+        }
+    }
+
+    // ================= SALES REPORT HELPER =================
+    private function getItemsByTransaction(\Illuminate\Support\Collection $transactionIds)
+    {
+        // Naka-leftJoin (hindi join) papunta sa products/categories para
+        // hindi mawala sa report yung mga item kahit na-delete na yung
+        // product o category nila — mapupunta na lang sa "Other" zone.
+        return DB::table('transaction_items as ti')
+            ->leftJoin('products as p', 'p.product_id', '=', 'ti.product_id')
+            ->leftJoin('categories as c', 'c.category_id', '=', 'p.category_id')
+            ->whereIn('ti.transaction_id', $transactionIds)
+            ->select(
+                'ti.*',
+                DB::raw('LOWER(c.zone) as item_zone'),
+                DB::raw('LOWER(c.category_name) as item_category')
+            )
+            ->get()
+            ->groupBy('transaction_id')
+            ->map(function ($items) {
+                return $items->map(fn($i) => [
+                    'name'     => $i->product_name,
+                    'price'    => (float) $i->price,
+                    'qty'      => (int)   $i->quantity,
+                    'zone'     => $i->item_zone ?: 'other',
+                    'category' => $i->item_category ?: '',
+                ])->toArray();
+            })->toArray();
+    }
+
+    private function buildSalesReport(\Illuminate\Support\Collection $transactions, array $itemsByTxn)
+    {
+        $overallItems = [];
+        $overallTotal = 0;
+        $overallDiscount = 0;
+        $overallPayments = ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0, 'online' => 0];
+        $byCashier = [];
+
+        // Dapat kapareho ng CATEGORIES_SNACKBAR sa pos.js — kung
+        // magdadagdag ng bagong snackbar category doon, idagdag din dito.
+        $snackbarCategories = ['sweets', 'beverages', 'snacks', 'noodles', 'icecream'];
+
+        // Fixed order/labels para laging consistent ang pagkakasunod-sunod
+        // ng mga zone sa report kahit walang benta sa isa (mafi-filter out
+        // na lang mamaya kung walang laman).
+        $byZone = [
+            'roller fever'   => ['zone_label' => 'Roller Fever',   'items' => [], 'total_sales' => 0],
+            'snackbar'       => ['zone_label' => 'Snackbar',       'items' => [], 'total_sales' => 0],
+            'field of rides' => ['zone_label' => 'Field of Rides', 'items' => [], 'total_sales' => 0],
+            'dino adventure' => ['zone_label' => 'Dino Adventure', 'items' => [], 'total_sales' => 0],
+        ];
+
+        foreach ($transactions as $t) {
+            $items = $itemsByTxn[$t->transaction_id] ?? [];
+            $cashierName = $t->cashier_name ?? 'Unknown';
+
+            if (!isset($byCashier[$cashierName])) {
+                $byCashier[$cashierName] = [
+                    'cashier_name' => $cashierName,
+                    'items' => [],
+                    'total_sales' => 0,
+                    'total_discount' => 0,
+                    'klook_total' => 0,
+                    'stardeals_total' => 0,
+                    'payment_breakdown' => ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0, 'online' => 0],
+                ];
+            }
+
+            foreach ($items as $it) {
+                $name = $it['name'];
+                $qty = $it['qty'];
+                $line = $it['price'] * $it['qty'];
+
+                $rawZone  = $it['zone'] ?? 'other';
+                $category = $it['category'] ?? '';
+
+                // Roller Fever zone -> hatiin pa: Snackbar categories vs.
+                // skates/rides/rentals/billiards/massage/socks
+                $zoneKey = ($rawZone === 'roller fever' && in_array($category, $snackbarCategories))
+                    ? 'snackbar'
+                    : $rawZone;
+
+                if (!isset($overallItems[$name])) $overallItems[$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
+                $overallItems[$name]['qty'] += $qty;
+                $overallItems[$name]['total'] += $line;
+
+                if (!isset($byCashier[$cashierName]['items'][$name])) {
+                    $byCashier[$cashierName]['items'][$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
+                }
+                $byCashier[$cashierName]['items'][$name]['qty'] += $qty;
+                $byCashier[$cashierName]['items'][$name]['total'] += $line;
+
+                // === ZONE BREAKDOWN (kasama na ang Snackbar) ===
+                if (!isset($byZone[$zoneKey])) {
+                    $byZone[$zoneKey] = ['zone_label' => ucwords($zoneKey), 'items' => [], 'total_sales' => 0];
+                }
+                if (!isset($byZone[$zoneKey]['items'][$name])) {
+                    $byZone[$zoneKey]['items'][$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
+                }
+                $byZone[$zoneKey]['items'][$name]['qty'] += $qty;
+                $byZone[$zoneKey]['items'][$name]['total'] += $line;
+                $byZone[$zoneKey]['total_sales'] += $line;
+                // =================================================
+            }
+
+            $overallTotal += $t->total_amount;
+            $overallDiscount += $t->discount_amount;
+            $pm = strtolower($t->payment_method ?: 'cash');
+            if (isset($overallPayments[$pm])) $overallPayments[$pm] += $t->total_amount;
+
+            $byCashier[$cashierName]['total_sales'] += $t->total_amount;
+            $byCashier[$cashierName]['total_discount'] += $t->discount_amount;
+            if ($pm === 'klook') $byCashier[$cashierName]['klook_total'] += $t->total_amount;
+            if ($pm === 'stardeals') $byCashier[$cashierName]['stardeals_total'] += $t->total_amount;
+            if (isset($byCashier[$cashierName]['payment_breakdown'][$pm])) {
+                $byCashier[$cashierName]['payment_breakdown'][$pm] += $t->total_amount;
+            }
+        }
+
+        return [
+            'overall' => [
+                'items' => array_values($overallItems),
+                'total_sales' => $overallTotal,
+                'total_discount' => $overallDiscount,
+                'payment_breakdown' => $overallPayments,
+            ],
+            'cashiers' => array_map(function ($c) {
+                $c['items'] = array_values($c['items']);
+                return $c;
+            }, array_values($byCashier)),
+            'zones' => array_values(array_map(function ($z) {
+                $z['items'] = array_values($z['items']);
+                return $z;
+            }, array_filter($byZone, fn($z) => count($z['items']) > 0))),
+        ];
+    }
+
+    // ================= PRINT SALES REPORT (cut-off) =================
+    public function printSalesReportData(Request $request)
+    {
+        $authorizedBy = $request->input('authorized_by') ?: (session('username') ?? 'Manager');
+        $lastCutoff = DB::table('sales_cutoffs')->orderByDesc('id')->first();
+        $periodStart = $lastCutoff->period_end ?? now()->startOfDay();
+        $periodEnd = now();
+
+        $transactions = DB::table('sales_transactions as t')
+            ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
+            ->whereNull('t.cutoff_id')
+             ->where('t.transaction_status', '!=', 'Voided') 
+            ->select('t.*', 'u.fullname as cashier_name')
+            ->get();
+
+        $voidedItems = DB::table('voided_items')->whereNull('cutoff_id')->get();
+
+        if ($transactions->isEmpty() && $voidedItems->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No new transactions have been made yet.']);
+        }
+
+        $cutoffNumber = ($lastCutoff->cutoff_number ?? 0) + 1;
+
+        $cutoffId = DB::table('sales_cutoffs')->insertGetId([
+            'cutoff_number' => $cutoffNumber,
+            'period_start' => $periodStart,
+            'period_end' => $periodEnd,
+            'performed_by' => session('user_id'),
+            'performed_by_name' => $authorizedBy,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('sales_transactions')
+            ->whereIn('transaction_id', $transactions->pluck('transaction_id'))
+            ->update(['cutoff_id' => $cutoffId]);
+
+        DB::table('voided_items')
+            ->whereIn('id', $voidedItems->pluck('id'))
+            ->update(['cutoff_id' => $cutoffId]);
+
+        $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
+        $report = $this->buildSalesReport($transactions, $itemsByTxn);
+
+        // ── Notify: sales report / cut-off was successfully printed ──
+        $periodStartLabel = \Illuminate\Support\Carbon::parse($periodStart)->format('M d, Y h:i A');
+        $periodEndLabel   = \Illuminate\Support\Carbon::parse($periodEnd)->format('M d, Y h:i A');
+
+        $lines = [
+            "Cut-off #: {$cutoffNumber}",
+            "Period: {$periodStartLabel} — {$periodEndLabel}",
+            "Authorized by: {$authorizedBy}",
+            "Transactions: " . $transactions->count(),
+            "Total Sales: ₱" . number_format($report['overall']['total_sales'], 2),
+            "Total Discount: ₱" . number_format($report['overall']['total_discount'], 2),
+            "Voided Items: " . $voidedItems->count() . " (₱" . number_format($voidedItems->sum('amount'), 2) . ")",
+        ];
+        $this->notify(
+            'Sales Report Printed',
+            "The daily sales cut-off report was generated and printed.\n" . implode("\n", $lines),
+            url('/pos')
+        );
+
+        return response()->json([
+            'success' => true,
+            'cutoff_number' => $cutoffNumber,
+            'period_end' => $periodEnd,
+            'authorized_by' => $authorizedBy,
+            'void_count' => $voidedItems->count(),
+            'void_total' => $voidedItems->sum('amount'),
+            'report' => $report,
+        ]);
+    }
+
+    public function presentReport()
+    {
+        $transactions = DB::table('sales_transactions as t')
+            ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
+            ->whereNull('t.cutoff_id')
+            ->where('t.transaction_status', '!=', 'Voided') 
+            ->select('t.*', 'u.fullname as cashier_name')
+            ->get();
+
+        $voidedItems = DB::table('voided_items')->whereNull('cutoff_id')->get();
+
+        if ($transactions->isEmpty() && $voidedItems->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No sales have been recorded today yet.']);
+        }
+
+        $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
+
+        return response()->json([
+            'success' => true,
+            'void_count' => $voidedItems->count(),
+            'void_total' => $voidedItems->sum('amount'),
+            'report' => $this->buildSalesReport($transactions, $itemsByTxn),
+        ]);
+    }
+
+    public function historicalCutoffs(Request $request)
+    {
+        $date = $request->query('date');
+        $q = DB::table('sales_cutoffs')->orderByDesc('id');
+        if ($date) $q->whereDate('period_end', $date);
+        return response()->json(['cutoffs' => $q->get()]);
+    }
+
+    public function cutoffDetail(int $id)
+    {
+        $cutoff = DB::table('sales_cutoffs')->find($id);
+        if (!$cutoff) return response()->json(['success' => false, 'message' => 'Not found.']);
+
+        $transactions = DB::table('sales_transactions as t')
+            ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
+            ->where('t.cutoff_id', $id)
+            ->where('t.transaction_status', '!=', 'Voided')
+            ->select('t.*', 'u.fullname as cashier_name')
+            ->get();
+
+        $voidedItems = DB::table('voided_items')->where('cutoff_id', $id)->get();
+
+        $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
+
+        return response()->json([
+            'success' => true,
+            'cutoff_number' => $cutoff->cutoff_number,
+            'period_end' => $cutoff->period_end,
+            'authorized_by' => $cutoff->performed_by_name,
+            'void_count' => $voidedItems->count(),
+            'void_total' => $voidedItems->sum('amount'),
+            'report' => $this->buildSalesReport($transactions, $itemsByTxn),
+        ]);
+    }
+    private function buildReportFooter(string $authorizedBy, int $voidCount, float $voidTotal, bool $isPreview, $voidedTxnCount = 0, $voidedTxnTotal = 0)
+{
+    return "
+        <div class=\"report-receipt\" style=\"border-top:2px dashed #ccc;margin-top:6px;padding-top:6px;\">
+            <div class=\"receipt-vat-section\">
+                <div class=\"vat-row\"><span>Voided Item(s)</span><span>{$voidCount}</span></div>
+                <div class=\"vat-row\"><span>Voided Amount</span><span>−₱" . number_format($voidTotal, 2) . "</span></div>
+                <div class=\"vat-row\"><span>Voided Transaction(s)</span><span>{$voidedTxnCount}</span></div>
+                <div class=\"vat-row\"><span>Voided Txn Amount</span><span>−₱" . number_format($voidedTxnTotal, 2) . "</span></div>
+            </div>
+            <hr class=\"dashed\">
+            <div style=\"text-align:center;font-size:12px;font-weight:700;margin-top:4px;\">
+                " . ($isPreview ? 'Prepared by' : 'Cut-off Authorized by') . ": " . htmlspecialchars($authorizedBy) . "
+            </div>
+        </div>";
+}
+    // ================= DAY LOCK (cut-off) =================
+    private function isDayLocked(): bool
+    {
+        return DB::table('sales_cutoffs')
+            ->whereDate('period_end', now()->toDateString())
+            ->exists();
+    }
+
+    public function cutoffStatus()
+    {
+        $locked = $this->isDayLocked();
+        return response()->json([
+            'locked'  => $locked,
+            'message' => $locked
+                ? 'Transactions are closed for today after cut-off. New transactions open tomorrow.'
+                : null,
+        ]);
+    }
+
+public function voidTransaction(Request $request)
+{
+    if (!session()->has('user_id')) {
+        return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+    }
+
+    $data = $request->validate([
+        'invoice_number' => 'required|integer',
+        'reason'         => 'required|string|max:255',
+        'authorized_by'  => 'required|string',
+    ]);
+
+    $transactionId = (int) $data['invoice_number'];
+
+    $txn = DB::table('sales_transactions')->where('transaction_id', $transactionId)->first();
+
+    if (!$txn) {
+        return response()->json(['success' => false, 'message' => 'Invoice #' . $transactionId . ' not found.']);
+    }
+
+    if ($txn->transaction_status === 'Voided') {
+        return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
+    }
+
+    // Kunin muna ang items BAGO tayo mag-void, gagamitin natin ito
+    // para sa "voided receipt" na ipapakita pagkatapos.
+    $items = DB::table('transaction_items')
+        ->where('transaction_id', $transactionId)
+        ->get()
+        ->map(fn($i) => [
+            'name'  => $i->product_name,
+            'price' => (float) $i->price,
+            'qty'   => (int)   $i->quantity,
+        ])->toArray();
+
+    try {
+        DB::transaction(function () use ($transactionId, $data, $txn) {
+            // I-mark bilang Voided — hindi natin dini-delete ang record para
+            // sa audit trail (BIR-compliant, dapat traceable lahat ng void).
+            DB::table('sales_transactions')
+                ->where('transaction_id', $transactionId)
+                ->update([
+                    'transaction_status' => 'Voided',
+                    'void_reason'        => $data['reason'],
+                    'voided_by'          => $data['authorized_by'],
+                    'voided_at'          => now(),
+                ]);
+
+            // I-restore ang stock ng mga tracked items na na-deduct noong
+            // orihinal na checkout.
+            $items = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
+
+            foreach ($items as $item) {
+                DB::table('products')
+                    ->where('product_id', $item->product_id)
+                    ->whereIn('category_id', function ($q) {
+                        $q->select('category_id')->from('categories')->where('is_stock_tracked', 1);
+                    })
+                    ->whereNotNull('stock')
+                    ->increment('stock', $item->quantity);
+            }
+
+            // I-log din sa voided_items para consistent sa existing void-log
+            // pattern mo (item-level void kanina), pero naka-tag na
+            // "Full Transaction Void" ito.
+            foreach ($items as $item) {
+                DB::table('voided_items')->insert([
+                    'item_name'     => $item->product_name . ' (Full Txn Void — Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . ')',
+                    'price'         => $item->price,
+                    'qty'           => $item->quantity,
+                    'amount'        => $item->subtotal,
+                    'cashier_name'  => session('username') ?? session('fullname'),
+                    'authorized_by' => $data['authorized_by'],
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+            }
+        });
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => 'Failed to void: ' . $e->getMessage()], 500);
+    }
+
+    $this->notify(
+        'Transaction Voided',
+        "Invoice #" . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . " was voided.\n" .
+        "Reason: {$data['reason']}\nAuthorized by: {$data['authorized_by']}",
+        url('/pos')
+    );
+
+    // I-balik ang buong details ng na-void na transaction para
+    // maipakita sa "Voided Receipt" sa frontend.
+    return response()->json([
+        'success' => true,
+        'message' => 'Transaction voided successfully.',
+        'transaction' => [
+            'invoice_number' => str_pad($transactionId, 11, '0', STR_PAD_LEFT),
+            'customer_name'  => $txn->customer_name,
+            'service_type'   => $txn->service_type,
+            'payment_method' => $txn->payment_method,
+            'total'          => (float) $txn->total_amount,
+            'discount'       => (float) $txn->discount_amount,
+            'items'          => $items,
+            'void_reason'    => $data['reason'],
+            'voided_by'      => $data['authorized_by'],
+            'voided_at'      => now()->format('m/d/Y h:i:s A'),
+        ],
+    ]);
+}
+}
