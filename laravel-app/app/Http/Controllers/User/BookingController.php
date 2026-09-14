@@ -94,10 +94,10 @@ class BookingController extends Controller
 
             // --- Walk-in promo pricing, from the counter price list ---
             'walkin_1hour' => [
-                'name'     => 'Walk-in — 1 Hour Play Pass',
+                'name'     => '1 Hour Play Pass',
                 'desc'     => '1 hour of softplay access per guest (walk-in promo rate)',
                 'image'    => 'dino_1.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Quick Visit',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 299,
@@ -113,10 +113,10 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_2hour' => [
-                'name'     => 'Walk-in — 2 Hour Play Pass',
+                'name'     => '2 Hour Play Pass',
                 'desc'     => '2 hours of softplay access per guest (walk-in promo rate)',
                 'image'    => 'dino_1.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Popular Choice',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 399,
@@ -132,10 +132,10 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_allday' => [
-                'name'     => 'Walk-in — All Day Play Pass',
+                'name'     => 'All Day Play Pass',
                 'desc'     => 'Unlimited-time softplay access per guest for the day (walk-in promo rate)',
                 'image'    => 'dino_1.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Best Value',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 599,
@@ -190,10 +190,10 @@ class BookingController extends Controller
 
             // --- Walk-in promo pricing, from the counter price list ---
             'walkin_1hour' => [
-                'name'     => 'Walk-in — 1 Hour Skate Pass',
+                'name'     => '1 Hour Skate Pass',
                 'desc'     => '1 hour of skating per guest (walk-in promo rate)',
                 'image'    => 'roller-fever.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Quick Session',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 249,
@@ -209,10 +209,10 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_2hour' => [
-                'name'     => 'Walk-in — 2 Hour Skate Pass',
+                'name'     => '2 Hour Skate Pass',
                 'desc'     => '2 hours of skating per guest (walk-in promo rate)',
                 'image'    => 'roller-fever.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Popular Choice',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 399,
@@ -228,10 +228,10 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_allday' => [
-                'name'     => 'Walk-in — All Day Skate Pass',
+                'name'     => 'All Day Skate Pass',
                 'desc'     => 'Unlimited-time skating per guest for the day (walk-in promo rate)',
                 'image'    => 'roller-fever.jpg',
-                'badge'    => 'Walk-in promo',
+                'badge'    => 'Best Value',
                 'category' => 'solo',
                 'tiers'    => [
                     1  => 599,
@@ -375,32 +375,127 @@ class BookingController extends Controller
      */
     protected array $inclusions = [
         'dino_adventure' => [
-            '3 hrs unlimited play at softplay (max no. of package chosen)',
-            '3 hrs exclusive use of party area',
-            '1 set meal each (max no. of package chosen)',
-            'Dino mascot dance & photo ops',
-            'Party program with host',
-            'Basic balloon set-up',
-            'Basic sound system',
-            'Tables & chairs (max no. of package chosen)',
-            'Nametag & party games',
-            'Digital themed invitation',
+            'non_exclusive' => [
+                'Shared use of the softplay area (not exclusive)',
+                '1 hr Dino mascot appearance & photo ops',
+                'Party program with host',
+                'Basic balloon set-up',
+                'Basic sound system',
+                'Tables & chairs (max no. of package chosen)',
+                'Nametag & party games',
+                'Digital themed invitation',
+            ],
+            'exclusive_weekdays' => [
+                '3 hrs exclusive use of the whole play area',
+                '3 hrs exclusive use of party area',
+                '1 set meal each (max no. of package chosen)',
+                'Dino mascot dance & photo ops',
+                'Party program with host',
+                'Basic balloon set-up',
+                'Basic sound system',
+                'Tables & chairs (max no. of package chosen)',
+                'Nametag & party games',
+                'Digital themed invitation',
+                'Available Monday–Friday only',
+            ],
+            'exclusive_weekends' => [
+                '3 hrs exclusive use of the whole play area',
+                '3 hrs exclusive use of party area',
+                '1 set meal each (max no. of package chosen)',
+                'Dino mascot dance & photo ops',
+                'Party program with host',
+                'Basic balloon set-up',
+                'Basic sound system',
+                'Tables & chairs (max no. of package chosen)',
+                'Nametag & party games',
+                'Digital themed invitation',
+                'Available Saturdays, Sundays & holidays',
+            ],
+            'walkin_1hour' => [
+                '1 hour of softplay access per guest',
+                'Access to all play structures',
+                'Walk-in promo rate — no party area, host, or meal included',
+            ],
+            'walkin_2hour' => [
+                '2 hours of softplay access per guest',
+                'Access to all play structures',
+                'Walk-in promo rate — no party area, host, or meal included',
+            ],
+            'walkin_allday' => [
+                'Unlimited-time softplay access per guest for the day',
+                'Access to all play structures',
+                'Walk-in promo rate — no party area, host, or meal included',
+            ],
         ],
         'rollerfever' => [
-            '2 hours skating',
-            '3 hours use of party area',
-            '1 set meal per pax',
-            'Basic balloon set-up',
-            'Basic sound system',
-            'Tables & chairs',
-            'Digital themed invitation',
+            'weekday' => [
+                '2 hours skating for all guests',
+                '3 hours exclusive use of party area',
+                '1 set meal per guest',
+                'Basic balloon set-up',
+                'Basic sound system',
+                'Tables & chairs',
+                'Digital themed invitation',
+                'Available Monday–Friday only',
+            ],
+            'weekend' => [
+                '2 hours skating for all guests',
+                '3 hours exclusive use of party area',
+                '1 set meal per guest',
+                'Basic balloon set-up',
+                'Basic sound system',
+                'Tables & chairs',
+                'Digital themed invitation',
+                'Available Saturdays & Sundays',
+            ],
+            'walkin_1hour' => [
+                '1 hour of skating per guest',
+                'Walk-in promo rate',
+                'Socks and skate/gear rental available as add-ons',
+            ],
+            'walkin_2hour' => [
+                '2 hours of skating per guest',
+                'Walk-in promo rate',
+                'Socks and skate/gear rental available as add-ons',
+            ],
+            'walkin_allday' => [
+                'Unlimited-time skating per guest for the day',
+                'Walk-in promo rate',
+                'Socks and skate/gear rental available as add-ons',
+            ],
+            'group_bundle_1hour' => [
+                '1 hour of skating for 5 guests (buy 4, get 1 free)',
+                'Group promo rate — best for barkada or family groups',
+                'Socks and skate/gear rental available as add-ons',
+            ],
+            'group_bundle_2hour' => [
+                '2 hours of skating for 5 guests (buy 4, get 1 free)',
+                'Group promo rate — best for barkada or family groups',
+                'Socks and skate/gear rental available as add-ons',
+            ],
         ],
         'field_of_rides' => [
-            'One ride/round per ticket purchased',
-            'Minimum height requirement applies per ride (posted at each attraction)',
-            'Guests under 4ft must be accompanied by a paying guardian — no chaperone-only riders',
-            'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
-            'Management reserves the right to refuse service to guests who do not follow safety guidelines',
+            'try_every_ride' => [
+                'One ride each on every attraction on the price board',
+                'Covers Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane, Vikings, and Go-Kart',
+                'Best value versus paying per ride',
+                'Minimum height requirement applies per ride (posted at each attraction)',
+            ],
+            'rides_60' => [
+                'One ride/round per ticket purchased',
+                'Covers Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, and Crazy Plane',
+                'Minimum height requirement applies per ride (posted at each attraction)',
+            ],
+            'rides_120' => [
+                'One ride/round per ticket purchased',
+                'Covers Vikings and Go-Kart',
+                'Minimum height requirement applies per ride (posted at each attraction)',
+            ],
+            'rides_150' => [
+                'One ride/round per ticket purchased',
+                'Covers Inflatable Playground (30 mins), Mini Trampoline (30 mins), Rev & Roll (per car), Happy Cars (per ride), and Jurassic Adventure (per ride)',
+                'Minimum height requirement applies per ride (posted at each attraction)',
+            ],
         ],
     ];
 
