@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Booking extends Model
 {
@@ -10,13 +11,39 @@ class Booking extends Model
         'user_id', 'service', 'tier', 'price', 'addons', 'visit_date', 'visit_time', 'payment_method',
         'customer_id', 'customer_name', 'customer_contact', 'pax', 'reservation_date', 'reservation_time',
         'package', 'notes', 'status', 'payment_method', 'receipt_path',
+        'voucher_code', 'payment_proof_path', 'payment_submitted_at', 'payment_verified_at',
+        'payment_rejection_reason', 'xendit_payment_request_id', 'xendit_reference_id',
     ];
 
     protected $casts = [
         'visit_date' => 'date',
         'reservation_date' => 'date',
         'addons' => 'array',
+        'payment_submitted_at' => 'datetime',
+        'payment_verified_at' => 'datetime',
     ];
+
+    /**
+     * Auto-generates a unique voucher_code for every new booking. Was
+     * missing from this model entirely (confirmed via `grep -A 12
+     * "function boot"` returning nothing) — that's why every booking,
+     * old and new, ended up with voucher_code = NULL despite the column
+     * existing and the backfill migration reporting "Ran".
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($booking) {
+            if (empty($booking->voucher_code)) {
+                do {
+                    $code = strtoupper(Str::random(8));
+                } while (self::where('voucher_code', $code)->exists());
+
+                $booking->voucher_code = $code;
+            }
+        });
+    }
 
     // Customer-facing booking flow (BookingController)
     public function user()
