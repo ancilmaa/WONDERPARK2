@@ -684,3 +684,14 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 @media(max-width:600px){
   .mb-actions{width:100%;}
 }
+
+/* ===========================================================
+   REKS-FIX-v10 — My Bookings / Analytics tab switcher.
+   Reuses the site's pill-switch visual language (see
+   .service-switch above) but text-only, for the two-panel
+   toggle on the My Bookings page. Additive only.
+   =========================================================== */
+.mb-tabs{display:inline-flex;padding:4px;background:var(--bg);border-radius:999px;gap:4px;margin:16px 0 16px;}
+.mb-tab{border:none;background:none;padding:9px 20px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s var(--ease), color .15s var(--ease);}
+.mb-tab.active{background:#fff;color:var(--pink-deep);box-shadow:var(--shadow-card);}
+.mb-panel[hidden]{display:none;}
