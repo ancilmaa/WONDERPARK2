@@ -674,3 +674,13 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 @media(min-width:960px){
   .promo-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
 }
+/* ===========================================================
+   REKS-FIX-v9 — My Bookings rows: voucher + action buttons
+   alignment. Buttons sit vertically centered next to the
+   details on wider screens; on narrow screens the actions
+   column drops full-width below the details instead of being
+   squeezed into a tiny min-width box (additive only).
+   =========================================================== */
+@media(max-width:600px){
+  .mb-actions{width:100%;}
+}
