@@ -43,63 +43,17 @@ class BookingController extends Controller
      *
      * Each package has several pax "tiers" with a total price — the
      * customer picks a service, then a package, then a tier (pax count).
-     *
-     * 'category' groups packages for the filter tabs on the booking page:
-     *   'solo'     — single-guest / walk-in / per-head ticket pricing
-     *   'bundle'   — group promo bundles (buy X get 1 free, etc.)
-     *   'packages' — full party packages (exclusive/non-exclusive use)
      */
     protected array $packages = [
         'dino_adventure' => [
-            'non_exclusive' => [
-                'name'     => 'Non-Exclusive — Shared Play Area',
-                'desc'     => 'Shared softplay & party area · 1-hr Dino mascot appearance included',
-                'image'    => 'dino_1.jpg',
-                'badge'    => 'Most affordable',
-                'category' => 'packages',
-                'tiers'    => [
-                    10 => 15000,
-                    20 => 28000,
-                    30 => 39000,
-                ],
-            ],
-            'exclusive_weekdays' => [
-                'name'     => 'Exclusive — Private Party (Mon–Fri)',
-                'desc'     => 'Private use of the whole play area, weekdays only · 1-hr Dino mascot appearance',
-                'image'    => 'dino-venue.jpg',
-                'badge'    => 'Weekdays only',
-                'category' => 'packages',
-                'tiers'    => [
-                    40 => 62000,
-                    50 => 75000,
-                    60 => 88000,
-                    70 => 97500,
-                    80 => 110000,
-                ],
-            ],
-            'exclusive_weekends' => [
-                'name'     => 'Exclusive — Private Party (Sat, Sun & Holidays)',
-                'desc'     => 'Private use of the whole play area, weekends & holidays · 1-hr Dino mascot appearance',
-                'image'    => 'dino-venue.jpg',
-                'badge'    => 'Weekends & holidays',
-                'category' => 'packages',
-                'tiers'    => [
-                    40 => 67000,
-                    50 => 80000,
-                    60 => 93000,
-                    70 => 102500,
-                    80 => 115000,
-                ],
-            ],
-
             // --- Walk-in promo pricing, from the counter price list ---
             'walkin_1hour' => [
-                'name'     => '1 Hour Play Pass',
-                'desc'     => '1 hour of softplay access per guest (walk-in promo rate)',
-                'image'    => 'dino_1.jpg',
-                'badge'    => 'Quick Visit',
+                'name'  => '1 Hour Play Pass',
+                'desc'  => '1 hour of softplay access per guest',
+                'image' => 'dino_1.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 299,
                     2  => 598,
                     3  => 897,
@@ -113,12 +67,12 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_2hour' => [
-                'name'     => '2 Hour Play Pass',
-                'desc'     => '2 hours of softplay access per guest (walk-in promo rate)',
-                'image'    => 'dino_1.jpg',
-                'badge'    => 'Popular Choice',
+                'name'  => '2 Hour Play Pass',
+                'desc'  => '2 hours of softplay access per guest',
+                'image' => 'dino_1.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 399,
                     2  => 798,
                     3  => 1197,
@@ -132,12 +86,12 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_allday' => [
-                'name'     => 'All Day Play Pass',
-                'desc'     => 'Unlimited-time softplay access per guest for the day (walk-in promo rate)',
-                'image'    => 'dino_1.jpg',
-                'badge'    => 'Best Value',
+                'name'  => 'All Day Play Pass',
+                'desc'  => 'Unlimited-time softplay access per guest for the day',
+                'image' => 'dino_1.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 599,
                     2  => 1198,
                     3  => 1797,
@@ -150,52 +104,57 @@ class BookingController extends Controller
                     10 => 5990,
                 ],
             ],
+            'non_exclusive' => [
+                'name'  => 'Non-Exclusive — Shared Play Area',
+                'desc'  => 'Shared softplay & party area · 1-hr Dino mascot appearance included',
+                'image' => 'dino_1.jpg',
+                'badge' => 'Most affordable',
+                'category' => 'packages',
+                'tiers' => [
+                    10 => 15000,
+                    20 => 28000,
+                    30 => 39000,
+                ],
+            ],
+            'exclusive_weekdays' => [
+                'name'  => 'Exclusive — Private Party (Mon–Fri)',
+                'desc'  => 'Private use of the whole play area, weekdays only · 1-hr Dino mascot appearance',
+                'image' => 'dino-venue.jpg',
+                'badge' => 'Weekdays only',
+                'category' => 'packages',
+                'tiers' => [
+                    40 => 62000,
+                    50 => 75000,
+                    60 => 88000,
+                    70 => 97500,
+                    80 => 110000,
+                ],
+            ],
+            'exclusive_weekends' => [
+                'name'  => 'Exclusive — Private Party (Sat, Sun & Holidays)',
+                'desc'  => 'Private use of the whole play area, weekends & holidays · 1-hr Dino mascot appearance',
+                'image' => 'dino-venue.jpg',
+                'badge' => 'Weekends & holidays',
+                'category' => 'packages',
+                'tiers' => [
+                    40 => 67000,
+                    50 => 80000,
+                    60 => 93000,
+                    70 => 102500,
+                    80 => 115000,
+                ],
+            ],
         ],
 
         'rollerfever' => [
-            'weekday' => [
-                'name'     => 'Weekday Rates',
-                'desc'     => 'Skate rink party packages by number of guests (Mon–Fri)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Weekdays',
-                'category' => 'packages',
-                'tiers'    => [
-                    10 => 11994,
-                    15 => 16200,
-                    20 => 20400,
-                    25 => 24390,
-                    30 => 28800,
-                    35 => 32550,
-                    40 => 36000,
-                    45 => 39150,
-                ],
-            ],
-            'weekend' => [
-                'name'     => 'Weekend Rates',
-                'desc'     => 'Skate rink party packages by number of guests (Sat–Sun)',
-                'image'    => 'roller-skates.jpg',
-                'badge'    => 'Weekends',
-                'category' => 'packages',
-                'tiers'    => [
-                    10 => 15600,
-                    15 => 22500,
-                    20 => 28800,
-                    25 => 34500,
-                    30 => 39600,
-                    35 => 42000,
-                    40 => 45600,
-                    45 => 48600,
-                ],
-            ],
-
             // --- Walk-in promo pricing, from the counter price list ---
             'walkin_1hour' => [
-                'name'     => '1 Hour Skate Pass',
-                'desc'     => '1 hour of skating per guest (walk-in promo rate)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Quick Session',
+                'name'  => '1 Hour Skate Pass',
+                'desc'  => '1 hour of skating per guest',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 249,
                     2  => 498,
                     3  => 747,
@@ -209,12 +168,12 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_2hour' => [
-                'name'     => '2 Hour Skate Pass',
-                'desc'     => '2 hours of skating per guest (walk-in promo rate)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Popular Choice',
+                'name'  => '2 Hour Skate Pass',
+                'desc'  => '2 hours of skating per guest',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 399,
                     2  => 798,
                     3  => 1197,
@@ -228,12 +187,12 @@ class BookingController extends Controller
                 ],
             ],
             'walkin_allday' => [
-                'name'     => 'All Day Skate Pass',
-                'desc'     => 'Unlimited-time skating per guest for the day (walk-in promo rate)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Best Value',
+                'name'  => 'All Day Skate Pass',
+                'desc'  => 'Unlimited-time skating per guest for the day',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Per guest',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 599,
                     2  => 1198,
                     3  => 1797,
@@ -247,23 +206,57 @@ class BookingController extends Controller
                 ],
             ],
             'group_bundle_1hour' => [
-                'name'     => 'Group Bundle — 1 Hour (4+1 Free)',
-                'desc'     => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (1 hour skating)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Group promo',
+                'name'  => 'Group Bundle — 1 Hour (4+1 Free)',
+                'desc'  => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (1 hour skating)',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Group promo',
                 'category' => 'bundle',
-                'tiers'    => [
+                'tiers' => [
                     5 => 996,
                 ],
             ],
             'group_bundle_2hour' => [
-                'name'     => 'Group Bundle — 2 Hours (4+1 Free)',
-                'desc'     => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (2 hours skating)',
-                'image'    => 'roller-fever.jpg',
-                'badge'    => 'Group promo',
+                'name'  => 'Group Bundle — 2 Hours (4+1 Free)',
+                'desc'  => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (2 hours skating)',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Group promo',
                 'category' => 'bundle',
-                'tiers'    => [
+                'tiers' => [
                     5 => 1596,
+                ],
+            ],
+            'weekday' => [
+                'name'  => 'Weekday Rates',
+                'desc'  => 'Skate rink party packages by number of guests (Mon–Fri)',
+                'image' => 'roller-fever.jpg',
+                'badge' => 'Weekdays',
+                'category' => 'packages',
+                'tiers' => [
+                    10 => 11994,
+                    15 => 16200,
+                    20 => 20400,
+                    25 => 24390,
+                    30 => 28800,
+                    35 => 32550,
+                    40 => 36000,
+                    45 => 39150,
+                ],
+            ],
+            'weekend' => [
+                'name'  => 'Weekend Rates',
+                'desc'  => 'Skate rink party packages by number of guests (Sat–Sun)',
+                'image' => 'roller-skates.jpg',
+                'badge' => 'Weekends',
+                'category' => 'packages',
+                'tiers' => [
+                    10 => 15600,
+                    15 => 22500,
+                    20 => 28800,
+                    25 => 34500,
+                    30 => 39600,
+                    35 => 42000,
+                    40 => 45600,
+                    45 => 48600,
                 ],
             ],
         ],
@@ -273,32 +266,13 @@ class BookingController extends Controller
         // price board (₱60 / ₱120 / ₱150 rides), plus the all-access
         // "Try Every Ride" promo pass.
         'field_of_rides' => [
-            'try_every_ride' => [
-                'name'     => 'Try Every Ride — All Access Pass',
-                'desc'     => 'One ride each on every attraction listed on the price board (Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane, Vikings, Go-Kart)',
-                'image'    => 'field-of-rides.jpg',
-                'badge'    => 'Best value',
-                'category' => 'solo',
-                'tiers'    => [
-                    1  => 600,
-                    2  => 1200,
-                    3  => 1800,
-                    4  => 2400,
-                    5  => 3000,
-                    6  => 3600,
-                    7  => 4200,
-                    8  => 4800,
-                    9  => 5400,
-                    10 => 6000,
-                ],
-            ],
             'rides_60' => [
-                'name'     => 'Rides — ₱60 Per Head',
-                'desc'     => 'Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane',
-                'image'    => 'field-of-rides.jpg',
-                'badge'    => 'Per ride',
+                'name'  => 'Rides — ₱60 Per Head',
+                'desc'  => 'Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane',
+                'image' => 'field-of-rides.jpg',
+                'badge' => 'Per ride',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 60,
                     2  => 120,
                     3  => 180,
@@ -312,12 +286,12 @@ class BookingController extends Controller
                 ],
             ],
             'rides_120' => [
-                'name'     => 'Rides — ₱120 Per Head',
-                'desc'     => 'Vikings, Go-Kart',
-                'image'    => 'field-of-rides.jpg',
-                'badge'    => 'Per ride',
+                'name'  => 'Rides — ₱120 Per Head',
+                'desc'  => 'Vikings, Go-Kart',
+                'image' => 'field-of-rides.jpg',
+                'badge' => 'Per ride',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 120,
                     2  => 240,
                     3  => 360,
@@ -331,12 +305,12 @@ class BookingController extends Controller
                 ],
             ],
             'rides_150' => [
-                'name'     => 'Rides — ₱150 Per Head',
-                'desc'     => 'Inflatable Playground (30 mins), Mini Trampoline (30 mins), Rev & Roll (per car), Happy Cars (per ride), Jurassic Adventure (per ride)',
-                'image'    => 'field-of-rides.jpg',
-                'badge'    => 'Per ride',
+                'name'  => 'Rides — ₱150 Per Head',
+                'desc'  => 'Inflatable Playground (30 mins), Mini Trampoline (30 mins), Rev & Roll (per car), Happy Cars (per ride), Jurassic Adventure (per ride)',
+                'image' => 'field-of-rides.jpg',
+                'badge' => 'Per ride',
                 'category' => 'solo',
-                'tiers'    => [
+                'tiers' => [
                     1  => 150,
                     2  => 300,
                     3  => 450,
@@ -347,6 +321,25 @@ class BookingController extends Controller
                     8  => 1200,
                     9  => 1350,
                     10 => 1500,
+                ],
+            ],
+            'try_every_ride' => [
+                'name'  => 'Try Every Ride — All Access Pass',
+                'desc'  => 'One ride each on every attraction listed on the price board (Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane, Vikings, Go-Kart)',
+                'image' => 'field-of-rides.jpg',
+                'badge' => 'Best value',
+                'category' => 'bundle',
+                'tiers' => [
+                    1  => 600,
+                    2  => 1200,
+                    3  => 1800,
+                    4  => 2400,
+                    5  => 3000,
+                    6  => 3600,
+                    7  => 4200,
+                    8  => 4800,
+                    9  => 5400,
+                    10 => 6000,
                 ],
             ],
         ],
@@ -376,8 +369,10 @@ class BookingController extends Controller
     protected array $inclusions = [
         'dino_adventure' => [
             'non_exclusive' => [
-                'Shared use of the softplay area (not exclusive)',
-                '1 hr Dino mascot appearance & photo ops',
+                '3 hrs unlimited play at softplay (max no. of package chosen)',
+                '3 hrs exclusive use of party area',
+                '1 set meal each (max no. of package chosen)',
+                'Dino mascot dance & photo ops',
                 'Party program with host',
                 'Basic balloon set-up',
                 'Basic sound system',
@@ -386,7 +381,7 @@ class BookingController extends Controller
                 'Digital themed invitation',
             ],
             'exclusive_weekdays' => [
-                '3 hrs exclusive use of the whole play area',
+                '3 hrs unlimited play at softplay (max no. of package chosen)',
                 '3 hrs exclusive use of party area',
                 '1 set meal each (max no. of package chosen)',
                 'Dino mascot dance & photo ops',
@@ -396,10 +391,9 @@ class BookingController extends Controller
                 'Tables & chairs (max no. of package chosen)',
                 'Nametag & party games',
                 'Digital themed invitation',
-                'Available Monday–Friday only',
             ],
             'exclusive_weekends' => [
-                '3 hrs exclusive use of the whole play area',
+                '3 hrs unlimited play at softplay (max no. of package chosen)',
                 '3 hrs exclusive use of party area',
                 '1 set meal each (max no. of package chosen)',
                 'Dino mascot dance & photo ops',
@@ -409,103 +403,92 @@ class BookingController extends Controller
                 'Tables & chairs (max no. of package chosen)',
                 'Nametag & party games',
                 'Digital themed invitation',
-                'Available Saturdays, Sundays & holidays',
             ],
             'walkin_1hour' => [
                 '1 hour of softplay access per guest',
-                'Access to all play structures',
-                'Walk-in promo rate — no party area, host, or meal included',
+                'Guardian entry available for an additional fee',
             ],
             'walkin_2hour' => [
                 '2 hours of softplay access per guest',
-                'Access to all play structures',
-                'Walk-in promo rate — no party area, host, or meal included',
+                'Guardian entry available for an additional fee',
             ],
             'walkin_allday' => [
                 'Unlimited-time softplay access per guest for the day',
-                'Access to all play structures',
-                'Walk-in promo rate — no party area, host, or meal included',
+                'Guardian entry available for an additional fee',
             ],
         ],
         'rollerfever' => [
             'weekday' => [
-                '2 hours skating for all guests',
-                '3 hours exclusive use of party area',
-                '1 set meal per guest',
+                '2 hours skating',
+                '3 hours use of party area',
+                '1 set meal per pax',
                 'Basic balloon set-up',
                 'Basic sound system',
                 'Tables & chairs',
                 'Digital themed invitation',
-                'Available Monday–Friday only',
             ],
             'weekend' => [
-                '2 hours skating for all guests',
-                '3 hours exclusive use of party area',
-                '1 set meal per guest',
+                '2 hours skating',
+                '3 hours use of party area',
+                '1 set meal per pax',
                 'Basic balloon set-up',
                 'Basic sound system',
                 'Tables & chairs',
                 'Digital themed invitation',
-                'Available Saturdays & Sundays',
             ],
             'walkin_1hour' => [
-                '1 hour of skating per guest',
-                'Walk-in promo rate',
-                'Socks and skate/gear rental available as add-ons',
+                '1 hour of skating access per guest',
+                'Socks and skate rental available for an additional fee',
             ],
             'walkin_2hour' => [
-                '2 hours of skating per guest',
-                'Walk-in promo rate',
-                'Socks and skate/gear rental available as add-ons',
+                '2 hours of skating access per guest',
+                'Socks and skate rental available for an additional fee',
             ],
             'walkin_allday' => [
-                'Unlimited-time skating per guest for the day',
-                'Walk-in promo rate',
-                'Socks and skate/gear rental available as add-ons',
+                'Unlimited-time skating access per guest for the day',
+                'Socks and skate rental available for an additional fee',
             ],
             'group_bundle_1hour' => [
-                '1 hour of skating for 5 guests (buy 4, get 1 free)',
-                'Group promo rate — best for barkada or family groups',
-                'Socks and skate/gear rental available as add-ons',
+                '1 hour of skating access per guest',
+                'Buy 4 guest passes, get 1 free (5 pax total)',
+                'Socks and skate rental available for an additional fee',
             ],
             'group_bundle_2hour' => [
-                '2 hours of skating for 5 guests (buy 4, get 1 free)',
-                'Group promo rate — best for barkada or family groups',
-                'Socks and skate/gear rental available as add-ons',
+                '2 hours of skating access per guest',
+                'Buy 4 guest passes, get 1 free (5 pax total)',
+                'Socks and skate rental available for an additional fee',
             ],
         ],
         'field_of_rides' => [
             'try_every_ride' => [
-                'One ride each on every attraction on the price board',
-                'Covers Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane, Vikings, and Go-Kart',
-                'Best value versus paying per ride',
+                'One ride each on every attraction listed on the price board',
                 'Minimum height requirement applies per ride (posted at each attraction)',
+                'Guests under 4ft must be accompanied by a paying guardian — no chaperone-only riders',
+                'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
+                'Management reserves the right to refuse service to guests who do not follow safety guidelines',
             ],
             'rides_60' => [
                 'One ride/round per ticket purchased',
-                'Covers Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, and Crazy Plane',
                 'Minimum height requirement applies per ride (posted at each attraction)',
+                'Guests under 4ft must be accompanied by a paying guardian — no chaperone-only riders',
+                'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
+                'Management reserves the right to refuse service to guests who do not follow safety guidelines',
             ],
             'rides_120' => [
                 'One ride/round per ticket purchased',
-                'Covers Vikings and Go-Kart',
                 'Minimum height requirement applies per ride (posted at each attraction)',
+                'Guests under 4ft must be accompanied by a paying guardian — no chaperone-only riders',
+                'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
+                'Management reserves the right to refuse service to guests who do not follow safety guidelines',
             ],
             'rides_150' => [
                 'One ride/round per ticket purchased',
-                'Covers Inflatable Playground (30 mins), Mini Trampoline (30 mins), Rev & Roll (per car), Happy Cars (per ride), and Jurassic Adventure (per ride)',
                 'Minimum height requirement applies per ride (posted at each attraction)',
+                'Guests under 4ft must be accompanied by a paying guardian — no chaperone-only riders',
+                'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
+                'Management reserves the right to refuse service to guests who do not follow safety guidelines',
             ],
         ],
-    ];
-
-    /**
-     * Human-readable labels for the filter tabs on the booking page.
-     */
-    protected array $packageCategories = [
-        'solo'     => 'Solo',
-        'bundle'   => 'Bundle',
-        'packages' => 'Packages',
     ];
 
     /**
@@ -517,31 +500,11 @@ class BookingController extends Controller
     {
         $dates = $this->upcomingDates();
         $services = $this->services;
-        $packages = $this->sortedPackages();
+        $packages = $this->packages;
         $inclusions = $this->inclusions;
         $addons = $this->addons;
-        $packageCategories = $this->packageCategories;
 
-        return view('user.booking', compact('dates', 'services', 'packages', 'inclusions', 'addons', 'packageCategories'));
-    }
-
-    /**
-     * Return $this->packages with each service's package list sorted
-     * ascending by starting price (lowest tier price first), so the
-     * cheapest option in every category always shows up first.
-     */
-    protected function sortedPackages(): array
-    {
-        $sorted = $this->packages;
-
-        foreach ($sorted as $svcCode => $servicePackages) {
-            uasort($servicePackages, function ($a, $b) {
-                return min($a['tiers']) <=> min($b['tiers']);
-            });
-            $sorted[$svcCode] = $servicePackages;
-        }
-
-        return $sorted;
+        return view('user.booking', compact('dates', 'services', 'packages', 'inclusions', 'addons'));
     }
 
     /**
@@ -561,8 +524,6 @@ class BookingController extends Controller
             'service'    => ['required', 'string', 'in:' . implode(',', array_keys($this->services))],
             'package'    => ['required', 'string'],
             'tier'       => ['required', 'integer'],
-            'addons'     => ['nullable', 'array'],
-            'addons.*'   => ['integer', 'min:0'],
         ]);
 
         $servicePackages = $this->packages[$validated['service']] ?? [];
@@ -581,32 +542,12 @@ class BookingController extends Controller
                 ->withErrors(['tier' => 'Please choose a valid pax tier for this package.']);
         }
 
-        // Only keep add-ons that are actually offered for this service, with
-        // qty > 0. Anything else (unknown code, tampered field, other
-        // service's codes) is silently dropped rather than trusted from the
-        // request.
-        $serviceAddons = $this->addons[$validated['service']] ?? [];
-        $selectedAddons = [];
-        $addonsTotal = 0;
-
-        foreach ($request->input('addons', []) as $code => $qty) {
-            $qty = (int) $qty;
-
-            if ($qty <= 0 || !array_key_exists($code, $serviceAddons)) {
-                continue;
-            }
-
-            $selectedAddons[$code] = $qty;
-            $addonsTotal += $serviceAddons[$code]['price'] * $qty;
-        }
-
         $booking = Booking::create([
             'user_id'    => session('user_id'),
             'service'    => $validated['service'],
             'package'    => $validated['package'],
             'tier'       => $validated['tier'],
-            'price'      => $package['tiers'][$validated['tier']] + $addonsTotal,
-            'addons'     => $selectedAddons ?: null,
+            'price'      => $package['tiers'][$validated['tier']],
             'visit_date' => $validated['visit_date'],
             'visit_time' => $validated['visit_time'],
             'status'     => 'pending_payment',
@@ -614,8 +555,13 @@ class BookingController extends Controller
 
         // Remember which service (Dino Adventure vs RollerFever vs Field of
         // Rides) this booking is for, so the Waiver step later on can show
-        // the correct waiver text.
-        session(['booking_service' => $validated['service']]);
+        // the correct waiver text. Also remember the booking id so the
+        // receipt shown after the waiver is signed knows which booking to
+        // display.
+        session([
+            'booking_service' => $validated['service'],
+            'booking_id'       => $booking->id,
+        ]);
 
         // Booking flow is: Booking -> Payment -> Waiver (last).
         return redirect()
@@ -640,7 +586,80 @@ class BookingController extends Controller
             ->paginate(10)
             ->through(fn ($booking) => $this->formatBooking($booking));
 
-        return view('user.bookings', compact('bookings'));
+        $stats = $this->bookingStats(session('user_id'));
+
+        return view('user.bookings', compact('bookings', 'stats'));
+    }
+
+    /**
+     * Personal booking stats for the "My Bookings" page — the customer's
+     * own activity, not overall business performance: total visits,
+     * upcoming vs completed reservations, total spend, most-booked
+     * package, and a booking-count trend. "Visits" here means
+     * 'confirmed' + 'done' bookings — pending/awaiting-verification ones
+     * aren't a real visit yet, and cancelled ones are excluded.
+     */
+    private function bookingStats(int $userId): array
+    {
+        $upcoming = Booking::where('user_id', $userId)->where('status', 'confirmed')->get();
+        $completed = Booking::where('user_id', $userId)->where('status', 'done')->get();
+        $counted = $upcoming->concat($completed);
+
+        $favoritePackageKey = $counted
+            ->countBy(fn ($booking) => $booking->service . '|' . $booking->package)
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        $favoritePackageName = null;
+        $favoritePackageCount = 0;
+
+        if ($favoritePackageKey) {
+            [$favService, $favPackage] = explode('|', $favoritePackageKey, 2);
+            $favoritePackageName = $this->packages[$favService][$favPackage]['name'] ?? $favPackage;
+            $favoritePackageCount = $counted->filter(
+                fn ($booking) => $booking->service === $favService && $booking->package === $favPackage
+            )->count();
+        }
+
+        $bookingsByMonth = $counted->groupBy(fn ($booking) => $booking->visit_date->format('Y-m'))
+            ->map(fn ($group) => $group->count());
+
+        $monthLabels = [];
+        $monthValues = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $monthLabels[] = $month->format('M');
+            $monthValues[] = (int) ($bookingsByMonth[$month->format('Y-m')] ?? 0);
+        }
+
+        // Category breakdown (Dino Adventure / RollerFever / Field of
+        // Rides) — a proportion-of-whole question, so this feeds a donut
+        // chart rather than the bar chart above (which is a trend over
+        // time and reads better as bars).
+        $bookingsByCategory = $counted->countBy(fn ($booking) => $booking->service);
+
+        $categoryLabels = [];
+        $categoryValues = [];
+
+        foreach ($bookingsByCategory as $serviceCode => $count) {
+            $categoryLabels[] = $this->services[$serviceCode]['name'] ?? ucfirst(str_replace('_', ' ', $serviceCode));
+            $categoryValues[] = $count;
+        }
+
+        return [
+            'total_visits'            => $counted->count(),
+            'upcoming_reservations'   => $upcoming->count(),
+            'completed_reservations'  => $completed->count(),
+            'total_spending'          => $counted->sum('price'),
+            'favorite_package'        => $favoritePackageName,
+            'favorite_package_count'  => $favoritePackageCount,
+            'history_labels'          => $monthLabels,
+            'history_values'          => $monthValues,
+            'category_labels'         => $categoryLabels,
+            'category_values'         => $categoryValues,
+        ];
     }
 
     /**
@@ -660,8 +679,115 @@ class BookingController extends Controller
 
         return view('user.booking-review', ['booking' => $this->formatBooking($bookingModel)]);
     }
+
     /**
-     * Confirm the chosen payment method for a booking (QR Ph or cash on-site).
+     * Direct GCash checkout button on the Review Booking page — creates a
+     * Xendit eWallet charge for the booking's price and sends the customer
+     * straight to GCash (deep-link into the app on mobile, hosted web
+     * checkout on desktop) with the amount already filled in. Xendit's
+     * webhook (XenditWebhookController) confirms the booking automatically
+     * once payment goes through — nothing else to do here after redirect.
+     *
+     * Requires XENDIT_SECRET_KEY in .env. If it's not set yet, or the API
+     * call fails for any reason, the customer is sent back to Review
+     * Booking with a message instead of a 404/500 — QR Ph below stays a
+     * working fallback either way.
+     *
+     * GET /user/bookings/{booking}/pay-gcash
+     */
+    public function payGcash(int $booking): RedirectResponse
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $bookingModel = Booking::where('user_id', session('user_id'))->find($booking);
+
+        abort_if(!$bookingModel, 404);
+
+        if (!in_array($bookingModel->status, ['pending_payment', 'awaiting_verification'])) {
+            return redirect()
+                ->route('user.bookings.review', $bookingModel->id)
+                ->with('error', 'This booking is no longer awaiting payment.');
+        }
+
+        $xendit = new \App\Services\XenditService();
+
+        if (!$xendit->isConfigured()) {
+            return redirect()
+                ->route('user.bookings.review', $bookingModel->id)
+                ->with('error', 'GCash payment isn\'t set up yet — please use QR Ph below for now.');
+        }
+
+        try {
+            $charge = $xendit->createGcashCharge(
+                $bookingModel,
+                successUrl: route('user.bookings.review', $bookingModel->id) . '?gcash=success',
+                failureUrl: route('user.bookings.review', $bookingModel->id) . '?gcash=failed'
+            );
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('user.bookings.review', $bookingModel->id)
+                ->with('error', 'Could not start GCash payment right now — please use QR Ph below or try again in a moment.');
+        }
+
+        // Mobile phones get sent straight into the GCash app; anything
+        // else falls back to Xendit's hosted web checkout page.
+        $checkoutUrl = $charge['actions']['mobile_deeplink_checkout_url']
+            ?? $charge['actions']['mobile_web_checkout_url']
+            ?? $charge['actions']['desktop_web_checkout_url']
+            ?? null;
+
+        if (!$checkoutUrl) {
+            return redirect()
+                ->route('user.bookings.review', $bookingModel->id)
+                ->with('error', 'GCash did not return a checkout link — please use QR Ph below.');
+        }
+
+        return redirect()->away($checkoutUrl);
+    }
+
+    /**
+     * Show the booking receipt — service, package, amount paid, and the
+     * voucher code the customer shows to the cashier to redeem their
+     * booking (same idea as a StarDeals-style e-voucher).
+     *
+     * GET /user/bookings/{booking}/receipt
+     */
+    public function receipt(int $booking)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $bookingModel = Booking::where('user_id', session('user_id'))->find($booking);
+
+        abort_if(!$bookingModel, 404);
+
+        $service = $this->services[$bookingModel->service] ?? null;
+        $package = $this->packages[$bookingModel->service][$bookingModel->package] ?? null;
+
+        return view('user.booking-receipt', [
+            'booking' => [
+                'id'             => $bookingModel->id,
+                'service_name'   => $service['name'] ?? ucfirst(str_replace('_', ' ', $bookingModel->service)),
+                'package_name'   => $package['name'] ?? $bookingModel->package,
+                'date'           => $bookingModel->visit_date->format('M j, Y'),
+                'time'           => $bookingModel->visit_time,
+                'pax'            => $bookingModel->tier,
+                'price'          => '₱' . number_format((float) $bookingModel->price, 2),
+                'payment_method' => strtoupper($bookingModel->payment_method ?? ''),
+                'voucher_code'   => $bookingModel->voucher_code,
+            ],
+        ]);
+    }
+
+    /**
+     * Confirm the chosen payment method for a booking (QR Ph only —
+     * bookings require online payment upfront to guarantee the slot).
+     * Payment confirms the booking immediately — no admin/staff
+     * verification step. Booking flow: Booking -> Payment (confirmed
+     * right away) -> Waiver -> Receipt with voucher code.
      *
      * POST /user/bookings/{booking}/payment
      */
@@ -672,42 +798,47 @@ class BookingController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'string', 'in:qrph,cash'],
-            'receipt'        => ['required_if:payment_method,qrph', 'nullable', 'image', 'max:5120'],
+            'payment_method' => ['required', 'string', 'in:qrph'],
+            'receipt'        => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'receipt.required' => 'Please upload a screenshot or receipt of your payment first.',
+            'receipt.mimes'    => 'Proof of payment must be an image (JPG/PNG/WEBP) or PDF.',
+            'receipt.max'      => 'Proof of payment must be 5MB or smaller.',
         ]);
 
         $bookingModel = Booking::where('user_id', session('user_id'))->find($booking);
 
         abort_if(!$bookingModel, 404);
 
-        $updateData = [
-            'payment_method' => $validated['payment_method'],
-            'status' => $validated['payment_method'] === 'qrph'
-                ? 'awaiting_verification'
-                : 'pending_payment', // stays pending until paid on-site
-        ];
-
-        if ($validated['payment_method'] === 'qrph' && $request->hasFile('receipt')) {
-            // Delete old receipt if re-uploading
-            if ($bookingModel->receipt_path) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($bookingModel->receipt_path);
-            }
-
-            $updateData['receipt_path'] = $request->file('receipt')->store('receipts', 'public');
+        // Only pending bookings can have payment submitted against them —
+        // stops someone from re-submitting proof against an already
+        // confirmed/cancelled/done booking.
+        if (!in_array($bookingModel->status, ['pending_payment', 'awaiting_verification'])) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', 'This booking is no longer awaiting payment.');
         }
 
-        $bookingModel->update($updateData);
+        // QR Ph payment confirms the booking right away — no more
+        // "awaiting_verification" hold. The uploaded screenshot is still
+        // kept on file for the cashier/admin's records, it just doesn't
+        // block confirmation anymore.
+        $path = $request->file('receipt')->store('payment-proofs', 'public');
 
-        $message = $validated['payment_method'] === 'qrph'
-            ? 'Thanks! We are verifying your QR Ph payment. Please sign the waiver to finish your booking.'
-            : 'Payment method noted — please settle at the counter upon arrival. Please sign the waiver to finish your booking.';
+        $bookingModel->update([
+            'payment_method'       => $validated['payment_method'],
+            'receipt_path'         => $path,
+            'payment_proof_path'   => $path,
+            'payment_submitted_at' => now(),
+            'status'               => 'confirmed',
+        ]);
 
-        // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver).
+        // Waiver is still the last step of the booking flow (Booking ->
+        // Payment -> Waiver); payment is already confirmed at this point.
         return redirect()
             ->route('user.waiver')
-            ->with('success', $message);
+            ->with('success', 'Payment confirmed! Please sign the waiver to finish your booking.');
     }
-
 
     /**
      * Cancel an existing booking.
@@ -723,6 +854,12 @@ class BookingController extends Controller
         $bookingModel = Booking::where('user_id', session('user_id'))->find($booking);
 
         abort_if(!$bookingModel, 404);
+
+        if (in_array($bookingModel->status, ['confirmed', 'done'])) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', 'Confirmed bookings can no longer be cancelled. Please reschedule instead.');
+        }
 
         $bookingModel->update(['status' => 'cancelled']);
 
@@ -783,21 +920,24 @@ class BookingController extends Controller
 
     /**
      * Shape a Booking model into the display array expected by the booking
-     * views: ['id','package','date','pax','status_label','status_class'].
+     * views: ['id','category','package','date','pax','status_label','status_class'].
      */
-    private function formatBooking(Booking $booking): array
-    {
-        $meta = $this->statusMeta($booking->status);
+   private function formatBooking(Booking $booking): array
+{
+    $meta = $this->statusMeta($booking->status);
 
-        return [
-            'id'           => $booking->id,
-            'package'      => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
-            'date'         => $booking->visit_date->format('M j, Y'),
-            'pax'          => $booking->tier,
-            'status_label' => $meta['label'],
-            'status_class' => $meta['class'],
-        ];
-    }
+    return [
+        'id'           => $booking->id,
+        'category'     => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
+        'package'      => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
+        'date'         => $booking->visit_date->format('M j, Y'),
+        'pax'          => $booking->tier,
+        'status'       => $booking->status,
+        'status_label' => $meta['label'],
+        'status_class' => $meta['class'],
+        'voucher_code' => $booking->voucher_code,
+    ];
+}
 
     /**
      * Map a booking status to its display label + tag color class.

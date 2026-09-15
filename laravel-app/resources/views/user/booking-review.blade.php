@@ -51,13 +51,13 @@
                 </div>
             </label>
 
-            <label class="pkg payment-option" data-method="cash" style="cursor:pointer;align-items:center;transition:box-shadow .15s ease, border-color .15s ease;">
+            <label class="pkg payment-option" data-method="gcash" style="cursor:pointer;align-items:center;transition:box-shadow .15s ease, border-color .15s ease;">
                 <div>
-                    <b>Cash on-site</b>
-                    <span>Pay at the counter upon arrival</span>
+                    <b>GCash</b>
+                    <span>Send payment to our GCash number</span>
                 </div>
                 <div class="price">
-                    <input type="radio" name="payment_method" value="cash" onchange="togglePaymentPanels(this.value)" style="width:18px;height:18px;">
+                    <input type="radio" name="payment_method" value="gcash" onchange="togglePaymentPanels(this.value)" style="width:18px;height:18px;">
                 </div>
             </label>
 
@@ -83,10 +83,25 @@
             </div>
         </div>
 
-        {{-- Cash instructions --}}
-        <div id="cashPanel" class="u-card" style="margin-top:14px;display:none;">
-            <h4>Pay at the counter</h4>
-            <p>Please settle payment upon arrival at WonderPark Amusement Com Inc. &mdash; Lipa Branch. Your slot will remain reserved as <b>"Pending payment"</b> until then.</p>
+        {{-- GCash instructions --}}
+        <div id="gcashPanel" class="u-card" style="margin-top:14px;display:none;">
+            <h4>Send via GCash</h4>
+            <p>Send your payment to:</p>
+
+            <div style="text-align:center;margin:14px 0;">
+                <b style="font-size:1.15rem;letter-spacing:.03em;">0917 000 0000</b><br>
+                <span style="font-size:.85rem;color:var(--muted);">WonderPark Amusement Com Inc. &ndash; Lipa</span>
+            </div>
+
+            <p style="font-size:11.5px;color:var(--muted);margin-top:8px;">
+                After paying, upload a screenshot or photo of your GCash payment confirmation below, then tap "Send Receipt". We'll verify and confirm your booking shortly.
+            </p>
+
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+                <label for="gcashReceiptInput" style="font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Payment receipt</label>
+                <input type="file" name="gcash_receipt" id="gcashReceiptInput" accept="image/*">
+                <span id="gcashReceiptFileName" style="font-size:11.5px;color:var(--muted);"></span>
+            </div>
         </div>
 
         <button type="submit" class="u-btn" id="paymentSubmitBtn" style="margin-top:18px;width:100%;" disabled>
@@ -244,7 +259,7 @@
 <script>
     function togglePaymentPanels(method) {
         document.getElementById('qrphPanel').style.display = method === 'qrph' ? 'block' : 'none';
-        document.getElementById('cashPanel').style.display = method === 'cash' ? 'block' : 'none';
+        document.getElementById('gcashPanel').style.display = method === 'gcash' ? 'block' : 'none';
 
         document.querySelectorAll('.payment-option').forEach(function (el) {
             const isSelected = el.dataset.method === method;
@@ -259,13 +274,14 @@
         const btn = document.getElementById('paymentSubmitBtn');
         const label = document.getElementById('submitLabel');
         const receiptInput = document.getElementById('receiptInput');
+        const gcashReceiptInput = document.getElementById('gcashReceiptInput');
 
-        if (method === 'cash') {
-            label.textContent = 'Confirm Cash Payment';
-            btn.disabled = false;
-        } else if (method === 'qrph') {
+        if (method === 'qrph') {
             label.textContent = 'Send Receipt';
             btn.disabled = !(receiptInput && receiptInput.files && receiptInput.files.length > 0);
+        } else if (method === 'gcash') {
+            label.textContent = 'Send Receipt';
+            btn.disabled = !(gcashReceiptInput && gcashReceiptInput.files && gcashReceiptInput.files.length > 0);
         } else {
             label.textContent = 'Select a payment method';
             btn.disabled = true;
@@ -283,6 +299,14 @@
         const receiptInput = document.getElementById('receiptInput');
         receiptInput?.addEventListener('change', function () {
             const nameEl = document.getElementById('receiptFileName');
+            nameEl.textContent = this.files && this.files.length ? this.files[0].name : '';
+            const checkedNow = document.querySelector('input[name="payment_method"]:checked');
+            updateSubmitState(checkedNow ? checkedNow.value : null);
+        });
+
+        const gcashReceiptInput = document.getElementById('gcashReceiptInput');
+        gcashReceiptInput?.addEventListener('change', function () {
+            const nameEl = document.getElementById('gcashReceiptFileName');
             nameEl.textContent = this.files && this.files.length ? this.files[0].name : '';
             const checkedNow = document.querySelector('input[name="payment_method"]:checked');
             updateSubmitState(checkedNow ? checkedNow.value : null);
@@ -305,15 +329,13 @@
 
     function methodLabel(method) {
         if (method === 'qrph') return 'QR Ph';
-        if (method === 'cash') return 'Cash on-site';
+        if (method === 'gcash') return 'GCash';
         return '—';
     }
 
     function openModal(method) {
         confirmPaymentMethodText.textContent = methodLabel(method);
-        paymentModalSub.textContent = method === 'qrph'
-            ? 'Your uploaded receipt will be sent for verification.'
-            : 'Your slot stays reserved as "Pending payment" until you pay at the counter.';
+        paymentModalSub.textContent = 'Your uploaded receipt will be sent for verification.';
         overlay.classList.add('active');
     }
 
@@ -328,9 +350,7 @@
                 e.preventDefault();
                 return;
             }
-            var loadingLabel = document.querySelector('input[name="payment_method"]:checked')?.value === 'qrph'
-                ? 'Sending Receipt...'
-                : 'Confirming...';
+            var loadingLabel = 'Sending Receipt...';
             submitBtn.disabled = true;
             submitBtn.classList.add('is-loading');
             submitBtn.innerHTML = '<span class="btn-spinner"></span> ' + loadingLabel;
@@ -357,6 +377,14 @@
             var receiptInput = document.getElementById('receiptInput');
             if (!receiptInput || !receiptInput.files || !receiptInput.files.length) {
                 alert('Please upload your payment receipt first.');
+                return;
+            }
+        }
+
+        if (checked.value === 'gcash') {
+            var gcashReceiptInput = document.getElementById('gcashReceiptInput');
+            if (!gcashReceiptInput || !gcashReceiptInput.files || !gcashReceiptInput.files.length) {
+                alert('Please upload your GCash payment receipt first.');
                 return;
             }
         }
