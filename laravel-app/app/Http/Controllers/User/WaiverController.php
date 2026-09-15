@@ -88,7 +88,7 @@ class WaiverController extends Controller
         // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver),
         // so signing it finishes the process.
         return redirect()
-            ->route('user.bookings')
+            ->route('user.bookings.receipt', session('booking_id'))
             ->with('success', 'Waiver signed. Your booking is now confirmed!');
     }
 }

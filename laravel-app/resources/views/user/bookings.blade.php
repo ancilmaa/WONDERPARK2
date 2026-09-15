@@ -76,26 +76,26 @@
         </div>
     @endif
 
-    <div class="my-bookings-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:20px;">
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
         @forelse ($bookings as $booking)
-            <div class="u-card" style="margin-top:0;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                    <div>
-                        <span style="display:block;font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">{{ $booking['category'] }}</span>
-                        <h4 style="margin:0 0 4px;">{{ $booking['package'] }}</h4>
-                        <p style="margin:0;font-size:13px;color:var(--muted);">{{ $booking['date'] }} &middot; {{ $booking['pax'] }} pax</p>
+            <div class="mb-row u-card" style="margin-top:0;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;padding:18px 20px;">
+                <div style="flex:1;min-width:220px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
+                        <span style="font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">{{ $booking['category'] }}</span>
+                        <span class="tag {{ $booking['status_class'] }}" style="white-space:nowrap;">{{ $booking['status_label'] }}</span>
                     </div>
-                    <span class="tag {{ $booking['status_class'] }}" style="white-space:nowrap;">{{ $booking['status_label'] }}</span>
+                    <h4 style="margin:0 0 4px;">{{ $booking['package'] }}</h4>
+                    <p style="margin:0;font-size:13px;color:var(--muted);">{{ $booking['date'] }} &middot; {{ $booking['pax'] }} pax</p>
+
+                    @if ($booking['status_class'] === 'green' && !empty($booking['voucher_code']))
+                        <div style="margin-top:10px;background:var(--bg,#f8f6f9);border-radius:10px;padding:8px 12px;display:inline-block;">
+                            <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:6px;">Voucher Code</span>
+                            <span style="font-family:monospace;font-size:13px;font-weight:700;letter-spacing:.5px;">{{ $booking['voucher_code'] }}</span>
+                        </div>
+                    @endif
                 </div>
 
-                @if ($booking['status_class'] === 'green' && !empty($booking['voucher_code']))
-                    <div style="margin-top:14px;background:var(--bg,#f8f6f9);border-radius:10px;padding:10px 14px;">
-                        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Voucher Code</span>
-                        <span style="font-family:monospace;font-size:14px;font-weight:700;letter-spacing:.5px;">{{ $booking['voucher_code'] }}</span>
-                    </div>
-                @endif
-
-                <div style="margin-top:14px;">
+                <div class="mb-actions" style="min-width:150px;">
                     @if ($booking['status'] === 'confirmed')
                         {{-- Already paid & confirmed: no more "pending payment" actions, just let them reschedule --}}
                         <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}"
@@ -137,7 +137,7 @@
                 </div>
             </div>
         @empty
-            <div class="u-card" style="grid-column:1 / -1;text-align:center;padding:24px 20px;font-size:13px;color:var(--muted);">
+            <div class="u-card" style="margin-top:0;text-align:center;padding:24px 20px;font-size:13px;color:var(--muted);">
                 You don't have any bookings yet.
             </div>
         @endforelse
