@@ -19,6 +19,13 @@
 
 @section('content')
 
+    @if (isset($stats) && $stats['total_visits'] > 0)
+        <div class="mb-tabs" id="mbTabs">
+            <button type="button" class="mb-tab active" data-target="bookingsPanel">My Bookings</button>
+            <button type="button" class="mb-tab" data-target="analyticsPanel">Analytics</button>
+        </div>
+    @endif
+
     <div class="u-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div>
             <h4 style="margin:0 0 4px;">My Bookings</h4>
@@ -32,7 +39,8 @@
     </div>
 
     @if (isset($stats) && $stats['total_visits'] > 0)
-        <div class="u-card" style="margin-top:20px;display:flex;gap:0;text-align:center;padding:16px 8px;">
+        <div id="analyticsPanel" class="mb-panel" hidden>
+        <div class="u-card" style="display:flex;gap:0;text-align:center;padding:16px 8px;">
             <div style="flex:1;">
                 <div style="font-size:22px;font-weight:700;">{{ $stats['total_visits'] }}</div>
                 <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Total Visits</div>
@@ -74,8 +82,10 @@
                 <div id="categoryLegend" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:10px;font-size:13px;"></div>
             </div>
         </div>
+        </div>
     @endif
 
+    <div id="bookingsPanel" class="mb-panel">
     <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
         @forelse ($bookings as $booking)
             <div class="mb-row u-card" style="margin-top:0;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;padding:18px 20px;">
@@ -190,11 +200,22 @@
 
         </div>
     @endif
+    </div>
 
 @endsection
 
 @if (isset($stats) && $stats['total_visits'] > 0)
     @push('scripts')
+    <script>
+        document.querySelectorAll('.mb-tab').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.mb-tab').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                document.querySelectorAll('.mb-panel').forEach(function (p) { p.hidden = true; });
+                document.getElementById(btn.dataset.target).hidden = false;
+            });
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         new Chart(document.getElementById('historyChart'), {
