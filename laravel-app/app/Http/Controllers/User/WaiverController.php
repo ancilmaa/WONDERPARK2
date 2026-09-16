@@ -76,19 +76,19 @@ class WaiverController extends Controller
             'agree' => ['required', 'accepted'],
         ]);
 
-        // TODO: persist the signed waiver once the Waiver model/table exists, e.g.:
-        //
-        // Waiver::create([
-        //     'user_id'         => Auth::id(),
-        //     'signature_name'  => $validated['signature_name'],
-        //     'signed_at'       => now(),
-        //     'ip_address'      => $request->ip(),
-        // ]);
+        $bookingId = session('booking_id');
 
-        // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver),
-        // so signing it finishes the process.
+        // Guard: kung nawala/expired na yung session bago pa ma-sign yung
+        // waiver, huwag basta-basta i-redirect papunta sa route na
+        // required ang {booking} param — babagsak lang ulit ito.
+        if (!$bookingId) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', 'We couldn\'t find your booking session. Please check "My Bookings" to continue, or start a new booking.');
+        }
+
         return redirect()
-            ->route('user.bookings')
+            ->route('user.bookings.receipt', $bookingId)
             ->with('success', 'Waiver signed. Your booking is now confirmed!');
     }
 }
