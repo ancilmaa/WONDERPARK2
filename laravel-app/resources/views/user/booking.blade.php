@@ -12,12 +12,14 @@
       $packageCategories -> ['solo' => 'Solo', 'bundle' => 'Bundle', 'packages' => 'Packages']
 
     Layout: two-column 50/50 split.
-      - LEFT  column: a big, always-visible (no popup) calendar + time slots,
-        so the visit date/time being booked is clearly visible at all times.
-      - RIGHT column: "Choose your experience" service switch + package
-        cards, filterable by category (Solo / Bundle / Packages) instead
-        of paginated — packages are already price-sorted ascending, so
-        the cheapest option in the active filter always shows first.
+      - LEFT  column: service switch + package cards, filterable by
+        category (Solo / Bundle / Packages) and paginated, plus the
+        "+ Booking" submit button at the bottom. Packages are already
+        price-sorted ascending, so the cheapest option in the active
+        filter always shows first.
+      - RIGHT column: a big, always-visible (no popup) calendar + time
+        slots, so the visit date/time being booked is clearly visible
+        at all times.
 
     Date & time are picked straight from the inline calendar (built client
     side in JS, always reflects the real current date/month). Visit duration
@@ -199,6 +201,11 @@
     border-color: var(--pink-deep);
 }
 .promo-pagination button:disabled { opacity: .35; cursor: not-allowed; }
+.promo-pagination button.active {
+    background: var(--pink-deep);
+    color: #fff;
+    border-color: var(--pink-deep);
+}
 .promo-pagination .promo-page-info {
     font-size: 12px;
     font-weight: 700;
@@ -353,51 +360,7 @@
 
         <div class="booking-split">
 
-            {{-- ================= LEFT: big inline calendar ================= --}}
-            <div class="booking-col booking-col-cal">
-                <div class="cal-embed" id="calEmbed">
-                    <div class="cal-embed-inner">
-                        <div class="cal-month">
-                            <div class="cal-month-head">
-                                <button type="button" id="calPrev" aria-label="Previous month">&lsaquo;</button>
-                                <span id="calMonthLabel"></span>
-                                <button type="button" id="calNext" aria-label="Next month">&rsaquo;</button>
-                            </div>
-                            <div class="cal-weekdays">
-                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-                            </div>
-                            <div class="cal-days" id="calDays"></div>
-                        </div>
-
-                        <div class="cal-times">
-                            <div class="cal-times-head">
-                                <span id="calSelectedDayLabel">Pick a date</span>
-                                <div class="cal-fmt-toggle">
-                                    <button type="button" data-fmt="12" class="active">12h</button>
-                                    <button type="button" data-fmt="24">24h</button>
-                                </div>
-                            </div>
-                            <div class="cal-slots" id="calSlots">
-                                <p class="cal-slots-empty">Select a date first</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calSelectedBar" class="promo-selection-summary empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
-                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-                        <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
-                    </svg>
-                    <span id="dateTimeLabel">No date &amp; time selected yet</span>
-                </div>
-                <input type="hidden" name="visit_date" id="visitDateInput" required>
-                <input type="hidden" name="visit_time" id="visitTimeInput" required>
-                <button type="submit" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Booking</button>
-                 <span id="bookingBtnAnchor" style="display:none;"></span>
-            </div>
-
-            {{-- ================= RIGHT: experience + filterable packages ================= --}}
+            {{-- ================= LEFT: experience + filterable packages ================= --}}
             <div class="booking-col booking-col-pkg">
                 <div class="service-switch" id="serviceSwitch">
                     @foreach ($services as $svcCode => $svc)
@@ -494,12 +457,12 @@
                                     <div class="promo-inclusions">
                                         <p class="promo-inclusions-title">What's included</p>
                                         <ul class="promo-inclusions-list" data-inclusions-list>
-                                            @foreach ($inclusions[$svcCode] as $i => $item)
+                                            @foreach (($inclusions[$svcCode][$code] ?? []) as $i => $item)
                                                 <li {{ $i >= 3 ? 'data-extra hidden' : '' }}>{{ $item }}</li>
                                             @endforeach
                                         </ul>
-                                        @if (count($inclusions[$svcCode]) > 3)
-                                            <button type="button" class="promo-seemore-btn" data-seemore>See more ({{ count($inclusions[$svcCode]) - 3 }}) ›</button>
+                                        @if (count($inclusions[$svcCode][$code] ?? []) > 3)
+                                            <button type="button" class="promo-seemore-btn" data-seemore>See more ({{ count($inclusions[$svcCode][$code]) - 3 }}) ›</button>
                                         @endif
                                     </div>
                                 </div>
@@ -509,14 +472,54 @@
                     </div>
 
                     <p class="promo-empty-filter" data-promo-empty hidden>No packages match this filter.</p>
-                    <div class="promo-pagination" data-promo-pagination hidden>
-                        <button type="button" data-page-prev aria-label="Previous page">&lsaquo;</button>
-                        <span class="promo-page-info" data-page-info>1 / 1</span>
-                        <button type="button" data-page-next aria-label="Next page">&rsaquo;</button>
-                    </div>
+                    <div class="promo-pagination" data-promo-pagination hidden></div>
                 </div>
                 @endforeach
 
+                <button type="submit" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Booking</button>
+                 <span id="bookingBtnAnchor" style="display:none;"></span>
+            </div>
+
+            {{-- ================= RIGHT: big inline calendar ================= --}}
+            <div class="booking-col booking-col-cal">
+                <div class="cal-embed" id="calEmbed">
+                    <div class="cal-embed-inner">
+                        <div class="cal-month">
+                            <div class="cal-month-head">
+                                <button type="button" id="calPrev" aria-label="Previous month">&lsaquo;</button>
+                                <span id="calMonthLabel"></span>
+                                <button type="button" id="calNext" aria-label="Next month">&rsaquo;</button>
+                            </div>
+                            <div class="cal-weekdays">
+                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                            </div>
+                            <div class="cal-days" id="calDays"></div>
+                        </div>
+
+                        <div class="cal-times">
+                            <div class="cal-times-head">
+                                <span id="calSelectedDayLabel">Pick a date</span>
+                                <div class="cal-fmt-toggle">
+                                    <button type="button" data-fmt="12" class="active">12h</button>
+                                    <button type="button" data-fmt="24">24h</button>
+                                </div>
+                            </div>
+                            <div class="cal-slots" id="calSlots">
+                                <p class="cal-slots-empty">Select a date first</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="calSelectedBar" class="promo-selection-summary empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
+                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                        <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
+                    </svg>
+                    <span id="dateTimeLabel">No date &amp; time selected yet</span>
+                </div>
+                <input type="hidden" name="visit_date" id="visitDateInput" required>
+                <input type="hidden" name="visit_time" id="visitTimeInput" required>
             </div>
 
         </div>
@@ -694,15 +697,18 @@
     var grid       = group.querySelector('[data-promo-grid]');
     var emptyMsg   = group.querySelector('[data-promo-empty]');
     var pagination = group.querySelector('[data-promo-pagination]');
-    var pageInfo   = group.querySelector('[data-page-info]');
-    var prevBtn    = group.querySelector('[data-page-prev]');
-    var nextBtn    = group.querySelector('[data-page-next]');
     if (!grid) return;
 
-    var PAGE_SIZE = 4; // 2x2 — humigit-kumulang katapat ng height ng calendar
+    var PAGE_SIZE = 2; // 1 row of 2 — matches the narrower packages column width
     var cards = Array.prototype.slice.call(grid.children);
     var matched = cards;
     var currentPage = 1;
+
+    function goToPage(p) {
+        currentPage = p;
+        renderPage();
+        grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
     function renderPage() {
         var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
@@ -716,12 +722,42 @@
 
         if (emptyMsg) emptyMsg.hidden = matched.length > 0;
 
-        if (pagination) {
-            pagination.hidden = matched.length <= PAGE_SIZE;
-            if (pageInfo) pageInfo.textContent = currentPage + ' / ' + totalPages;
-            if (prevBtn) prevBtn.disabled = currentPage <= 1;
-            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+        if (!pagination) return;
+
+        pagination.hidden = matched.length <= PAGE_SIZE;
+        pagination.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        var prev = document.createElement('button');
+        prev.type = 'button';
+        prev.innerHTML = '&lsaquo;';
+        prev.setAttribute('aria-label', 'Previous page');
+        prev.disabled = currentPage <= 1;
+        prev.addEventListener('click', function () {
+            if (currentPage > 1) goToPage(currentPage - 1);
+        });
+        pagination.appendChild(prev);
+
+        for (var p = 1; p <= totalPages; p++) {
+            (function (p) {
+                var num = document.createElement('button');
+                num.type = 'button';
+                num.textContent = p;
+                num.classList.toggle('active', p === currentPage);
+                num.addEventListener('click', function () { goToPage(p); });
+                pagination.appendChild(num);
+            })(p);
         }
+
+        var next = document.createElement('button');
+        next.type = 'button';
+        next.innerHTML = '&rsaquo;';
+        next.setAttribute('aria-label', 'Next page');
+        next.disabled = currentPage >= totalPages;
+        next.addEventListener('click', function () {
+            if (currentPage < totalPages) goToPage(currentPage + 1);
+        });
+        pagination.appendChild(next);
     }
 
     function applyFilter(cat) {
@@ -740,26 +776,6 @@
                 });
                 applyFilter(btn.dataset.cat);
             });
-        });
-    }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', function () {
-            if (currentPage > 1) {
-                currentPage--;
-                renderPage();
-                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
-    }
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function () {
-            var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderPage();
-                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
         });
     }
 
