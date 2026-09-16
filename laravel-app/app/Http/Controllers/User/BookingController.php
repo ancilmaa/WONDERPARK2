@@ -583,7 +583,7 @@ class BookingController extends Controller
         $bookings = Booking::where('user_id', session('user_id'))
             ->where('status', '!=', 'cancelled')
             ->orderByDesc('visit_date')
-            ->paginate(10)
+            ->paginate(5)
             ->through(fn ($booking) => $this->formatBooking($booking));
 
         $stats = $this->bookingStats(session('user_id'));
