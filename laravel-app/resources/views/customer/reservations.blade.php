@@ -836,15 +836,25 @@
 
 @section('content')
 
-    @php
+     @php
         $dummyRows = [
-            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'package' => 'Whole Day Pass', 'pax' => 4, 'status' => 'confirmed'],
-            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'package' => 'Birthday Package', 'pax' => 12, 'status' => 'pending'],
-            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'package' => 'Half Day Pass', 'pax' => 2, 'status' => 'confirmed'],
-            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'package' => 'Group Package', 'pax' => 20, 'status' => 'cancelled'],
+            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'category' => 'Dino Adventure', 'package' => 'Whole Day Pass', 'pax' => 4],
+            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'category' => 'RollerFever', 'package' => 'Birthday Package', 'pax' => 12],
+            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'category' => 'Dino Adventure', 'package' => 'Half Day Pass', 'pax' => 2],
+            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'category' => 'Field of Rides', 'package' => 'Group Package', 'pax' => 20],
         ];
         $usingDummyData = !isset($bookings) || $bookings->count() === 0;
         $packageOptions = $packages ?? ['Whole Day Pass', 'Half Day Pass', 'Birthday Package', 'Group Package'];
+
+        // Maps the `service` slug saved by the customer booking flow
+        // (dino_adventure / rollerfever / field_of_rides) to its label.
+        // Reservations made via the admin "New Reservation" form don't
+        // collect a service yet, so those show as "—" for now.
+        $serviceLabels = [
+            'dino_adventure' => 'Dino Adventure',
+            'rollerfever'    => 'RollerFever',
+            'field_of_rides' => 'Field of Rides',
+        ];
     @endphp
 
     <!-- TOOLBAR -->
@@ -871,32 +881,30 @@
 
         <table>
             <thead>
-                <tr>
+                          <tr>
                     <th>Customer</th>
                     <th>Email</th>
                     <th>Date</th>
                     <th>Time</th>
+                    <th>Category</th>
                     <th>Package</th>
                     <th>Pax</th>
                     <th>Payment</th>
-                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @if ($usingDummyData)
-                    @foreach ($dummyRows as $row)
+                                       @foreach ($dummyRows as $row)
                         <tr>
                             <td data-label="Customer">{{ $row['customer'] }}</td>
                             <td data-label="Email" class="email-cell">{{ $row['email'] }}</td>
                             <td data-label="Date">{{ $row['date'] }}</td>
                             <td data-label="Time">{{ $row['time'] }}</td>
-                           <td data-label="Package">{{ $row['package'] }}</td>
+                            <td data-label="Category">{{ $row['category'] }}</td>
+                            <td data-label="Package">{{ $row['package'] }}</td>
                             <td data-label="Pax">{{ $row['pax'] }}</td>
                             <td data-label="Payment">&mdash;</td>
-                            <td data-label="Status">
-                                <span class="badge badge-{{ $row['status'] }}">{{ ucfirst($row['status']) }}</span>
-                            </td>
                             <td data-label="Actions">&mdash;</td>
                         </tr>
                     @endforeach
@@ -911,6 +919,7 @@
 </td>
 <td data-label="Date">{{ $booking->display_date?->format('M d, Y') }}</td>
 <td data-label="Time">{{ $booking->display_time }}</td>
+<td data-label="Category">{{ $serviceLabels[$booking->service] ?? '—' }}</td>
 <td data-label="Package">{{ $booking->package }}</td>
 <td data-label="Pax">{{ $booking->display_pax }}</td>
 <td data-label="Payment">
@@ -922,24 +931,6 @@
         <span style="color:var(--muted);font-size:12px;">&mdash;</span>
     @endif
 </td>
-                            <td data-label="Status">
-                                <form action="{{ route('reservations.update', $booking) }}" method="POST"
-                                    class="status-form">
-                                    @csrf
-                                    @method('PUT')
-                                    <select name="status" class="status-select" data-status="{{ $booking->status }}"
-                                        onchange="this.dataset.status=this.value; this.form.submit();">
-                                        <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>
-                                            Pending</option>
-                                        <option value="confirmed"
-                                            {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                                        <option value="paid" {{ $booking->status === 'paid' ? 'selected' : '' }}>Paid
-                                        </option>
-                                        <option value="cancelled"
-                                            {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                                    </select>
-                                </form>
-                            </td>
                             <td data-label="Actions">
                                 <div class="action-buttons">
                                     <button type="button" class="btn-icon-edit" title="Edit reservation"
