@@ -21,6 +21,7 @@ use Carbon\Exceptions\InvalidPeriodDateException;
 use Carbon\Exceptions\InvalidPeriodParameterException;
 use Carbon\Exceptions\NotACarbonClassException;
 use Carbon\Exceptions\NotAPeriodException;
+use Carbon\Exceptions\PeriodFilterSafetyException;
 use Carbon\Exceptions\UnknownGetterException;
 use Carbon\Exceptions\UnknownMethodException;
 use Carbon\Exceptions\UnreachableException;
@@ -434,38 +435,36 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
         OverflowMode $mode = OverflowMode::AnchorDay,
         ?int $options = null,
     ): static {
-        if ($anchorDay !== null && $mode !== OverflowMode::AnchorDay) {
-            throw new InvalidArgumentException(
-                '$anchorDay parameter must not be set for $mode OverflowMode::'.$mode->name,
-            );
-        }
-
-        if ($end !== null && $recurrences !== null) {
-            throw new InvalidArgumentException(
-                'You must specify $end or $recurrences but not both',
-            );
-        }
-
-        if (\is_int($start)) {
-            $start = CarbonImmutable::createFromTimestamp($start);
-        } elseif (\is_string($start)) {
-            $start = CarbonImmutable::parse($start);
-        }
-
-        $start ??= CarbonImmutable::now();
-
-        if (\is_int($end)) {
-            $end = CarbonImmutable::createFromTimestamp($end);
-        }
+        [$start, $end] = self::getStartAndEndForCyclePeriod($start, $end, $recurrences, $anchorDay, $mode);
 
         return (new static(
             $start,
-            match ($mode) {
-                OverflowMode::AnchorDay => CarbonInterval::monthWithAnchorDay(
-                    $anchorDay ?? $start->day,
-                ),
-                OverflowMode::NoOverflow => CarbonInterval::monthNoOverflow(),
-                OverflowMode::Overflow => CarbonInterval::month(),
+            self::getMonthInterval($start, $anchorDay, $mode),
+            $end ?? $recurrences,
+        ))->setOptions($options ?? self::IMMUTABLE);
+    }
+
+    public static function quarterly(
+        DateTimeInterface|string|int|null $start = null,
+        DateTimeInterface|string|int|null $end = null,
+        ?int $recurrences = null,
+        ?int $anchorDay = null,
+        OverflowMode $mode = OverflowMode::AnchorDay,
+        ?int $options = null,
+    ): static {
+        [$start, $end] = self::getStartAndEndForCyclePeriod($start, $end, $recurrences, $anchorDay, $mode);
+        $interval = self::getMonthInterval($start, $anchorDay, $mode);
+
+        return (new static(
+            $start,
+            static function (CarbonInterface $date, bool $negated) use ($interval): CarbonInterface {
+                for ($i = 0; $i < CarbonInterface::MONTHS_PER_QUARTER; $i++) {
+                    $date = $negated
+                        ? $date->sub($interval)
+                        : $date->add($interval);
+                }
+
+                return $date;
             },
             $end ?? $recurrences,
         ))->setOptions($options ?? self::IMMUTABLE);
@@ -479,29 +478,7 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
         OverflowMode $mode = OverflowMode::AnchorDay,
         ?int $options = null,
     ): static {
-        if ($anchorDay !== null && $mode !== OverflowMode::AnchorDay) {
-            throw new InvalidArgumentException(
-                '$anchorDay parameter must not be set for $mode OverflowMode::'.$mode->name,
-            );
-        }
-
-        if ($end !== null && $recurrences !== null) {
-            throw new InvalidArgumentException(
-                'You must specify $end or $recurrences but not both',
-            );
-        }
-
-        if (\is_int($start)) {
-            $start = CarbonImmutable::createFromTimestamp($start);
-        } elseif (\is_string($start)) {
-            $start = CarbonImmutable::parse($start);
-        }
-
-        $start ??= CarbonImmutable::now();
-
-        if (\is_int($end)) {
-            $end = CarbonImmutable::createFromTimestamp($end);
-        }
+        [$start, $end] = self::getStartAndEndForCyclePeriod($start, $end, $recurrences, $anchorDay, $mode);
 
         return (new static(
             $start,
@@ -587,6 +564,54 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
         $result = preg_replace($pattern, $target, $source, 1, $count);
 
         return $count ? $result : $target;
+    }
+
+    private static function getStartAndEndForCyclePeriod(
+        DateTimeInterface|string|int|null $start = null,
+        DateTimeInterface|string|int|null $end = null,
+        ?int $recurrences = null,
+        ?int $anchorDay = null,
+        OverflowMode $mode = OverflowMode::AnchorDay,
+    ): array {
+        if ($anchorDay !== null && $mode !== OverflowMode::AnchorDay) {
+            throw new InvalidArgumentException(
+                '$anchorDay parameter must not be set for $mode OverflowMode::'.$mode->name,
+            );
+        }
+
+        if ($end !== null && $recurrences !== null) {
+            throw new InvalidArgumentException(
+                'You must specify $end or $recurrences but not both',
+            );
+        }
+
+        if (\is_int($start)) {
+            $start = CarbonImmutable::createFromTimestamp($start);
+        } elseif (\is_string($start)) {
+            $start = CarbonImmutable::parse($start);
+        }
+
+        $start ??= CarbonImmutable::now();
+
+        if (\is_int($end)) {
+            $end = CarbonImmutable::createFromTimestamp($end);
+        }
+
+        return [$start, $end];
+    }
+
+    private static function getMonthInterval(
+        DateTimeInterface|string|int|null $start = null,
+        ?int $anchorDay = null,
+        OverflowMode $mode = OverflowMode::AnchorDay,
+    ): CarbonInterval {
+        return match ($mode) {
+            OverflowMode::AnchorDay => CarbonInterval::monthWithAnchorDay(
+                $anchorDay ?? $start->day,
+            ),
+            OverflowMode::NoOverflow => CarbonInterval::monthNoOverflow(),
+            OverflowMode::Overflow => CarbonInterval::month(),
+        };
     }
 
     private static function makeInterval(mixed $input): ?CarbonInterval
@@ -916,9 +941,7 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
      */
     public function setDateClass(string $dateClass)
     {
-        if (!is_a($dateClass, CarbonInterface::class, true)) {
-            throw new NotACarbonClassException($dateClass);
-        }
+        NotACarbonClassException::expectCarbonInterface($dateClass);
 
         $self = $this->copyIfImmutable();
         $self->dateClass = $dateClass;
@@ -2362,6 +2385,36 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
                 $data,
             );
 
+            if (isset($values['dateClass'])) {
+                NotACarbonClassException::expectCarbonInterface($values['dateClass']);
+            }
+
+            if (
+                isset($values['filters'])
+                // Non-array filters are not an issue as they will be rejected before being read with:
+                // Cannot assign X to property Carbon\CarbonPeriod::$filters of type array
+                && \is_array($values['filters'])
+                && PeriodFilterSafetyException::isDetectionEnabled()
+            ) {
+                foreach ($values['filters'] as $tuple) {
+                    if (\is_array($tuple[0])) {
+                        $subject = $tuple[0][0];
+
+                        if (
+                            is_a($subject, DatePeriod::class, true)
+                            || is_a($subject, DateInterval::class, true)
+                            || is_a($subject, DateTimeInterface::class, true)
+                        ) {
+                            continue;
+                        }
+
+                        throw new PeriodFilterSafetyException('filters not referring to date method');
+                    }
+
+                    throw new PeriodFilterSafetyException('custom filters');
+                }
+            }
+
             $this->initializeSerialization($values);
 
             foreach ($values as $key => $value) {
@@ -2419,7 +2472,11 @@ class CarbonPeriod extends DatePeriodBase implements Countable, JsonSerializable
             }
         } catch (Throwable $e) {
             // @codeCoverageIgnoreStart
-            if (!method_exists(parent::class, '__unserialize')) {
+            if (
+                $e instanceof PeriodFilterSafetyException
+                || $e instanceof NotACarbonClassException
+                || !method_exists(parent::class, '__unserialize')
+            ) {
                 throw $e;
             }
 
