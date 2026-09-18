@@ -86,9 +86,20 @@ class WaiverController extends Controller
         // ]);
 
         // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver),
-        // so signing it finishes the process.
+        // so signing it finishes the process. booking_id is normally set in
+        // BookingController@store; if it's somehow missing (e.g. the waiver
+        // was reached directly without going through the booking flow first),
+        // fall back to the bookings list instead of crashing on route().
+        $bookingId = session('booking_id');
+
+        if ($bookingId) {
+            return redirect()
+                ->route('user.bookings.receipt', $bookingId)
+                ->with('success', 'Waiver signed. Your booking is now confirmed!');
+        }
+
         return redirect()
-            ->route('user.bookings.receipt', session('booking_id'))
+            ->route('user.bookings')
             ->with('success', 'Waiver signed. Your booking is now confirmed!');
     }
 }
