@@ -451,6 +451,7 @@
                                 <button type="button" class="promo-details-link" data-toggle="{{ $svcCode }}-{{ $code }}">View pax options &amp; inclusions ›</button>
 
                                 <div class="promo-tiers" id="promoTiers-{{ $svcCode }}-{{ $code }}" hidden>
+                                    <p class="promo-tiers-title">{{ $pkgTitle }}</p>
                                     @foreach ($package['tiers'] as $pax => $price)
                                         <label class="promo-tier">
                                             <span style="display:flex;align-items:center;gap:8px;">

@@ -158,7 +158,7 @@
                         <span>NATIONAL STANDARD</span>
                         <span class="rb-scan-qr-verified">QR Ph Verified</span>
                     </div>
-                    <img src="{{ asset('images/qrph.png') }}" alt="QR Ph code" style="width:200px;height:200px;object-fit:contain;border-radius:10px;">
+                    <img src="{{ asset('images/qrph.png') }}" alt="QR Ph code" style="width:320px;height:320px;object-fit:contain;border-radius:10px;">
                     <div style="text-align:center;margin-top:10px;">
                         <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
                         <span style="font-size:10px;color:var(--muted);">Scan via Any Banking App</span>

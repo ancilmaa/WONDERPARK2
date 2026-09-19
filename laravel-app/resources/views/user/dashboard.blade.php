@@ -171,9 +171,20 @@
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;">
                     <div>
                         <div style="font-size:12.5px;font-weight:700;color:var(--ink);">Two-Factor Authentication</div>
-                        <div style="font-size:10.5px;color:var(--muted);">Extra layer of security for booking waivers</div>
+                        <div style="font-size:10.5px;color:var(--muted);">
+                            @if ($user->two_factor_enabled ?? false)
+                                Enabled — a code is emailed to you at every login.
+                            @else
+                                Get a one-time code by email each time you log in.
+                            @endif
+                        </div>
                     </div>
-                    <span class="rb-badge rb-badge-neutral">Coming soon</span>
+                    <form method="POST" action="{{ route('user.account.two-factor.toggle') }}">
+                        @csrf
+                        <button type="submit" class="rb-badge {{ ($user->two_factor_enabled ?? false) ? 'rb-badge-teal' : 'rb-badge-neutral' }}" style="border:none;cursor:pointer;">
+                            {{ ($user->two_factor_enabled ?? false) ? 'Enabled — Turn off' : 'Turn on' }}
+                        </button>
+                    </form>
                 </div>
             </div>
 
