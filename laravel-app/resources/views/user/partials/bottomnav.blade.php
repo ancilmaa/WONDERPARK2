@@ -45,10 +45,20 @@
 
     <div class="nav-spacer only-desktop" aria-hidden="true"></div>
 
-    @php($u = $user ?? auth()->user())
+    @php
+        $u = $user ?? auth()->user();
+        $navAvatarThemes = [
+            'rose' => ['#FF5C85', '#B82850'],
+            'gold' => ['#FFC948', '#C77E0E'],
+            'teal' => ['#12B5A6', '#0C8B80'],
+            'ink'  => ['#3B3350', '#171126'],
+            'blue' => ['#5B8CFF', '#2E52C7'],
+        ];
+        [$navAvatarA, $navAvatarB] = $navAvatarThemes[$u->avatar_theme ?? 'rose'] ?? $navAvatarThemes['rose'];
+    @endphp
     <div class="nav-foot only-desktop">
         <div class="nav-foot-user">
-            <span class="nav-foot-avatar" style="--u-avatar-a:{{ $u->avatar_color ?? '#FF5C85' }};--u-avatar-b:{{ $u->avatar_color_2 ?? '#B82850' }};">
+            <span class="nav-foot-avatar" style="--u-avatar-a:{{ $navAvatarA }};--u-avatar-b:{{ $navAvatarB }};">
                 {{ strtoupper(substr($u->name ?? 'G', 0, 1)) }}
             </span>
             <span>
