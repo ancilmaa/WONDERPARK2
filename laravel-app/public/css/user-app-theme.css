@@ -314,13 +314,7 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 
 @media(max-width:420px){
   .cal-slots{grid-template-columns:repeat(2,1fr);}
-}
 
-@media(min-width:600px){
-  .cal-embed-inner{flex-direction:row;}
-  .cal-month{flex:1;border-right:1px solid var(--line);}
-  .cal-times{flex:1;border-top:none;}
-}
 
 .booking-submit-btn{width:100%;margin:16px 0 0;}
 
