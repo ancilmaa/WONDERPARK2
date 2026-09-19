@@ -101,7 +101,7 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             padding-bottom: 20px;
             border-bottom: 1px solid var(--line);
         }
@@ -175,6 +175,42 @@
             text-decoration: underline;
             font-family: 'Inter', sans-serif;
             padding: 9px 4px;
+        }
+
+        .source-legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .source-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .source-legend .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .source-legend .dot-bio {
+            background: var(--muted);
+            opacity: .5;
+        }
+
+        .source-legend .dot-qr {
+            background: #2F6FE0;
+        }
+
+        .source-legend .dot-manual {
+            background: #C98A1F;
         }
 
         .pagination {
@@ -338,6 +374,30 @@
             font-weight: 400;
         }
 
+        .cell-present.src-qr::after,
+        .cell-deduction.src-qr::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #2F6FE0;
+            margin-left: 3px;
+            vertical-align: super;
+        }
+
+        .cell-present.src-manual::after,
+        .cell-deduction.src-manual::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #C98A1F;
+            margin-left: 3px;
+            vertical-align: super;
+        }
+
         .days-worked {
             background: var(--pink-pale);
             color: var(--ink);
@@ -400,6 +460,47 @@
             border-color: var(--pink) !important;
         }
 
+        .btn-ghost {
+            padding: 11px 18px;
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: background .15s ease, border-color .15s ease;
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg);
+            border-color: var(--pink);
+        }
+
+        .btn-primary {
+            padding: 11px 20px;
+            background: var(--pink-deep);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: background .15s ease, box-shadow .15s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--pink-dark);
+            box-shadow: 0 0 0 3px var(--pink-light);
+        }
+
         #toastStack {
             position: fixed;
             top: 22px;
@@ -434,6 +535,8 @@
             opacity: 0;
             transform: translateY(-16px) scale(.97);
             animation: toastIn .35s cubic-bezier(.34, 1.56, .64, 1) forwards;
+            position: relative;
+            overflow: hidden;
         }
 
         .toast.hide {
@@ -523,11 +626,6 @@
             animation: toastShrink 3s linear forwards;
         }
 
-        .toast {
-            position: relative;
-            overflow: hidden;
-        }
-
         @keyframes toastIn {
             to {
                 opacity: 1;
@@ -560,7 +658,9 @@
             }
         }
 
-        #uploadOverlay {
+        #uploadOverlay,
+        #manualEntryOverlay,
+        #qrOverlay {
             display: none;
             position: fixed;
             inset: 0;
@@ -571,9 +671,12 @@
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             animation: overlayFade .2s ease;
+            padding: 20px;
         }
 
-        #uploadOverlay.active {
+        #uploadOverlay.active,
+        #manualEntryOverlay.active,
+        #qrOverlay.active {
             display: flex;
         }
 
@@ -646,6 +749,172 @@
             pointer-events: none;
         }
 
+        /* MANUAL ENTRY / QR MODALS */
+        .modal-card {
+            background: #fff;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 480px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: var(--shadow-md);
+            animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .modal-head .eyebrow {
+            font-size: .66rem;
+            font-weight: 700;
+            color: var(--pink-deep);
+            text-transform: uppercase;
+            letter-spacing: .09em;
+            margin-bottom: 4px;
+        }
+
+        .modal-head h3 {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            border: none;
+            background: var(--bg);
+            color: var(--ink-soft);
+            font-size: 14px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--pink-light);
+            color: var(--pink-deep);
+        }
+
+        .modal-body {
+            padding: 22px 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--pink);
+            background: #fff;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 18px 24px 24px;
+        }
+
+        #qrCodeBox {
+            display: flex;
+            justify-content: center;
+            padding: 18px 0 6px;
+        }
+
+        .qr-link-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .qr-link-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--ink-soft);
+            background: var(--bg);
+        }
+
+        .chip-btn {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line-strong);
+            background: var(--bg);
+            color: var(--ink-soft);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: .15s;
+        }
+
+        .chip-btn:hover {
+            border-color: var(--pink);
+            background: var(--pink-pale);
+        }
+
+        .chip-btn.active {
+            background: var(--pink-deep);
+            border-color: var(--pink-deep);
+            color: #fff;
+        }
+
+        .chip-empty {
+            font-size: 11.5px;
+            color: var(--muted);
+            padding: 6px 2px;
+        }
+
         @media(max-width:900px) {
             .stats-row {
                 grid-template-columns: 1fr 1fr;
@@ -685,6 +954,10 @@
 
             .filter-bar select {
                 width: 100%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -783,6 +1056,19 @@
 @section('content')
 
     @php
+        // A day counts as "present" (worked) unless it's a bare dash — that
+        // means genuinely absent. "-15", "-30", etc. are late/undertime by
+        // that many minutes, but the employee still showed up, so those
+        // still count toward Days Worked.
+        function isDayPresent($v): bool
+        {
+            $v = (string) $v;
+            if ($v === 'P' || str_starts_with($v, '+')) return true;
+            if ($v === '-' || $v === '') return false;
+            if (str_starts_with($v, '-') && is_numeric(substr($v, 1))) return true;
+            return false;
+        }
+
         $totalEmployees = isset($records) ? $records->count() : 0;
         $grouped = isset($records) ? $records->groupBy('category') : collect();
         $totalCategories = $grouped->count();
@@ -793,7 +1079,7 @@
                 $d = 0;
                 for ($i = 1; $i <= 15; $i++) {
                     $v = $rec->{'day_' . $i} ?? '';
-                    if ($v === 'P' || str_starts_with((string) $v, '+')) {
+                    if (isDayPresent($v)) {
                         $d++;
                     }
                 }
@@ -806,6 +1092,10 @@
         <div>
             <div class="eyebrow">Lipa Branch &middot; Bio Attendance</div>
             <h2>Bio Attendance Sheet</h2>
+            <p class="sub" style="font-size:12px;color:var(--muted);margin-top:4px;">
+                Showing: <strong>{{ $cutoffType === '1st' ? 'Days 1–15' : 'Days 16–31' }}</strong>
+                ({{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }})
+            </p>
         </div>
 
         <div class="toolbar-actions">
@@ -815,6 +1105,12 @@
                 <input type="file" name="import_file" required>
                 <button id="uploadBtn" type="submit">Import Bio File</button>
             </form>
+            <button type="button" class="btn-ghost" id="openManualEntryBtn">
+                <i class="fa-solid fa-pen"></i> Manual Entry
+            </button>
+            <button type="button" class="btn-ghost" id="openQrBtn">
+                <i class="fa-solid fa-qrcode"></i> Show QR Code
+            </button>
             <button class="print-btn" onclick="window.print()">Print</button>
         </div>
     </div>
@@ -857,6 +1153,12 @@
             <button type="button" class="filter-clear" id="filterClear">Clear filters</button>
         </div>
 
+        <div class="source-legend no-print">
+            <span><span class="dot dot-bio"></span> Bio scanner</span>
+            <span><span class="dot dot-qr"></span> QR self check-in</span>
+            <span><span class="dot dot-manual"></span> Manual entry</span>
+        </div>
+
         <table>
             <thead>
                 <tr>
@@ -890,13 +1192,16 @@
                                 $hasLate = false;
                                 for ($i = 1; $i <= 15; $i++) {
                                     $v = $item->{'day_' . $i} ?? '';
-                                    if ($v === 'P' || str_starts_with((string) $v, '+')) {
+                                    if (isDayPresent($v)) {
                                         $daysWorked++;
                                     }
                                     if (str_starts_with((string) $v, '+')) {
                                         $hasOvertime = true;
                                     }
-                                    if (str_starts_with((string) $v, '-')) {
+                                    if (str_starts_with((string) $v, '-') && $v !== '') {
+                                        // Covers both a bare "-" (absent) and
+                                        // "-15" (late) — both are worth
+                                        // flagging under the Late/Absent filter.
                                         $hasLate = true;
                                     }
                                 }
@@ -909,14 +1214,17 @@
                                 @for ($i = 1; $i <= 15; $i++)
                                     @php
                                         $val = $item->{'day_' . $i} ?? '';
+                                        $src = $item->{'source_' . $i} ?? null;
                                         $weekEndClass = $i == 5 || $i == 10 ? 'week-end' : '';
+                                        $srcClass = $src === 'qr' ? 'src-qr' : ($src === 'manual' ? 'src-manual' : '');
+                                        $srcTitle = $src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner');
                                     @endphp
 
-                                    <td class="{{ $weekEndClass }}">
+                                    <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle }}" @endif>
                                         @if ($val === 'P' || str_starts_with((string) $val, '+'))
-                                            <span class="cell-present">{{ $val === 'P' ? 'P' : $val }}</span>
+                                            <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
                                         @elseif(str_starts_with((string) $val, '-'))
-                                            <span class="cell-deduction">{{ $val }}</span>
+                                            <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
                                         @else
                                             <span class="cell-rest">&ndash;</span>
                                         @endif
@@ -963,6 +1271,95 @@
         </div>
     </div>
 
+    <!-- MANUAL ENTRY MODAL (for outages — encode from the paper logbook) -->
+    <div id="manualEntryOverlay" class="no-print" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="manualEntryTitle">
+            <form id="manualEntryForm" method="POST" action="{{ route('attendance.store') }}">
+                @csrf
+                <div class="modal-head">
+                    <div>
+                        <div class="eyebrow">Backup &middot; No Bio / No Signal</div>
+                        <h3 id="manualEntryTitle">Manual Attendance Entry</h3>
+                    </div>
+                    <button type="button" class="modal-close" id="closeManualEntry" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="form-hint" style="margin-bottom:16px;">Gamitin ito kung walang kuryente ang bio device —
+                        i-encode base sa physical logbook.</p>
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label for="me_category">Category</label>
+                            <select name="category" id="me_category" required>
+                                <option value="Manager">Manager</option>
+                                <option value="Team Leader">Team Leader</option>
+                                <option value="Staff">Staff</option>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <label for="me_employee_name">Employee name</label>
+                            <input type="text" name="employee_name" id="me_employee_name" required
+                                placeholder="Piliin sa listahan sa ibaba o mag-type">
+                            <div id="meEmployeeChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="me_attendance_date">Date</label>
+                            <input type="date" name="attendance_date" id="me_attendance_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="me_status">Status</label>
+                            <select name="status" id="me_status" required>
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="me_remarks">Remarks (optional)</label>
+                            <input type="text" name="remarks" id="me_remarks" placeholder="e.g. +1.5 or -15">
+                        </div>
+                        <div class="form-group">
+                            <label for="me_time_in">Time In (optional)</label>
+                            <input type="time" name="time_in" id="me_time_in">
+                        </div>
+                        <div class="form-group">
+                            <label for="me_time_out">Time Out (optional)</label>
+                            <input type="time" name="time_out" id="me_time_out">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-ghost" id="cancelManualEntry">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR CHECK-IN MODAL -->
+    <div id="qrOverlay" class="no-print" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle" style="max-width:380px;">
+            <div class="modal-head">
+                <div>
+                    <div class="eyebrow">Employee Self Check-In</div>
+                    <h3 id="qrTitle">Attendance QR Code</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeQrModal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <p class="form-hint">I-print o i-display ito sa entrance. I-scan ng empleyado gamit ang sariling phone
+                    para mag-Time In/Out.</p>
+                <div id="qrCodeBox"></div>
+                <div class="qr-link-row">
+                    <input type="text" id="qrLinkInput" readonly value="{{ route('attendance.checkin') }}">
+                    <button type="button" class="btn-ghost" id="copyQrLinkBtn"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (session('success'))
         <span id="flash-success" data-msg="{{ session('success') }}" style="display:none;"></span>
     @endif
@@ -971,9 +1368,12 @@
         <span id="flash-error" data-msg="{{ session('error') }}" style="display:none;"></span>
     @endif
 
+    <script id="employeesByCategoryData" type="application/json">{!! json_encode($employeesByCategory ?? []) !!}</script>
+
 @endsection
 
 @push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const form = document.getElementById("uploadForm");
         const btn = document.getElementById("uploadBtn");
@@ -1049,6 +1449,124 @@
 
         if (successMsg) showToast(successMsg, "success");
         if (errorMsg) showToast(errorMsg, "error");
+
+        // ── Manual Entry modal ──
+        const manualEntryOverlay = document.getElementById('manualEntryOverlay');
+        const openManualEntryBtn = document.getElementById('openManualEntryBtn');
+        const closeManualEntryBtn = document.getElementById('closeManualEntry');
+        const cancelManualEntryBtn = document.getElementById('cancelManualEntry');
+        const meDateInput = document.getElementById('me_attendance_date');
+        const meCategorySelect = document.getElementById('me_category');
+        const meEmployeeInput = document.getElementById('me_employee_name');
+        const meEmployeeChips = document.getElementById('meEmployeeChips');
+
+        const employeesByCategory = JSON.parse(
+            document.getElementById('employeesByCategoryData')?.textContent || '{}'
+        );
+
+        function renderEmployeeChips() {
+            const cat = (meCategorySelect.value || '').toUpperCase();
+            const names = employeesByCategory[cat] || [];
+
+            if (!names.length) {
+                meEmployeeChips.innerHTML = '<span class="chip-empty">Walang naka-record pang empleyado sa category na ito — mag-type na lang.</span>';
+                return;
+            }
+
+            meEmployeeChips.innerHTML = names.map(n =>
+                `<button type="button" class="chip-btn" data-name="${n}">${n}</button>`
+            ).join('');
+
+            meEmployeeChips.querySelectorAll('.chip-btn').forEach(chipBtn => {
+                if (chipBtn.dataset.name === meEmployeeInput.value) {
+                    chipBtn.classList.add('active');
+                }
+                chipBtn.addEventListener('click', () => {
+                    meEmployeeInput.value = chipBtn.dataset.name;
+                    meEmployeeChips.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+                    chipBtn.classList.add('active');
+                });
+            });
+        }
+
+        meCategorySelect?.addEventListener('change', () => {
+            meEmployeeInput.value = '';
+            renderEmployeeChips();
+        });
+
+        function openManualEntry() {
+            if (meDateInput && !meDateInput.value) {
+                meDateInput.value = new Date().toISOString().slice(0, 10);
+            }
+            renderEmployeeChips();
+            manualEntryOverlay.classList.add('active');
+            manualEntryOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeManualEntry() {
+            manualEntryOverlay.classList.remove('active');
+            manualEntryOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        openManualEntryBtn?.addEventListener('click', openManualEntry);
+        closeManualEntryBtn?.addEventListener('click', closeManualEntry);
+        cancelManualEntryBtn?.addEventListener('click', closeManualEntry);
+        manualEntryOverlay?.addEventListener('click', (e) => {
+            if (e.target === manualEntryOverlay) closeManualEntry();
+        });
+
+        // ── QR Code modal ──
+        const qrOverlay = document.getElementById('qrOverlay');
+        const openQrBtn = document.getElementById('openQrBtn');
+        const closeQrModalBtn = document.getElementById('closeQrModal');
+        const qrCodeBox = document.getElementById('qrCodeBox');
+        const qrLinkInput = document.getElementById('qrLinkInput');
+        const copyQrLinkBtn = document.getElementById('copyQrLinkBtn');
+        let qrRendered = false;
+
+        function openQrModal() {
+            qrOverlay.classList.add('active');
+            qrOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+
+            if (!qrRendered && window.QRCode) {
+                new QRCode(qrCodeBox, {
+                    text: qrLinkInput.value,
+                    width: 220,
+                    height: 220,
+                    colorDark: '#221A2B',
+                    colorLight: '#ffffff',
+                });
+                qrRendered = true;
+            }
+        }
+
+        function closeQrModal() {
+            qrOverlay.classList.remove('active');
+            qrOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        openQrBtn?.addEventListener('click', openQrModal);
+        closeQrModalBtn?.addEventListener('click', closeQrModal);
+        qrOverlay?.addEventListener('click', (e) => {
+            if (e.target === qrOverlay) closeQrModal();
+        });
+
+        copyQrLinkBtn?.addEventListener('click', () => {
+            qrLinkInput.select();
+            navigator.clipboard?.writeText(qrLinkInput.value);
+            showToast('Link copied!', 'success', { duration: 1800 });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (manualEntryOverlay.classList.contains('active')) closeManualEntry();
+                if (qrOverlay.classList.contains('active')) closeQrModal();
+            }
+        });
 
         // ===== SEARCH, FILTER & PAGINATION =====
         (function() {

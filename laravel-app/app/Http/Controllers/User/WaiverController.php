@@ -85,10 +85,26 @@ class WaiverController extends Controller
         //     'ip_address'      => $request->ip(),
         // ]);
 
+        // The receipt page needs a booking id to display — this comes from
+        // session('booking_id'), set by BookingController@store at the start
+        // of the flow (Booking -> Payment -> Waiver). If it's missing here
+        // (e.g. the customer's session expired, or they landed on /user/waiver
+        // directly without going through the booking flow), redirect().route()
+        // would throw a UrlGenerationException because the route requires a
+        // {booking} parameter. Catch that case explicitly instead of letting
+        // it 500.
+        $bookingId = session('booking_id');
+
+        if (! $bookingId) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', 'We couldn\'t find an active booking to confirm. Please start your booking again.');
+        }
+
         // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver),
         // so signing it finishes the process.
         return redirect()
-            ->route('user.bookings.receipt', session('booking_id'))
+            ->route('user.bookings.receipt', $bookingId)
             ->with('success', 'Waiver signed. Your booking is now confirmed!');
     }
 }

@@ -20,9 +20,9 @@
             $cutoffLabel = "{$month} 1-15, {$year}";
         }
 
-        $presentDays = $sal->present_days ?? ($sal->days_worked ?? 0);
-        $dailyRate = $presentDays > 0 ? round($sal->basic_salary / $presentDays, 2) : 0;
-        $grossPay = $sal->basic_salary + ($sal->holiday_pay ?? 0);
+        $presentDays = $sal->present_days ?? 0;
+        $dailyRate = $sal->daily_rate ?? 0;
+        $grossPay = $sal->gross_pay ?? ($sal->basic_salary + ($sal->holiday_pay ?? 0) + ($sal->overtime_pay ?? 0) + ($sal->holiday_ot_pay ?? 0));
 
         $totalDeduction =
             ($sal->deduction ?? 0) +
@@ -351,13 +351,13 @@
                         <td class="label">Total working days</td>
                         <td class="amount">{{ $presentDays }}</td>
                         <td class="label">PhilHealth</td>
-                        <td class="amount">{{ number_format($sal->philhealth_deduction ?? 0, 2) }}</td>
+                        <td class="amount">{{ number_format($sal->philhealth_deduction ??0, 2) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Daily Rate</td>
                         <td class="amount">{{ number_format($dailyRate, 2) }}</td>
                         <td class="label">Pag-IBIG</td>
-                        <td class="amount">{{ number_format($sal->pagibig_deduction ?? 0, 2) }}</td>
+                        <td class="amount">{{ number_format($sal->pagibig_deduction ?? 0,2) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Holiday</td>
@@ -373,20 +373,20 @@
                     </tr>
                     <tr>
                         <td class="label">Overtime</td>
-                        <td class="amount">-</td>
+                        <td class="amount">{{ number_format($sal->overtime_pay ?? 0, 2) }}</td>
                         <td class="label">Pag-IBIG Loan</td>
                         <td class="amount">-</td>
                     </tr>
                     <tr>
                         <td class="label">Holiday OT</td>
-                        <td class="amount">-</td>
+                        <td class="amount">{{ number_format($sal->holiday_ot_pay ?? 0, 2) }}</td>
                         <td class="label">SSS Loan</td>
                         <td class="amount">-</td>
                     </tr>
                     <tr>
                         <td class="label">Refund</td>
                         <td class="amount">-</td>
-                        <td class="label">Absences</td>
+                        <td class="label">Late/Undertime</td>
                         <td class="amount">{{ number_format($sal->deduction ?? 0, 2) }}</td>
                     </tr>
                     <tr class="total-row">
