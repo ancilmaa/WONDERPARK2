@@ -281,8 +281,9 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
 .cal-day{
   aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-  border-radius:11px;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;
-  border:1.5px solid transparent;background:none;padding:0;min-height:38px;
+  border-radius:11px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  border:1.5px solid transparent;background:none;padding:0;
+  max-width:40px;min-height:28px;margin:0 auto;
   transition:background .15s var(--ease), color .15s var(--ease);
 }
 .cal-day:hover:not(.disabled):not(.empty){background:var(--pink-pale);}
@@ -314,7 +315,7 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 
 @media(max-width:420px){
   .cal-slots{grid-template-columns:repeat(2,1fr);}
-
+}
 
 .booking-submit-btn{width:100%;margin:16px 0 0;}
 
@@ -338,7 +339,7 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 /* ---------- package cards (Dino Adventure / RollerFever) ---------- */
 .promo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:16px;}
 .promo-grid[hidden]{display:none;}
-.promo-card{border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;background:#fff;display:flex;flex-direction:column;transition:border-color .15s var(--ease), box-shadow .15s var(--ease);}
+.promo-card{border:1px solid var(--line);border-radius:var(--radius-lg);overflow:visible;background:#fff;display:flex;flex-direction:column;position:relative;transition:border-color .15s var(--ease), box-shadow .15s var(--ease);}
 .promo-card.selected{border-color:var(--pink-deep);box-shadow:var(--shadow-card);}
 .promo-media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bg);}
 .promo-media img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -354,7 +355,8 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .promo-details-link{background:none;border:none;padding:2px 0;text-align:left;font-size:11.5px;font-weight:700;color:var(--pink-deep);cursor:pointer;}
 .promo-details-link:hover{text-decoration:underline;}
 
-.promo-tiers{border-top:1px solid var(--line);margin-top:10px;padding-top:12px;display:flex;flex-direction:column;gap:8px;}
+.promo-tiers{position:absolute;top:64px;left:0;right:0;bottom:0;margin:0;background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 inherit inherit;box-shadow:0 16px 32px -12px rgba(0,0,0,.22);z-index:30;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.promo-tiers-title{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);margin:0 0 4px;}
 .promo-tiers[hidden]{display:none;}
 .promo-tier{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;color:var(--ink);transition:border-color .15s var(--ease), background .15s var(--ease);}
 .promo-tier:hover{border-color:var(--pink-deep);}
@@ -620,9 +622,9 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .cal-days{gap:5px;}
 .cal-month{padding:14px 14px 10px;}
 .cal-times{padding:14px 14px 14px;}
-.cal-slots{max-height:none !important;overflow:visible !important;}
+.cal-slots{max-height:none;overflow:visible;}
 .cal-slot{
-  min-height:54px;
+  min-height:40px;
   display:flex;
   align-items:center;
   justify-content:center;

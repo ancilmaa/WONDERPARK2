@@ -36,6 +36,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::post('/logout', [AuthController::class, 'logout']);
 
+// Two-Factor Authentication (email code)
+Route::get('/two-factor', [AuthController::class, 'showTwoFactorForm'])->name('two-factor.show');
+Route::post('/two-factor', [AuthController::class, 'verifyTwoFactor'])->name('two-factor.verify');
+Route::post('/two-factor/resend', [AuthController::class, 'resendTwoFactor'])->name('two-factor.resend');
+
 // Register
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
@@ -47,6 +52,7 @@ Route::prefix('app')
     ->group(function () {
         Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
         Route::post('/account', [UserDashboardController::class, 'update'])->name('account.update');
+        Route::post('/account/two-factor', [UserDashboardController::class, 'toggleTwoFactor'])->name('account.two-factor.toggle');
 
         Route::get('/waiver', [UserWaiverController::class, 'show'])->name('waiver');
         Route::post('/waiver', [UserWaiverController::class, 'store'])->name('waiver.store');

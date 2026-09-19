@@ -87,4 +87,34 @@ class DashboardController extends Controller
         return redirect()->route('user.dashboard')
             ->with('success', 'Profile updated: name is now "' . $user->name . '", avatar color is "' . $user->avatar_theme . '".');
     }
+
+    /**
+     * Toggle email-based two-factor authentication on/off for the account.
+     *
+     * POST /app/account/two-factor
+     */
+    public function toggleTwoFactor(\Illuminate\Http\Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $user = User::find(session('user_id'));
+
+        if (!$user) {
+            return redirect('/login')->with('error', 'Your session has expired. Please log in again.');
+        }
+
+        $user->two_factor_enabled = !$user->two_factor_enabled;
+
+        // Clear any stale pending code when toggling.
+        $user->two_factor_code = null;
+        $user->two_factor_expires_at = null;
+        $user->save();
+
+        $status = $user->two_factor_enabled ? 'enabled' : 'disabled';
+
+        return redirect()->route('user.dashboard')
+            ->with('success', "Two-Factor Authentication has been {$status}.");
+    }
 }
