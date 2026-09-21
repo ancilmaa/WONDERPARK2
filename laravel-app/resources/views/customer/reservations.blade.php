@@ -69,6 +69,90 @@
             flex-wrap: wrap;
         }
 
+        /* FILTER BAR */
+        .filter-bar {
+            background: var(--card);
+            padding: 18px 26px;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar .search-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .filter-bar .search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 12.5px;
+            pointer-events: none;
+        }
+
+        .filter-bar input[type="text"] {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+        }
+
+        .filter-bar select {
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            cursor: pointer;
+        }
+
+        .filter-bar input[type="text"]:focus,
+        .filter-bar select:focus {
+            outline: none;
+            border-color: var(--pink);
+            background: #fff;
+        }
+
+        .filter-clear {
+            padding: 10px 16px;
+            background: #fff;
+            color: var(--ink-soft);
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12.5px;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: .15s;
+        }
+
+        .filter-clear:hover {
+            background: var(--pink-pale);
+            border-color: var(--pink);
+            color: var(--pink-deep);
+        }
+
+        .filter-count {
+            font-size: 11.5px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
         /* TABLE BOX */
         .table-box {
             background: var(--card);
@@ -309,6 +393,59 @@
             padding: 26px !important;
             color: var(--muted) !important;
             background: var(--card) !important;
+            text-align: center !important;
+        }
+
+        /* GROUPED CUSTOMER ROWS (multiple bookings collapsed together) */
+        tr.group-header {
+            cursor: pointer;
+            background: var(--pink-pale);
+        }
+
+        tr.group-header:hover {
+            background: var(--pink-light);
+        }
+
+        tr.group-header td {
+            font-weight: 600;
+        }
+
+        tr.group-header.expanded {
+            border-bottom: 2px solid var(--pink-light);
+        }
+
+        .group-chevron {
+            display: inline-block;
+            width: 10px;
+            margin-right: 8px;
+            color: var(--pink-deep);
+            font-size: 11px;
+            transition: transform .15s ease;
+        }
+
+        .group-summary-cell {
+            color: var(--muted) !important;
+            font-weight: 500 !important;
+        }
+
+        .group-hint {
+            color: var(--muted) !important;
+            font-size: 11.5px;
+            font-weight: 500 !important;
+        }
+
+        .badge-pending-mini {
+            display: inline-block;
+            background: var(--pending-soft);
+            color: var(--pending);
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 999px;
+        }
+
+        tr.detail-row td:first-child {
+            padding-left: 34px;
         }
 
         /* BUTTONS */
@@ -761,6 +898,14 @@
             .modal-foot button {
                 width: 100%;
             }
+
+            .filter-bar {
+                padding: 14px 18px;
+            }
+
+            .filter-bar select {
+                flex: 1;
+            }
         }
 
         /* ===== CARD VIEW on very small screens ===== */
@@ -836,15 +981,25 @@
 
 @section('content')
 
-    @php
+     @php
         $dummyRows = [
-            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'package' => 'Whole Day Pass', 'pax' => 4, 'status' => 'confirmed'],
-            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'package' => 'Birthday Package', 'pax' => 12, 'status' => 'pending'],
-            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'package' => 'Half Day Pass', 'pax' => 2, 'status' => 'confirmed'],
-            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'package' => 'Group Package', 'pax' => 20, 'status' => 'cancelled'],
+            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'category' => 'Dino Adventure', 'package' => 'Whole Day Pass', 'pax' => 4],
+            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'category' => 'RollerFever', 'package' => 'Birthday Package', 'pax' => 12],
+            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'category' => 'Dino Adventure', 'package' => 'Half Day Pass', 'pax' => 2],
+            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'category' => 'Field of Rides', 'package' => 'Group Package', 'pax' => 20],
         ];
         $usingDummyData = !isset($bookings) || $bookings->count() === 0;
         $packageOptions = $packages ?? ['Whole Day Pass', 'Half Day Pass', 'Birthday Package', 'Group Package'];
+
+        // Maps the `service` slug saved by the customer booking flow
+        // (dino_adventure / rollerfever / field_of_rides) to its label.
+        // Reservations made via the admin "New Reservation" form don't
+        // collect a service yet, so those show as "—" for now.
+        $serviceLabels = [
+            'dino_adventure' => 'Dino Adventure',
+            'rollerfever'    => 'RollerFever',
+            'field_of_rides' => 'Field of Rides',
+        ];
     @endphp
 
     <!-- TOOLBAR -->
@@ -861,6 +1016,33 @@
         </div>
     </div>
 
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+        <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Search by customer name or email...">
+        </div>
+
+        <select id="categoryFilter">
+            <option value="">All Categories</option>
+            <option value="Dino Adventure">Dino Adventure</option>
+            <option value="RollerFever">RollerFever</option>
+            <option value="Field of Rides">Field of Rides</option>
+        </select>
+
+        <select id="paymentFilter">
+            <option value="">All Payments</option>
+            <option value="QR Ph">QR Ph</option>
+            <option value="Cash">Cash</option>
+        </select>
+
+        <button type="button" class="filter-clear" id="clearFiltersBtn">
+            <i class="fa-solid fa-arrow-rotate-left"></i> Clear
+        </button>
+
+        <span class="filter-count" id="filterCount"></span>
+    </div>
+
     <!-- TABLE -->
     <div class="table-box">
 
@@ -871,32 +1053,30 @@
 
         <table>
             <thead>
-                <tr>
+                          <tr>
                     <th>Customer</th>
                     <th>Email</th>
                     <th>Date</th>
                     <th>Time</th>
+                    <th>Category</th>
                     <th>Package</th>
                     <th>Pax</th>
                     <th>Payment</th>
-                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @if ($usingDummyData)
-                    @foreach ($dummyRows as $row)
+                                       @foreach ($dummyRows as $row)
                         <tr>
                             <td data-label="Customer">{{ $row['customer'] }}</td>
                             <td data-label="Email" class="email-cell">{{ $row['email'] }}</td>
                             <td data-label="Date">{{ $row['date'] }}</td>
                             <td data-label="Time">{{ $row['time'] }}</td>
-                           <td data-label="Package">{{ $row['package'] }}</td>
+                            <td data-label="Category">{{ $row['category'] }}</td>
+                            <td data-label="Package">{{ $row['package'] }}</td>
                             <td data-label="Pax">{{ $row['pax'] }}</td>
                             <td data-label="Payment">&mdash;</td>
-                            <td data-label="Status">
-                                <span class="badge badge-{{ $row['status'] }}">{{ ucfirst($row['status']) }}</span>
-                            </td>
                             <td data-label="Actions">&mdash;</td>
                         </tr>
                     @endforeach
@@ -911,6 +1091,7 @@
 </td>
 <td data-label="Date">{{ $booking->display_date?->format('M d, Y') }}</td>
 <td data-label="Time">{{ $booking->display_time }}</td>
+<td data-label="Category">{{ $serviceLabels[$booking->service] ?? '—' }}</td>
 <td data-label="Package">{{ $booking->package }}</td>
 <td data-label="Pax">{{ $booking->display_pax }}</td>
 <td data-label="Payment">
@@ -922,24 +1103,6 @@
         <span style="color:var(--muted);font-size:12px;">&mdash;</span>
     @endif
 </td>
-                            <td data-label="Status">
-                                <form action="{{ route('reservations.update', $booking) }}" method="POST"
-                                    class="status-form">
-                                    @csrf
-                                    @method('PUT')
-                                    <select name="status" class="status-select" data-status="{{ $booking->status }}"
-                                        onchange="this.dataset.status=this.value; this.form.submit();">
-                                        <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>
-                                            Pending</option>
-                                        <option value="confirmed"
-                                            {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                                        <option value="paid" {{ $booking->status === 'paid' ? 'selected' : '' }}>Paid
-                                        </option>
-                                        <option value="cancelled"
-                                            {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                                    </select>
-                                </form>
-                            </td>
                             <td data-label="Actions">
                                 <div class="action-buttons">
                                     <button type="button" class="btn-icon-edit" title="Edit reservation"
@@ -1328,17 +1491,141 @@
         if (successMsg) showToast(successMsg, "success");
         if (errorMsg) showToast(errorMsg, "error");
 
-        // ===== CLIENT-SIDE PAGINATION (10 per page) =====
+        // ===== GROUP BY CUSTOMER + SEARCH + FILTER + CLIENT-SIDE PAGINATION =====
+        // Rows are grouped purely in the DOM/JS (the Blade/PHP loop above is
+        // untouched), so every edit/delete/receipt button still works exactly
+        // as before — we're only ever hiding/showing existing <tr> elements.
         (function() {
             const paginationEl = document.getElementById('pagination');
             const tbody = document.querySelector('.table-box table tbody');
+            const table = document.querySelector('.table-box table');
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const paymentFilter = document.getElementById('paymentFilter');
+            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            const filterCount = document.getElementById('filterCount');
             if (!paginationEl || !tbody) return;
 
             const PAGE_SIZE = 10;
             let currentPage = 1;
 
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            if (!rows.length) return;
+            // column index reference (0-based, matches the <thead> order):
+            // 0 Customer | 1 Email | 2 Date | 3 Time | 4 Category | 5 Package | 6 Pax | 7 Payment | 8 Actions
+            const COL = { customer: 0, email: 1, date: 2, time: 3, category: 4, package: 5, pax: 6, payment: 7, actions: 8 };
+            const COL_COUNT = table.querySelectorAll('thead th').length || 9;
+
+            const originalRows = Array.from(tbody.querySelectorAll('tr'));
+            if (!originalRows.length) return;
+
+            // ---- Group rows by customer (name + email) ----
+            const groupsMap = new Map();
+            const orderedKeys = [];
+
+            originalRows.forEach(row => {
+                const name = row.children[COL.customer]?.textContent.trim() || '';
+                const email = row.children[COL.email]?.textContent.trim() || '';
+                const key = (name + '||' + email).toLowerCase();
+                if (!groupsMap.has(key)) {
+                    groupsMap.set(key, { name, email, rows: [] });
+                    orderedKeys.push(key);
+                }
+                groupsMap.get(key).rows.push(row);
+            });
+
+            // ---- Build the list of pagination "items": a standalone row for
+            // customers with just one booking, or a collapsible group header
+            // + its detail rows for customers with more than one. ----
+            const items = [];
+            const groupState = new Map(); // groupIndex -> manually expanded? (default collapsed)
+
+            orderedKeys.forEach((key, idx) => {
+                const group = groupsMap.get(key);
+
+                if (group.rows.length === 1) {
+                    items.push({ type: 'single', row: group.rows[0] });
+                    return;
+                }
+
+                let totalPax = 0;
+                let pendingCount = 0;
+                group.rows.forEach(row => {
+                    const paxVal = parseInt(row.children[COL.pax]?.textContent.trim(), 10);
+                    if (!isNaN(paxVal)) totalPax += paxVal;
+                    const paymentText = row.children[COL.payment]?.textContent.trim();
+                    if (!paymentText || paymentText === '\u2014') pendingCount++;
+                    row.classList.add('detail-row');
+                    row.dataset.group = String(idx);
+                    row.style.display = 'none';
+                });
+
+                const header = document.createElement('tr');
+                header.className = 'group-header';
+                header.dataset.group = String(idx);
+                header.innerHTML = `
+                    <td data-label="Customer"><i class="fa-solid fa-chevron-right group-chevron"></i><strong>${group.name}</strong></td>
+                    <td data-label="Email" class="email-cell">${group.email}</td>
+                    <td colspan="4" data-label="Bookings" class="group-summary-cell">${group.rows.length} bookings</td>
+                    <td data-label="Pax">${totalPax}</td>
+                    <td data-label="Payment">${pendingCount > 0 ? `<span class="badge badge-pending-mini">${pendingCount} pending</span>` : ''}</td>
+                    <td data-label="Actions" class="group-hint">Click to view all</td>
+                `;
+                header.addEventListener('click', () => {
+                    groupState.set(idx, !groupState.get(idx));
+                    render();
+                });
+
+                group.rows[0].parentNode.insertBefore(header, group.rows[0]);
+                groupState.set(idx, false);
+                items.push({ type: 'group', header, rows: group.rows, groupIndex: idx });
+            });
+
+            // "no results" row, inserted once and toggled as needed
+            const noMatchRow = document.createElement('tr');
+            noMatchRow.id = 'noMatchRow';
+            noMatchRow.style.display = 'none';
+            noMatchRow.innerHTML = `<td colspan="${COL_COUNT}"><i class="fa-solid fa-circle-info"></i> No reservations match your search or filters.</td>`;
+            tbody.appendChild(noMatchRow);
+
+            function rowMatchesFilters(row, search, category, payment) {
+                const customer = row.children[COL.customer]?.textContent.toLowerCase() || '';
+                const email = row.children[COL.email]?.textContent.toLowerCase() || '';
+                const rowCategory = row.children[COL.category]?.textContent.trim() || '';
+                const rowPayment = row.children[COL.payment]?.textContent.trim() || '';
+
+                const matchesSearch = !search || customer.includes(search) || email.includes(search);
+                const matchesCategory = !category || rowCategory === category;
+                const matchesPayment = !payment || rowPayment === payment;
+
+                return matchesSearch && matchesCategory && matchesPayment;
+            }
+
+            function getFilteredItems() {
+                const search = (searchInput?.value || '').toLowerCase().trim();
+                const category = categoryFilter?.value || '';
+                const payment = paymentFilter?.value || '';
+                const hasActiveFilter = !!(search || category || payment);
+
+                const result = [];
+                let matchedRowCount = 0;
+
+                items.forEach(item => {
+                    if (item.type === 'single') {
+                        if (rowMatchesFilters(item.row, search, category, payment)) {
+                            result.push(item);
+                            matchedRowCount++;
+                        }
+                        return;
+                    }
+
+                    const matchingRows = item.rows.filter(r => rowMatchesFilters(r, search, category, payment));
+                    if (matchingRows.length > 0) {
+                        result.push({ ...item, matchingRows });
+                        matchedRowCount += matchingRows.length;
+                    }
+                });
+
+                return { result, hasActiveFilter, matchedRowCount };
+            }
 
             function renderPagination(totalPages) {
                 if (totalPages <= 1) {
@@ -1363,15 +1650,66 @@
             }
 
             function render() {
-                const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                originalRows.forEach(row => row.style.display = 'none');
+                items.forEach(item => { if (item.type === 'group') item.header.style.display = 'none'; });
+
+                const { result: filtered, hasActiveFilter, matchedRowCount } = getFilteredItems();
+
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
                 currentPage = Math.min(Math.max(currentPage, 1), totalPages);
                 const start = (currentPage - 1) * PAGE_SIZE;
                 const end = start + PAGE_SIZE;
-                rows.forEach((row, i) => {
-                    row.style.display = (i >= start && i < end) ? '' : 'none';
+                const pageItems = filtered.slice(start, end);
+
+                pageItems.forEach(item => {
+                    if (item.type === 'single') {
+                        item.row.style.display = '';
+                        return;
+                    }
+
+                    item.header.style.display = '';
+                    const chevron = item.header.querySelector('.group-chevron');
+                    const summaryCell = item.header.querySelector('.group-summary-cell');
+
+                    const manuallyExpanded = groupState.get(item.groupIndex);
+                    const showExpanded = hasActiveFilter ? true : manuallyExpanded;
+                    const rowsToShow = hasActiveFilter ? item.matchingRows : item.rows;
+
+                    item.header.classList.toggle('expanded', showExpanded);
+                    if (chevron) chevron.style.transform = showExpanded ? 'rotate(90deg)' : 'rotate(0deg)';
+                    if (summaryCell) {
+                        summaryCell.textContent = hasActiveFilter
+                            ? `${item.matchingRows.length} of ${item.rows.length} bookings match`
+                            : `${item.rows.length} bookings`;
+                    }
+
+                    item.rows.forEach(r => r.style.display = 'none');
+                    if (showExpanded) rowsToShow.forEach(r => r.style.display = '');
                 });
+
+                noMatchRow.style.display = filtered.length === 0 ? '' : 'none';
+
+                if (filterCount) {
+                    const hasFilterText = (searchInput?.value || '') || categoryFilter?.value || paymentFilter?.value;
+                    filterCount.textContent = hasFilterText
+                        ? `${matchedRowCount} of ${originalRows.length} bookings shown`
+                        : '';
+                }
+
                 renderPagination(totalPages);
             }
+
+            searchInput?.addEventListener('input', () => { currentPage = 1; render(); });
+            categoryFilter?.addEventListener('change', () => { currentPage = 1; render(); });
+            paymentFilter?.addEventListener('change', () => { currentPage = 1; render(); });
+
+            clearFiltersBtn?.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                if (categoryFilter) categoryFilter.value = '';
+                if (paymentFilter) paymentFilter.value = '';
+                currentPage = 1;
+                render();
+            });
 
             render();
         })();

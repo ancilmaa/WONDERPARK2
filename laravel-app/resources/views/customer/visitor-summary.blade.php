@@ -65,7 +65,7 @@
         /* SUMMARY STAT CARDS */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
             gap: 14px;
             margin-bottom: 20px;
         }
@@ -113,15 +113,15 @@
             text-transform: uppercase;
             letter-spacing: .08em;
             margin-bottom: 9px;
-            max-width: 75%;
+            max-width: 90%;
         }
 
         .stat-card .value {
             font-family: 'Source Serif 4', serif;
-            font-size: 1.7rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--ink);
-            line-height: 1;
+            line-height: 1.1;
         }
 
         .stat-card .sub {
@@ -132,6 +132,11 @@
 
         .stat-card .sub.up {
             color: var(--present);
+            font-weight: 600;
+        }
+
+        .stat-card .sub.down {
+            color: var(--deduct);
             font-weight: 600;
         }
 
@@ -259,6 +264,14 @@
             font-size: 11px;
             font-weight: 600;
             white-space: nowrap;
+        }
+
+        th:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 8px;
         }
 
         td {
@@ -404,6 +417,11 @@
             font-size: 11px;
         }
 
+        .visitor-status.is-offline {
+            background: var(--bg);
+            color: var(--muted);
+        }
+
         .visitor-status i {
             font-size: 8px;
         }
@@ -529,29 +547,6 @@
             padding: 6px 0;
         }
 
-        @media(max-width:900px) {
-            .stats-row {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .toolbar h2 {
-                font-size: 1.05rem;
-            }
-
-            .box {
-                padding: 16px;
-            }
-        }
-
-        @media(max-width:520px) {
-            .stats-row {
-                grid-template-columns: 1fr;
-            }
-
-            .age-chart {
-                height: 150px;
-            }
-        }
         /* SERVICE DISTRIBUTION SPLIT */
         .service-split {
             display: grid;
@@ -560,88 +555,113 @@
             align-items: start;
         }
 
+        .service-pie-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+        }
+
         .service-pie-wrap {
-    position: relative;
-    width: 200px;
-    height: 200px;
-}
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
 
-.service-pie-svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg); /* start segments at 12 o'clock */
-}
+        .service-pie-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            /* start segments at 12 o'clock */
+        }
 
-.service-pie-track {
-    fill: none;
-    stroke: var(--line, #E5E7EB);
-    stroke-width: 34;
-}
+        .service-pie-track {
+            fill: none;
+            stroke: var(--line, #E5E7EB);
+            stroke-width: 34;
+        }
 
-.service-pie-segment {
-    fill: none;
-    stroke-width: 34;
-    stroke-linecap: butt;
-    cursor: pointer;
-    transition: filter 0.15s ease;
-}
+        .service-pie-segment {
+            fill: none;
+            stroke-width: 34;
+            stroke-linecap: butt;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
 
-.service-pie-segment:hover {
-    filter: brightness(1.1);
-}
+        .service-pie-segment:hover {
+            filter: brightness(1.1);
+        }
 
-.service-pie-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none;
-}
+        .service-pie-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
 
-.service-pie-tooltip {
-    position: absolute;
-    transform: translate(-50%, -100%);
-    background: #1F2430;
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.12s ease;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    z-index: 20;
-}
+        .service-pie-total {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1;
+        }
 
-.service-pie-tooltip.is-visible {
-    opacity: 1;
-    visibility: visible;
-}
+        .service-pie-total-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-top: 6px;
+        }
 
-.service-pie-tooltip-name {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 700;
-    margin-bottom: 2px;
-}
+        .service-pie-tooltip {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: #1F2430;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            z-index: 20;
+        }
 
-.service-pie-tooltip-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
+        .service-pie-tooltip.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
 
-.service-pie-tooltip-value {
-    color: rgba(255,255,255,0.8);
-    font-size: 11px;
-}
+        .service-pie-tooltip-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .service-pie-tooltip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .service-pie-tooltip-value {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+        }
 
         .service-legend {
             width: 100%;
@@ -754,11 +774,6 @@
             flex-shrink: 0;
         }
 
-        @media(max-width:800px) {
-            .service-split {
-                grid-template-columns: 1fr;
-            }
-        }
         /* AI RECOMMENDATIONS */
         .ai-box {
             background: linear-gradient(135deg, var(--card) 0%, var(--pink-pale) 100%);
@@ -817,67 +832,25 @@
             color: var(--ink-soft);
             line-height: 1.55;
         }
-        /* LIVE TRAFFIC CHART */
-        .live-chart-box .box-header {
-            align-items: flex-start;
+
+        @media(max-width:900px) {
+            .toolbar h2 {
+                font-size: 1.05rem;
+            }
+
+            .box {
+                padding: 16px;
+            }
+
+            .service-split {
+                grid-template-columns: 1fr;
+            }
         }
 
-        .badge-live {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            border-radius: 999px;
-            background: var(--present-soft);
-            color: var(--present);
-            font-weight: 700;
-            font-size: 11px;
-            flex-shrink: 0;
-        }
-
-        .badge-live i {
-            font-size: 7px;
-        }
-
-        .live-chart-current {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .live-chart-current .num {
-            font-family: 'Source Serif 4', serif;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .live-chart-current .label {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .live-chart-svg-wrap {
-            position: relative;
-            width: 100%;
-            height: 160px;
-        }
-
-        .live-chart-svg-wrap svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .live-chart-empty {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--muted);
-            font-size: 12.5px;
+        @media(max-width:520px) {
+            .stats-row {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 @endsection
@@ -902,39 +875,162 @@
     <!-- SUMMARY -->
     <div class="stats-row">
         <div class="stat-card card-online">
+            <span class="icon-badge"><i class="fa-solid fa-globe"></i></span>
             <div class="label">Online Bookings</div>
             <div class="value">{{ $totalOnlineBookings ?? 0 }}</div>
-            <div class="sub">Booked via website / app</div>
+            <div class="sub {{ $trends['online']['direction'] ?? '' }}">
+                Booked via website / app
+                @isset($trends['online'])
+                    &middot; {{ $trends['online']['direction'] === 'up' ? '▲' : '▼' }} {{ $trends['online']['value'] }} vs last period
+                @endisset
+            </div>
         </div>
         <div class="stat-card card-age">
+            <span class="icon-badge"><i class="fa-solid fa-users"></i></span>
             <div class="label">Most Active Age Group</div>
             <div class="value">{{ $topOverallAgeGroup ?? '—' }}</div>
             <div class="sub">Across all attractions</div>
         </div>
         <div class="stat-card card-total">
-            <div class="label">Total Visitors</div>
-            <div class="value">{{ $totalVisitors ?? 0 }}</div>
-            <div class="sub">Unique visitors this period</div>
+            <span class="icon-badge"><i class="fa-solid fa-user-plus"></i></span>
+            <div class="label">New Accounts</div>
+            <div class="value">{{ $totalNewAccounts ?? 0 }}</div>
+            <div class="sub {{ $trends['new_accounts']['direction'] ?? '' }}">
+                Registered this period
+                @isset($trends['new_accounts'])
+                    &middot; {{ $trends['new_accounts']['direction'] === 'up' ? '▲' : '▼' }} {{ $trends['new_accounts']['value'] }} vs last period
+                @endisset
+            </div>
         </div>
-        <div class="stat-card card-online">
-    <div class="label">Live Now</div>
-    <div class="value" id="liveNowValue">—</div>
-    <div class="sub">Active in the last 5 mins</div>
-</div>
-<div class="stat-card">
-    <div class="label">New Accounts</div>
-    <div class="value">{{ $totalNewAccounts ?? 0 }}</div>
-    <div class="sub">Registered this period</div>
-</div>
         <div class="stat-card">
+            <span class="icon-badge"><i class="fa-solid fa-ticket"></i></span>
             <div class="label">Top Attraction</div>
-            <div class="value" style="font-size:1.25rem;">{{ $topAttraction ?? '—' }}</div>
+            <div class="value" style="font-size:1.15rem;">{{ $topAttraction ?? '—' }}</div>
             <div class="sub">Most booked this period</div>
         </div>
     </div>
 
+    <!-- TOP ATTRACTIONS -->
+    <div class="box">
+        <div class="box-header">
+            <div>
+                <h3>Top Attractions</h3>
+                <p>Ranked by bookings, with each attraction's most-active age group</p>
+            </div>
+        </div>
 
-  <!-- SERVICE DISTRIBUTION + TOP PACKAGES -->
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:48px;">#</th>
+                        <th>Attraction</th>
+                        <th>Top Age Group</th>
+                        <th>Bookings</th>
+                        <th style="width:220px;">Share</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $topAttractionCount = isset($attractionRanking) && count($attractionRanking) ? collect($attractionRanking)->max('bookings') : 0; @endphp
+                    @forelse(($attractionRanking ?? []) as $a)
+                        @php $barPct = $topAttractionCount > 0 ? max(4, round(($a['bookings'] / $topAttractionCount) * 100)) : 0; @endphp
+                        <tr>
+                            <td>
+                                <span class="rank-badge {{ $loop->iteration == 1 ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
+                            </td>
+                            <td>
+                                <div class="attraction-name">
+                                    <span class="attraction-icon">
+                                        <i class="fa-solid {{ $a['icon'] ?? 'fa-ticket' }}"></i>
+                                    </span>
+                                    <strong>{{ $a['name'] }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="age-pill"><i class="fa-solid fa-user"></i> {{ $a['top_age_group'] ?? '—' }}</span>
+                            </td>
+                            <td><strong>{{ $a['bookings'] }}</strong></td>
+                            <td>
+                                <div class="bookings-bar-wrap">
+                                    <div class="bookings-bar-track">
+                                        <div class="bookings-bar-fill" style="width: {{ $barPct }}%;"></div>
+                                    </div>
+                                    <span style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ $barPct }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">No attraction bookings yet this period.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- RECENT VISITOR LOGINS -->
+    <div class="box">
+        <div class="box-header">
+            <div>
+                <h3>Recent Visitor Logins</h3>
+                <p>Click a row to view that visitor's linked reservation</p>
+            </div>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visitor</th>
+                        <th>Email</th>
+                        <th>Last Login</th>
+                        <th>Status</th>
+                        <th style="width:40px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse(($visitorLogins ?? []) as $v)
+                        <tr class="visitor-row" data-reservation-id="{{ $v['reservation_id'] ?? '' }}">
+                            <td>
+                                <div class="visitor-name-wrap">
+                                    <span class="visitor-avatar">{{ $v['initials'] ?? '?' }}</span>
+                                    <strong>{{ $v['name'] }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ $v['email'] ?? '—' }}</td>
+                            <td>{{ $v['last_login'] ?? '—' }}</td>
+                            <td>
+                                @if(($v['online'] ?? false))
+                                    <span class="visitor-status"><i class="fa-solid fa-circle"></i> Online</span>
+                                @else
+                                    <span class="visitor-status is-offline"><i class="fa-solid fa-circle"></i> Offline</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="expand-chevron"><i class="fa-solid fa-chevron-down"></i></span>
+                            </td>
+                        </tr>
+                        <tr class="reservation-panel-row">
+                            <td colspan="5">
+                                <div class="reservation-panel">
+                                    <div class="reservation-panel-inner">
+                                        <div class="reservation-panel-content"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">No visitor logins recorded yet.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SERVICE DISTRIBUTION + TOP PACKAGES -->
     <div class="box">
         <div class="box-header">
             <div>
@@ -946,62 +1042,63 @@
         <div class="service-split">
             <!-- LEFT: pie chart -->
             <div class="service-pie-col">
-    <div class="service-pie-wrap">
-        <svg viewBox="0 0 200 200" class="service-pie-svg">
-            <circle cx="100" cy="100" r="80" class="service-pie-track" style="stroke: var(--line, #E5E7EB);" />
-            @php $cumulative = 0; @endphp
-            @foreach(($serviceDistribution ?? []) as $s)
-                @php
-                    $circumference = 2 * M_PI * 80;
-                    $fraction = ($totalOnlineBookings ?? 0) > 0 ? ($s['count'] / $totalOnlineBookings) : 0;
-                    $segmentLength = $fraction * $circumference;
-                    $offset = $circumference - ($cumulative * $circumference);
-                    $cumulative += $fraction;
-                @endphp
-               <circle
-    cx="100" cy="100" r="80"
-    class="service-pie-segment"
-    style="stroke: {{ $s['color'] }};"
-    stroke-dasharray="{{ round($segmentLength, 2) }} {{ round($circumference - $segmentLength, 2) }}"
-    stroke-dashoffset="{{ round($offset, 2) }}"
-    data-name="{{ $s['name'] }}"
-    data-percentage="{{ $s['percentage'] }}"
-    data-count="{{ $s['count'] }}"
-    data-color="{{ $s['color'] }}"
-></circle>
-            @endforeach
-        </svg>
+                <div class="service-pie-wrap">
+                    <svg viewBox="0 0 200 200" class="service-pie-svg">
+                        <circle cx="100" cy="100" r="80" class="service-pie-track" />
+                        @php $cumulative = 0; @endphp
+                        @foreach(($serviceDistribution ?? []) as $s)
+                            @php
+                                $circumference = 2 * M_PI * 80;
+                                $fraction = ($totalOnlineBookings ?? 0) > 0 ? ($s['count'] / $totalOnlineBookings) : 0;
+                                $segmentLength = $fraction * $circumference;
+                                $offset = $circumference - ($cumulative * $circumference);
+                                $cumulative += $fraction;
+                            @endphp
+                            <circle
+                                cx="100" cy="100" r="80"
+                                class="service-pie-segment"
+                                style="stroke: {{ $s['color'] }};"
+                                stroke-dasharray="{{ round($segmentLength, 2) }} {{ round($circumference - $segmentLength, 2) }}"
+                                stroke-dashoffset="{{ round($offset, 2) }}"
+                                data-name="{{ $s['name'] }}"
+                                data-percentage="{{ $s['percentage'] }}"
+                                data-count="{{ $s['count'] }}"
+                                data-color="{{ $s['color'] }}"
+                            ></circle>
+                        @endforeach
+                    </svg>
 
-        <div class="service-pie-center">
-            <span class="service-pie-total">{{ $totalOnlineBookings ?? 0 }}</span>
-            <span class="service-pie-total-label">Total Bookings</span>
-        </div>
+                    <div class="service-pie-center">
+                        <span class="service-pie-total">{{ $totalOnlineBookings ?? 0 }}</span>
+                        <span class="service-pie-total-label">Total Bookings</span>
+                    </div>
 
-        <div class="service-pie-tooltip" id="servicePieTooltip">
-            <div class="service-pie-tooltip-name">
-                <span class="service-pie-tooltip-dot" id="tooltipDot"></span>
-                <span id="tooltipName"></span>
+                    <div class="service-pie-tooltip" id="servicePieTooltip">
+                        <div class="service-pie-tooltip-name">
+                            <span class="service-pie-tooltip-dot" id="tooltipDot"></span>
+                            <span id="tooltipName"></span>
+                        </div>
+                        <div class="service-pie-tooltip-value" id="tooltipValue"></div>
+                    </div>
+                </div>
+
+                <div class="service-legend">
+                    @forelse(($serviceDistribution ?? []) as $s)
+                        <div class="service-legend-row">
+                            <span class="service-legend-dot" style="background:{{ $s['color'] }};"></span>
+                            <span class="service-legend-name">{{ $s['name'] }}</span>
+                            <span class="service-legend-pct">{{ $s['percentage'] }}%</span>
+                            <span class="service-legend-count">({{ $s['count'] }})</span>
+                        </div>
+                    @empty
+                        <p style="color:var(--muted);font-size:12px;">No bookings yet this period.</p>
+                    @endforelse
+                </div>
             </div>
-            <div class="service-pie-tooltip-value" id="tooltipValue"></div>
-        </div>
-    </div>
 
-    <div class="service-legend">
-        @forelse(($serviceDistribution ?? []) as $s)
-            <div class="service-legend-row">
-                <span class="service-legend-dot" style="background:{{ $s['color'] }};"></span>
-                <span class="service-legend-name">{{ $s['name'] }}</span>
-                <span class="service-legend-pct">{{ $s['percentage'] }}%</span>
-                <span class="service-legend-count">({{ $s['count'] }})</span>
-            </div>
-        @empty
-            <p style="color:var(--muted);font-size:12px;">No bookings yet this period.</p>
-        @endforelse
-    </div>
-</div>
             <!-- RIGHT: ranked top packages -->
             <div class="service-rank-col">
-                <h4 class="service-rank-title"> I think I I see.Most Availed Packages</h4>
+                <h4 class="service-rank-title">Most Availed Packages</h4>
 
                 @forelse(($packageRanking ?? []) as $pkg)
                     <div class="rank-item">
@@ -1039,7 +1136,7 @@
                     <i class="fa-solid {{ $rec['icon'] }}"></i>
                 </span>
                 <div class="ai-rec-body">
-                    <span class="ai-rec-tag"><i class="fa-solid fa-cake-candles"></i> {{ $rec['attraction'] }} · {{ $rec['age_group'] }}</span>
+                    <span class="ai-rec-tag"><i class="fa-solid fa-cake-candles"></i> {{ $rec['attraction'] }} &middot; {{ $rec['age_group'] }}</span>
                     <h4>{{ $rec['title'] }}</h4>
                     <p class="ai-rec-desc">{{ $rec['desc'] }}</p>
                 </div>
@@ -1048,56 +1145,6 @@
             <p style="text-align:center;padding:24px;color:var(--muted);">No recommendations yet — need more booking data first.</p>
         @endforelse
     </div>
-   <!-- LIVE SITE TRAFFIC (real-time) -->
-    <div class="box live-chart-box">
-        <div class="box-header">
-            <div>
-                <h3>Live Site Traffic</h3>
-                <p>Visitors actively on the site, updated every 15 seconds</p>
-            </div>
-            <span class="badge-live"><i class="fa-solid fa-circle"></i> Live</span>
-        </div>
-
-        <div class="live-chart-current">
-            <span class="num" id="liveChartCurrentNum">—</span>
-            <span class="label">visitors online right now</span>
-        </div>
-
-        <div class="live-chart-svg-wrap">
-            <svg id="liveChartSvg" preserveAspectRatio="none"></svg>
-            <p class="live-chart-empty" id="liveChartEmpty">Gathering live data…</p>
-        </div>
-    </div>
-
-    <div class="box">
-    <div class="box-header">
-        <div><h3>New Accounts by Age Group</h3></div>
-    </div>
-
-    @php
-        $topAccountBracketCount = isset($accountAgeDistribution) && count($accountAgeDistribution)
-            ? collect($accountAgeDistribution)->max('count') : 0;
-        $maxAccountCount = $topAccountBracketCount ?: 1;
-    @endphp
-
-    <div class="age-chart">
-        @forelse(($accountAgeDistribution ?? []) as $bracket)
-            @php $pct = $bracket['count'] > 0 ? max(4, round(($bracket['count'] / $maxAccountCount) * 100)) : 0; @endphp
-            <div class="age-row {{ $bracket['count'] === $topAccountBracketCount && $topAccountBracketCount > 0 ? 'is-top' : '' }}">
-                <div class="age-label-wrap">
-                    <span class="age-swatch"></span>
-                    <span class="age-label">{{ $bracket['label'] }}</span>
-                </div>
-                <div class="age-track">
-                    <div class="age-fill" data-pct="{{ $pct }}"></div>
-                </div>
-                <span class="age-val">{{ $bracket['count'] }}</span>
-            </div>
-        @empty
-            <p style="color:var(--muted);font-size:12.5px;padding:20px 0;">Walang bagong account sa period na ito.</p>
-        @endforelse
-    </div>
-</div>
 
 @endsection
 
@@ -1177,109 +1224,41 @@
         })();
     </script>
     <script>
-(function () {
-    const wrap = document.querySelector('.service-pie-wrap');
-    const tooltip = document.getElementById('servicePieTooltip');
-    if (!wrap || !tooltip) return;
+        (function () {
+            const wrap = document.querySelector('.service-pie-wrap');
+            const tooltip = document.getElementById('servicePieTooltip');
+            if (!wrap || !tooltip) return;
 
-    const tooltipName = document.getElementById('tooltipName');
-    const tooltipValue = document.getElementById('tooltipValue');
-    const tooltipDot = document.getElementById('tooltipDot');
+            const tooltipName = document.getElementById('tooltipName');
+            const tooltipValue = document.getElementById('tooltipValue');
+            const tooltipDot = document.getElementById('tooltipDot');
 
-    function showTooltip(segment, clientX, clientY) {
-        tooltipName.textContent = segment.dataset.name;
-        tooltipValue.textContent = segment.dataset.count + ' bookings · ' + segment.dataset.percentage + '%';
-        tooltipDot.style.background = segment.dataset.color;
+            function showTooltip(segment, clientX, clientY) {
+                tooltipName.textContent = segment.dataset.name;
+                tooltipValue.textContent = segment.dataset.count + ' bookings · ' + segment.dataset.percentage + '%';
+                tooltipDot.style.background = segment.dataset.color;
 
-        const rect = wrap.getBoundingClientRect();
-        tooltip.style.left = (clientX - rect.left) + 'px';
-        tooltip.style.top = (clientY - rect.top - 12) + 'px';
-        tooltip.classList.add('is-visible');
-    }
-
-    function hideTooltip() {
-        tooltip.classList.remove('is-visible');
-    }
-
-    document.querySelectorAll('.service-pie-segment').forEach(function (segment) {
-        segment.addEventListener('mouseenter', (e) => showTooltip(segment, e.clientX, e.clientY));
-        segment.addEventListener('mousemove', (e) => showTooltip(segment, e.clientX, e.clientY));
-        segment.addEventListener('mouseleave', hideTooltip);
-        segment.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showTooltip(segment, e.clientX, e.clientY);
-        });
-    });
-
-    document.addEventListener('click', hideTooltip);
-})();
-</script>
-
-   <script>
-        // Live visitor count + real-time traffic chart — poll every 15s
-        const liveChartData = [];
-        const MAX_POINTS = 30; // ~7.5 minutes of history at 15s interval
-
-        function renderLiveChart() {
-            const svg = document.getElementById('liveChartSvg');
-            const emptyMsg = document.getElementById('liveChartEmpty');
-            if (!svg) return;
-
-            if (liveChartData.length < 2) {
-                svg.innerHTML = '';
-                if (emptyMsg) emptyMsg.style.display = 'flex';
-                return;
+                const rect = wrap.getBoundingClientRect();
+                tooltip.style.left = (clientX - rect.left) + 'px';
+                tooltip.style.top = (clientY - rect.top - 12) + 'px';
+                tooltip.classList.add('is-visible');
             }
-            if (emptyMsg) emptyMsg.style.display = 'none';
 
-            const W = 600, H = 160, PAD = 10;
-            const counts = liveChartData.map(d => d.count);
-            const maxVal = Math.max(5, ...counts);
-            const stepX = (W - PAD * 2) / (liveChartData.length - 1);
+            function hideTooltip() {
+                tooltip.classList.remove('is-visible');
+            }
 
-            const points = liveChartData.map((d, i) => {
-                const x = PAD + i * stepX;
-                const y = H - PAD - ((d.count / maxVal) * (H - PAD * 2));
-                return `${x},${y}`;
+            document.querySelectorAll('.service-pie-segment').forEach(function (segment) {
+                segment.addEventListener('mouseenter', (e) => showTooltip(segment, e.clientX, e.clientY));
+                segment.addEventListener('mousemove', (e) => showTooltip(segment, e.clientX, e.clientY));
+                segment.addEventListener('mouseleave', hideTooltip);
+                segment.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showTooltip(segment, e.clientX, e.clientY);
+                });
             });
 
-            const linePath = 'M' + points.join(' L');
-            const lastX = PAD + (liveChartData.length - 1) * stepX;
-            const lastY = H - PAD - ((counts[counts.length - 1] / maxVal) * (H - PAD * 2));
-            const areaPath = `${linePath} L${lastX},${H - PAD} L${PAD},${H - PAD} Z`;
-
-            svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-            svg.innerHTML = `
-                <defs>
-                    <linearGradient id="liveChartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="var(--pink-deep)" stop-opacity="0.28"/>
-                        <stop offset="100%" stop-color="var(--pink-deep)" stop-opacity="0"/>
-                    </linearGradient>
-                </defs>
-                <path d="${areaPath}" fill="url(#liveChartGrad)" stroke="none"></path>
-                <path d="${linePath}" fill="none" stroke="var(--pink-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                <circle cx="${lastX}" cy="${lastY}" r="4.5" fill="var(--pink-deep)"></circle>
-            `;
-        }
-
-        async function refreshLiveNow() {
-            try {
-                const res = await fetch("{{ route('analytics.live-count') }}");
-                const data = await res.json();
-
-                document.getElementById('liveNowValue').textContent = data.online_now;
-
-                const currentNumEl = document.getElementById('liveChartCurrentNum');
-                if (currentNumEl) currentNumEl.textContent = data.online_now;
-
-                liveChartData.push({ t: new Date(), count: data.online_now });
-                if (liveChartData.length > MAX_POINTS) liveChartData.shift();
-                renderLiveChart();
-            } catch (e) {
-                console.error('Live count fetch failed', e);
-            }
-        }
-        refreshLiveNow();
-        setInterval(refreshLiveNow, 15000);
+            document.addEventListener('click', hideTooltip);
+        })();
     </script>
 @endpush

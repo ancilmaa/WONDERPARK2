@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\User\BookingController;
+Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
+Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])->name('attendance.checkin.store');
+Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance'])->name('attendance.store');
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 // Auth
