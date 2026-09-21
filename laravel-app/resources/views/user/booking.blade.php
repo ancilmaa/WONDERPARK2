@@ -374,6 +374,13 @@
                     @endforeach
                 </div>
 
+                <div class="booking-info-banner">
+                    <span class="booking-info-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </span>
+                    <p>Please choose your preferred pass and session slot below to begin reservation.</p>
+                </div>
+
                 <div id="pkgSummary" class="promo-selection-summary empty">
                     No package selected yet
                 </div>
@@ -444,6 +451,7 @@
                                 <button type="button" class="promo-details-link" data-toggle="{{ $svcCode }}-{{ $code }}">View pax options &amp; inclusions ›</button>
 
                                 <div class="promo-tiers" id="promoTiers-{{ $svcCode }}-{{ $code }}" hidden>
+                                    <p class="promo-tiers-title">{{ $pkgTitle }}</p>
                                     @foreach ($package['tiers'] as $pax => $price)
                                         <label class="promo-tier">
                                             <span style="display:flex;align-items:center;gap:8px;">
@@ -476,8 +484,6 @@
                 </div>
                 @endforeach
 
-                <button type="submit" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Booking</button>
-                 <span id="bookingBtnAnchor" style="display:none;"></span>
             </div>
 
             {{-- ================= RIGHT: big inline calendar ================= --}}
@@ -516,7 +522,8 @@
                         <rect x="3" y="5" width="18" height="16" rx="2"></rect>
                         <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
                     </svg>
-                    <span id="dateTimeLabel">No date &amp; time selected yet</span>
+                    <span id="dateTimeLabel" style="flex:1;">No date &amp; time selected yet</span>
+                    <span id="dateTimeAvailableTag" class="tag green" style="display:none;white-space:nowrap;">Available</span>
                 </div>
                 <input type="hidden" name="visit_date" id="visitDateInput" required>
                 <input type="hidden" name="visit_time" id="visitTimeInput" required>
@@ -555,30 +562,21 @@
         </div>
     </div>
 
+    <div class="booking-sticky-bar" id="bookingStickyBar">
+        <div class="booking-sticky-info">
+            <span id="stickyPkgCount">0 packages selected</span>
+            <span class="booking-sticky-divider"></span>
+            <span class="booking-sticky-total">
+                <span class="booking-sticky-total-label">Total estimated:</span>
+                <b id="stickyTotal">₱0.00</b>
+            </span>
+        </div>
+        <button type="submit" form="bookingForm" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Proceed to Booking</button>
+    </div>
+
 @endsection
 
 @push('scripts')
-<script>
-(function () {
-    var btn    = document.getElementById('bookingSubmitBtn');
-    var anchor = document.getElementById('bookingBtnAnchor');
-    var form   = document.getElementById('bookingForm');
-    if (!btn || !anchor || !form) return;
-
-    var mq = window.matchMedia('(max-width: 768px)');
-
-    function placeButton(isMobile) {
-        if (isMobile) {
-            form.appendChild(btn); // ilipat sa pinakadulo ng form
-        } else {
-            anchor.parentNode.insertBefore(btn, anchor); // ibalik sa dati
-        }
-    }
-
-    placeButton(mq.matches);
-    mq.addEventListener('change', function (e) { placeButton(e.matches); });
-})();
-</script>
 <script>
 (function () {
     var summaryEl = document.getElementById('pkgSummary');
@@ -674,6 +672,23 @@
             summaryEl.classList.remove('empty');
             summaryEl.innerHTML = 'Selected: <b>' + radio.dataset.pkgName + '</b> · ' +
                 pax + ' PAX · <b>' + peso(radio.dataset.price) + '</b>';
+        });
+    });
+
+    // Sticky bottom bar (package count + running total) — separate,
+    // additive listener; doesn't touch the selection logic above.
+    var stickyCount = document.getElementById('stickyPkgCount');
+    var stickyTotal = document.getElementById('stickyTotal');
+    document.querySelectorAll('input[name="tier_choice"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (stickyCount) stickyCount.textContent = '1 package selected';
+            if (stickyTotal) stickyTotal.textContent = peso(radio.dataset.price);
+        });
+    });
+    document.querySelectorAll('.service-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            if (stickyCount) stickyCount.textContent = '0 packages selected';
+            if (stickyTotal) stickyTotal.textContent = '₱0.00';
         });
     });
 
@@ -836,6 +851,8 @@
         visitTimeInput.value = '';
         bar.classList.add('empty');
         label.textContent = 'No date & time selected yet';
+        var availTag = document.getElementById('dateTimeAvailableTag');
+        if (availTag) availTag.style.display = 'none';
         renderSlots();
     }
     window.REKS_resetTimeSelection = resetTimeSelection;
@@ -928,6 +945,8 @@
         visitTimeInput.value = '';
         bar.classList.add('empty');
         label.textContent = 'No date & time selected yet';
+        var availTagOnDateChange = document.getElementById('dateTimeAvailableTag');
+        if (availTagOnDateChange) availTagOnDateChange.style.display = 'none';
         renderCalendar();
         renderSlots();
     }
@@ -1011,6 +1030,8 @@
         label.innerHTML = 'Selected: <b>' + DAYS_SHORT[state.selectedDate.getDay()] + ', ' +
             MONTHS[state.selectedDate.getMonth()] + ' ' + d + ', ' + y + '</b> · <b>' + timeLabel + '</b>';
         bar.classList.remove('empty');
+        var availTagOnCommit = document.getElementById('dateTimeAvailableTag');
+        if (availTagOnCommit) availTagOnCommit.style.display = 'inline-block';
     }
 
     document.getElementById('calPrev').addEventListener('click', function () {

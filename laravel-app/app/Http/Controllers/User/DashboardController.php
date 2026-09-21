@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,7 +22,15 @@ class DashboardController extends Controller
 
         $user = User::find(session('user_id'));
 
-        return view('user.dashboard', compact('user'));
+        // Same definition of "upcoming" used on the My Bookings stats
+        // (BookingController@index): status = confirmed.
+        // NOTE: User's primary key is "user_id", not "id" — using
+        // $user->id here was a bug (wrong column) introduced earlier.
+        $upcomingCount = Booking::where('user_id', $user->user_id)
+            ->where('status', 'confirmed')
+            ->count();
+
+        return view('user.dashboard', compact('user', 'upcomingCount'));
     }
 
     /**
@@ -62,11 +71,50 @@ class DashboardController extends Controller
             $user->avatar_path = $path;
         }
 
-        $user->save();
+        $saved = $user->save();
+        $user->refresh();
 
         // keep the session's cached fullname in sync with the name field
         session(['fullname' => $user->name]);
 
-        return back()->with('success', 'Profile updated successfully.');
+        if (!$saved) {
+            return redirect()->route('user.dashboard')
+                ->with('error', 'Could not save your changes. Please try again.');
+        }
+
+        // Echoes back what's actually in the DB right now, so the banner
+        // itself proves whether the save really went through.
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Profile updated: name is now "' . $user->name . '", avatar color is "' . $user->avatar_theme . '".');
+    }
+
+    /**
+     * Toggle email-based two-factor authentication on/off for the account.
+     *
+     * POST /app/account/two-factor
+     */
+    public function toggleTwoFactor(\Illuminate\Http\Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $user = User::find(session('user_id'));
+
+        if (!$user) {
+            return redirect('/login')->with('error', 'Your session has expired. Please log in again.');
+        }
+
+        $user->two_factor_enabled = !$user->two_factor_enabled;
+
+        // Clear any stale pending code when toggling.
+        $user->two_factor_code = null;
+        $user->two_factor_expires_at = null;
+        $user->save();
+
+        $status = $user->two_factor_enabled ? 'enabled' : 'disabled';
+
+        return redirect()->route('user.dashboard')
+            ->with('success', "Two-Factor Authentication has been {$status}.");
     }
 }
