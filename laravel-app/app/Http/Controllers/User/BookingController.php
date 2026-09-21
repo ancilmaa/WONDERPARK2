@@ -709,9 +709,9 @@ class BookingController extends Controller
     }
 
     /**
-     * Confirm the chosen payment method for a booking (QR Ph only —
-     * bookings require online payment upfront to guarantee the slot).
-     * Payment confirms the booking immediately — no admin/staff
+     * Confirm the chosen payment method for a booking (QR Ph, GCash, or
+     * Maya — bookings require online payment upfront to guarantee the
+     * slot). Payment confirms the booking immediately — no admin/staff
      * verification step. Booking flow: Booking -> Payment (confirmed
      * right away) -> Waiver -> Receipt with voucher code.
      *
@@ -724,7 +724,7 @@ class BookingController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'string', 'in:qrph'],
+            'payment_method' => ['required', 'string', 'in:qrph,gcash,maya'],
             'receipt'        => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ], [
             'receipt.required' => 'Please upload a screenshot or receipt of your payment first.',
@@ -857,7 +857,9 @@ class BookingController extends Controller
         'category'     => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
         'package'      => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
         'date'         => $booking->visit_date->format('M j, Y'),
+        'time'         => $booking->visit_time,
         'pax'          => $booking->tier,
+        'price'        => '₱' . number_format((float) $booking->price, 2),
         'status'       => $booking->status,
         'status_label' => $meta['label'],
         'status_class' => $meta['class'],

@@ -281,8 +281,9 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
 .cal-day{
   aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-  border-radius:11px;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;
-  border:1.5px solid transparent;background:none;padding:0;min-height:38px;
+  border-radius:11px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  border:1.5px solid transparent;background:none;padding:0;
+  max-width:40px;min-height:28px;margin:0 auto;
   transition:background .15s var(--ease), color .15s var(--ease);
 }
 .cal-day:hover:not(.disabled):not(.empty){background:var(--pink-pale);}
@@ -316,12 +317,6 @@ h1,h2,h3,h4{font-family:var(--font-display);}
   .cal-slots{grid-template-columns:repeat(2,1fr);}
 }
 
-@media(min-width:600px){
-  .cal-embed-inner{flex-direction:row;}
-  .cal-month{flex:1;border-right:1px solid var(--line);}
-  .cal-times{flex:1;border-top:none;}
-}
-
 .booking-submit-btn{width:100%;margin:16px 0 0;}
 
 /* ---------- service switcher (Dino Adventure vs RollerFever) ---------- */
@@ -344,7 +339,7 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 /* ---------- package cards (Dino Adventure / RollerFever) ---------- */
 .promo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:16px;}
 .promo-grid[hidden]{display:none;}
-.promo-card{border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;background:#fff;display:flex;flex-direction:column;transition:border-color .15s var(--ease), box-shadow .15s var(--ease);}
+.promo-card{border:1px solid var(--line);border-radius:var(--radius-lg);overflow:visible;background:#fff;display:flex;flex-direction:column;position:relative;transition:border-color .15s var(--ease), box-shadow .15s var(--ease);}
 .promo-card.selected{border-color:var(--pink-deep);box-shadow:var(--shadow-card);}
 .promo-media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bg);}
 .promo-media img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -360,7 +355,8 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .promo-details-link{background:none;border:none;padding:2px 0;text-align:left;font-size:11.5px;font-weight:700;color:var(--pink-deep);cursor:pointer;}
 .promo-details-link:hover{text-decoration:underline;}
 
-.promo-tiers{border-top:1px solid var(--line);margin-top:10px;padding-top:12px;display:flex;flex-direction:column;gap:8px;}
+.promo-tiers{position:absolute;top:64px;left:0;right:0;bottom:0;margin:0;background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 inherit inherit;box-shadow:0 16px 32px -12px rgba(0,0,0,.22);z-index:30;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.promo-tiers-title{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);margin:0 0 4px;}
 .promo-tiers[hidden]{display:none;}
 .promo-tier{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;color:var(--ink);transition:border-color .15s var(--ease), background .15s var(--ease);}
 .promo-tier:hover{border-color:var(--pink-deep);}
@@ -626,9 +622,9 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .cal-days{gap:5px;}
 .cal-month{padding:14px 14px 10px;}
 .cal-times{padding:14px 14px 14px;}
-.cal-slots{max-height:none !important;overflow:visible !important;}
+.cal-slots{max-height:none;overflow:visible;}
 .cal-slot{
-  min-height:54px;
+  min-height:40px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -691,7 +687,190 @@ h1,h2,h3,h4{font-family:var(--font-display);}
    .service-switch above) but text-only, for the two-panel
    toggle on the My Bookings page. Additive only.
    =========================================================== */
-.mb-tabs{display:inline-flex;padding:4px;background:var(--bg);border-radius:999px;gap:4px;margin:16px 0 16px;}
+.mb-tabs{display:inline-flex;padding:4px;background:var(--bg);border-radius:999px;gap:4px;margin:16px 0 0;}
 .mb-tab{border:none;background:none;padding:9px 20px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s var(--ease), color .15s var(--ease);}
 .mb-tab.active{background:#fff;color:var(--pink-deep);box-shadow:var(--shadow-card);}
 .mb-panel[hidden]{display:none;}
+
+/* ===========================================================
+   REKS-FIX-v11 — Review Booking page redesign (rb- prefix).
+   Recreates the richer payment-review mockup using the site's
+   existing design tokens (--pink-deep, --teal, --amber, --font-
+   display, .pkg, .tag, .u-card) instead of introducing Tailwind.
+   Additive only.
+   =========================================================== */
+
+.rb-summary-top{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.rb-summary-icon{width:44px;height:44px;border-radius:var(--radius-md);background:var(--pink-pale);color:var(--pink-deep);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--pink-light);}
+
+.rb-badge{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.02em;white-space:nowrap;}
+.rb-badge-teal{background:var(--teal-pale);color:var(--teal-deep);}
+.rb-badge-neutral{background:var(--bg);color:var(--ink-soft);}
+.rb-badge-pink{background:var(--pink-light);color:var(--pink-deep);text-transform:uppercase;}
+
+.rb-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+.rb-price-box{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;}
+.rb-price-box-highlight{background:var(--pink-pale);border:1px solid var(--pink-light);}
+.rb-price-label{font-size:11px;color:var(--muted);font-weight:600;}
+.rb-price-label-highlight{color:var(--pink-deep);text-transform:uppercase;letter-spacing:.03em;font-weight:800;}
+.rb-price-value{font-size:16px;font-weight:800;color:var(--ink);margin-top:2px;}
+.rb-price-value-highlight{color:var(--pink-deep);font-size:20px;}
+.rb-price-sub{font-size:10.5px;color:var(--pink-dark);opacity:.8;margin-top:2px;}
+
+.rb-step-chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--bg);padding:5px 12px;border-radius:999px;white-space:nowrap;}
+
+.rb-method-icon{width:44px;height:44px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;border:1px solid;}
+.rb-method-icon-rose{background:var(--rose-pale);color:var(--rose-deep);border-color:var(--pink-light);}
+.rb-method-icon-blue{background:#EAF1FF;color:#2E5BFF;border-color:#CBDBFF;}
+.rb-method-icon-teal{background:var(--teal-pale);color:var(--teal-deep);border-color:var(--teal-pale);}
+
+.rb-scan-layout{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+.rb-scan-info{flex:1;min-width:240px;}
+.rb-live-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--bg);padding:5px 12px;border-radius:999px;}
+.rb-live-dot{width:6px;height:6px;border-radius:50%;background:var(--pink-deep);}
+.rb-merchant-box{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;margin-top:12px;display:flex;flex-direction:column;gap:8px;max-width:360px;}
+.rb-merchant-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11.5px;}
+.rb-merchant-row span{color:var(--muted);}
+.rb-merchant-row b{color:var(--ink);}
+.rb-ref-code{font-family:monospace;font-weight:800;color:var(--pink-deep);background:var(--pink-pale);padding:2px 8px;border-radius:6px;border:1px solid var(--pink-light);font-size:11px;}
+.rb-timer-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--amber-deep);background:var(--amber-pale);padding:6px 12px;border-radius:var(--radius-sm);}
+
+.rb-scan-qr-frame{flex-shrink:0;background:#fff;border:2px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-pop);padding:16px;display:flex;flex-direction:column;align-items:center;margin:0 auto;}
+.rb-scan-qr-header{display:flex;justify-content:space-between;align-items:center;width:100%;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line);font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;}
+.rb-scan-qr-header span:first-child{color:var(--muted);}
+.rb-scan-qr-verified{color:var(--rose-deep);background:var(--rose-pale);padding:2px 7px;border-radius:5px;}
+
+.rb-upload-zone{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+.rb-dropzone{border:2px dashed var(--line);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;background:var(--bg);transition:border-color .15s var(--ease), background .15s var(--ease);}
+.rb-dropzone:hover, .rb-dropzone-active{border-color:var(--pink-deep);background:var(--pink-pale);}
+.rb-dropzone-icon{width:40px;height:40px;border-radius:var(--radius-sm);background:#fff;border:1px solid var(--line);color:var(--pink-deep);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+.rb-file-status{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--bg);font-size:11.5px;color:var(--ink-soft);}
+
+.rb-confirm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding:16px 18px;border-radius:var(--radius-lg);background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-card);}
+.rb-confirm-icon{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--teal-pale);color:var(--teal-deep);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+@media(max-width:640px){
+    .rb-scan-layout{flex-direction:column;}
+    .rb-scan-qr-frame{width:100%;}
+    .rb-price-grid{grid-template-columns:1fr;}
+}
+
+/* ===========================================================
+   REKS-FIX-v12 — Account & Profile page redesign (ap- prefix).
+   Reuses existing tokens/classes (u-card, u-swatches, u-input,
+   rb-badge) rather than introducing Tailwind. Additive only.
+   Scope: resources/views/user/dashboard.blade.php only.
+   =========================================================== */
+
+.ap-hero{
+    position:relative;
+    background:linear-gradient(120deg, var(--pink-deep), var(--gold, #FFC948));
+    border-radius:var(--radius-lg);
+    padding:22px 20px;
+    overflow:hidden;
+}
+.ap-hero-chip{
+    position:absolute;top:14px;right:16px;
+    display:inline-flex;align-items:center;gap:5px;
+    background:rgba(0,0,0,.28);color:#fff;
+    font-size:10.5px;font-weight:700;
+    padding:5px 11px;border-radius:999px;
+}
+.ap-hero-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.ap-hero-avatar{
+    flex-shrink:0;width:68px;height:68px;border-radius:var(--radius-md);
+    background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.4);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:700;font-size:26px;
+}
+.ap-hero-badge{
+    font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    color:#fff;background:rgba(0,0,0,.22);padding:3px 9px;border-radius:4px;
+}
+.ap-hero-stats{display:flex;gap:10px;flex-wrap:wrap;}
+.ap-hero-stat{
+    background:rgba(255,255,255,.16);border-radius:var(--radius-sm);
+    padding:8px 16px;text-align:center;min-width:88px;
+}
+.ap-hero-stat-label{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.75);}
+.ap-hero-stat-value{font-size:14px;font-weight:800;color:#fff;margin-top:2px;}
+
+.ap-form-footer{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-top:18px;padding-top:14px;border-top:1px solid var(--line);
+}
+.ap-static-field{
+    display:flex;align-items:center;gap:10px;
+    background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:10px 12px;font-size:13px;color:var(--ink);
+}
+
+@media(max-width:640px){
+    .ap-hero-chip{position:static;display:inline-flex;margin-bottom:10px;}
+    .ap-hero-row{gap:12px;}
+}
+
+/* ===========================================================
+   REKS-FIX-v13 — Booking page visual polish (bk- prefix for new
+   elements). Purely additive: richer badges/shadows on existing
+   promo-card/service-tab/cal-* classes, plus two new elements
+   (info banner, bottom summary bar). No JS/markup logic touched
+   beyond what's needed to mount these two new elements — package
+   images and the calendar/filter/pagination scripts are untouched.
+   =========================================================== */
+
+.booking-info-banner{
+    display:flex;align-items:center;gap:12px;
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:14px 16px;box-shadow:var(--shadow-card);
+}
+.booking-info-icon{
+    width:32px;height:32px;border-radius:var(--radius-sm);flex-shrink:0;
+    background:var(--amber-pale);color:var(--amber-deep);
+    display:flex;align-items:center;justify-content:center;
+}
+.booking-info-banner p{margin:0;font-size:12.5px;font-weight:500;color:var(--ink-soft);}
+
+.booking-sticky-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:14px 18px;margin-top:20px;box-shadow:var(--shadow-card);
+}
+.booking-sticky-info{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:600;}
+.booking-sticky-divider{width:1px;height:16px;background:var(--line);display:inline-block;}
+.booking-sticky-total-label{color:var(--muted);font-weight:500;}
+.booking-sticky-total b{color:var(--ink);font-size:13.5px;margin-left:4px;}
+.booking-sticky-bar .booking-submit-btn{
+    width:auto;padding:12px 24px;font-size:13px;
+    background:linear-gradient(120deg, var(--pink-dark, #d63e63), var(--pink-deep));
+    box-shadow:0 10px 22px -10px rgba(184,40,80,.55);
+}
+
+/* ---- richer polish on existing selection cards/buttons ---- */
+.service-tab{border-radius:var(--radius-lg) !important;}
+.promo-card{border-radius:20px !important;box-shadow:var(--shadow-card);}
+.promo-card:hover{box-shadow:0 14px 30px -18px rgba(26,21,35,.28);}
+.promo-badge{border-radius:0 0 10px 0 !important;}
+.promo-select-btn{border-radius:12px !important;box-shadow:0 8px 18px -10px rgba(184,40,80,.5);}
+.cal-day{border-radius:12px !important;}
+.cal-day.selected{box-shadow:0 8px 18px -10px rgba(184,40,80,.5);}
+.cal-slot{border-radius:12px !important;}
+.promo-pagination button{border-radius:12px !important;}
+
+@media(max-width:640px){
+    .booking-sticky-bar{flex-direction:column;align-items:stretch;}
+    .booking-sticky-bar .booking-submit-btn{width:100%;}
+}
+
+/* ===========================================================
+   REKS-FIX-v14 — Time-slot picker visual match: 2-column grid
+   (was 3) and an outline style for the selected slot (was solid
+   fill), matching the reference mockup. Purely cosmetic — the
+   actual slot values/durations generated by JS are untouched.
+   =========================================================== */
+.cal-slots{grid-template-columns:repeat(2,1fr) !important;}
+.cal-slot.selected{
+    background:var(--pink-pale) !important;
+    color:var(--pink-deep) !important;
+    border-color:var(--pink-deep) !important;
+}
