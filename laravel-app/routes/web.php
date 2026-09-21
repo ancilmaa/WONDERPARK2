@@ -219,6 +219,12 @@ Route::prefix('admin/cms')->name('cms.')->group(function () {
     Route::get('/section/{section}', [CmsController::class, 'editSection'])->name('section.edit');
     Route::put('/section/{section}', [CmsController::class, 'updateSection'])->name('section.update');
 
+    Route::post('/collections', [CmsController::class, 'storeCollection'])
+        ->name('collections.store');
+
+    Route::delete('/collections/{collection:slug}', [CmsController::class, 'destroyCollection'])
+        ->name('collections.destroy');
+
     // Card-based sections: pass, attraction, service, step
     Route::get('/cards/{type}', [CmsController::class, 'cards'])->name('cards');
     Route::get('/cards/{type}/create', [CmsController::class, 'createCard'])->name('cards.create');
@@ -227,6 +233,7 @@ Route::prefix('admin/cms')->name('cms.')->group(function () {
     Route::put('/card/{card}', [CmsController::class, 'updateCard'])->name('cards.update');
     Route::delete('/card/{card}', [CmsController::class, 'destroyCard'])->name('cards.destroy');
 });
+
 
 Route::get('/app/bookings/{booking}/receipt', [BookingController::class, 'receipt'])
     ->name('user.bookings.receipt');
@@ -246,3 +253,4 @@ Route::get('/', function () {
         'steps'       => \App\Models\SiteCard::type('step')->active()->ordered()->get(),
     ]);
 })->name('home');
+
