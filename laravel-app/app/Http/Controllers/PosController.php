@@ -125,6 +125,7 @@ class PosController extends Controller
             'service_type'     => 'nullable|string',
             'payment_method'   => 'nullable|string',
             'reference_number' => 'nullable|string',
+            'voucher_code'     => 'nullable|string|max:30',
             'gross'            => 'required|numeric',
             'discount'         => 'nullable|numeric',
             'tax'              => 'nullable|numeric',
@@ -177,6 +178,51 @@ class PosController extends Controller
         $subtotal     = $gross - $discount;
         $items        = $data['items'];
 
+        // === PREPAID ONLINE BOOKING VOUCHER ===
+        // Server ang masusunod dito: ang item, presyo, at total ay kinukuha
+        // mula sa bookings table gamit ang voucher code — hindi sa sinend ng
+        // browser. Kaya hindi mapapalitan ng cashier/browser ang halaga.
+        $voucherCode    = !empty($data['voucher_code']) ? strtoupper(trim($data['voucher_code'])) : null;
+        $voucherBooking = null;
+
+        if ($voucherCode) {
+            $voucherBooking = DB::table('bookings')->where('voucher_code', $voucherCode)->first();
+
+            if (!$voucherBooking) {
+                return response()->json(['success' => false, 'message' => 'Voucher not found.']);
+            }
+            if ($voucherBooking->status !== 'confirmed') {
+                return response()->json(['success' => false, 'message' => 'Voucher is already used or no longer valid.']);
+            }
+
+            $info = app(\App\Http\Controllers\User\BookingController::class)
+                ->packageInfo($voucherBooking->service, $voucherBooking->package);
+
+            $vPrice = round((float) $voucherBooking->price, 2);
+
+            $items = [[
+                'id'    => 0,
+                'name'  => $info['service_name'] . ' — ' . $info['package_name'] . ' (' . $voucherBooking->tier . ' pax)',
+                'price' => $vPrice,
+                'qty'   => 1,
+            ]];
+
+            $subtotal        = $vPrice;
+            $discount        = 0.0;
+            $total           = $vPrice;
+            $vatableSales    = round($vPrice / 1.12, 2);
+            $vat             = round($vPrice - $vatableSales, 2);
+            $vatExemptSales  = 0;
+            $pwdSeniorType   = null;
+            $pwdSeniorName   = null;
+            $pwdSeniorIdNum  = null;
+            $paymentMethod   = 'Online';
+            $referenceNumber = $voucherCode;
+            $cashReceived    = $vPrice;
+            $changeAmount    = 0;
+        }
+        // ======================================
+
         try {
             $transactionId = DB::transaction(function () use (
                 $cashierId,
@@ -195,8 +241,22 @@ class PosController extends Controller
                 $vatExemptSales,
                 $pwdSeniorType,
                 $pwdSeniorName,
-                $pwdSeniorIdNum
+                $pwdSeniorIdNum,
+                $voucherBooking
             ) {
+                // Re-check + lock ng voucher sa loob ng transaction, para hindi
+                // ma-double redeem kahit dalawang cashier ang sabay mag-checkout.
+                if ($voucherBooking) {
+                    $locked = DB::table('bookings')
+                        ->where('id', $voucherBooking->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$locked || $locked->status !== 'confirmed') {
+                        throw new \RuntimeException('Voucher is already used or no longer valid.');
+                    }
+                }
+
                 $transactionId = DB::table('sales_transactions')->insertGetId([
                     'cashier_id'         => $cashierId,
                     'customer_name'      => $customerName,
@@ -224,7 +284,8 @@ class PosController extends Controller
 
                     DB::table('transaction_items')->insert([
                         'transaction_id' => $transactionId,
-                        'product_id'     => (int) $item['id'],
+                        // id = 0 ang voucher line (walang product sa products table) → NULL
+                        'product_id'     => ((int) $item['id']) ?: null,
                         'product_name'   => trim($item['name']),
                         'price'          => $price,
                         'quantity'       => $qty,
@@ -243,6 +304,19 @@ class PosController extends Controller
                         ->whereNotNull('stock')
                         ->where('stock', '>', 0)
                         ->decrement('stock', $qty);
+                }
+
+                // I-mark na ang voucher bilang redeemed (booking status = done)
+                if ($voucherBooking) {
+                    DB::table('bookings')
+                        ->where('id', $voucherBooking->id)
+                        ->update([
+                            'status'                  => 'done',
+                            'redeemed_at'             => now(),
+                            'redeemed_by'             => $cashierId,
+                            'redeemed_transaction_id' => $transactionId,
+                            'updated_at'              => now(),
+                        ]);
                 }
 
                 return $transactionId;
@@ -318,15 +392,65 @@ class PosController extends Controller
         ]);
     }
 
+    // ================= ONLINE BOOKING VOUCHER LOOKUP =================
+    // Hinahanap ng POS ang booking gamit ang voucher code at ibinabalik
+    // kung ano ang inavail (service/package/pax) at magkano.
+    public function lookupVoucher(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+        }
+
+        $code = strtoupper(trim((string) $request->query('code', '')));
+        if ($code === '') {
+            return response()->json(['success' => false, 'message' => 'Please enter a voucher code.']);
+        }
+
+        $b = DB::table('bookings as b')
+            ->leftJoin('users as u', 'u.user_id', '=', 'b.user_id')
+            ->where('b.voucher_code', $code)
+            ->select('b.*', 'u.fullname as customer_name')
+            ->first();
+
+        if (!$b) {
+            return response()->json(['success' => false, 'message' => 'Voucher code not found.']);
+        }
+        if ($b->status === 'done') {
+            return response()->json(['success' => false, 'message' => 'This voucher was already redeemed.']);
+        }
+        if ($b->status !== 'confirmed') {
+            return response()->json(['success' => false, 'message' => 'Voucher is not valid (status: ' . $b->status . ').']);
+        }
+
+        $info = app(\App\Http\Controllers\User\BookingController::class)
+            ->packageInfo($b->service, $b->package);
+
+        $visitDate = \Illuminate\Support\Carbon::parse($b->visit_date);
+
+        return response()->json([
+            'success' => true,
+            'voucher' => [
+                'code'          => $b->voucher_code,
+                'customer_name' => $b->customer_name,
+                'item_name'     => $info['service_name'] . ' — ' . $info['package_name'] . ' (' . $b->tier . ' pax)',
+                'price'         => (float) $b->price,
+                'visit_date'    => $visitDate->format('M j, Y'),
+                'visit_time'    => $b->visit_time,
+                'is_today'      => $visitDate->isToday(),
+            ],
+        ]);
+    }
+
     // ================= CASHFLOW =================
     public function getCashflow(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
 
+        // FIX: total_amount ang tamang column sa sales_transactions (hindi "total")
         $cashSales = DB::table('sales_transactions')
             ->whereDate('created_at', $date)
             ->where('payment_method', 'cash')
-            ->sum('total');
+            ->sum('total_amount');
 
         $movementsIn = DB::table('cash_movements')
             ->whereDate('created_at', $date)->where('type', 'in')->sum('amount');
@@ -533,7 +657,7 @@ class PosController extends Controller
         $transactions = DB::table('sales_transactions as t')
             ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
             ->whereNull('t.cutoff_id')
-             ->where('t.transaction_status', '!=', 'Voided') 
+            ->where('t.transaction_status', '!=', 'Voided')
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
@@ -601,7 +725,7 @@ class PosController extends Controller
         $transactions = DB::table('sales_transactions as t')
             ->leftJoin('users as u', 'u.user_id', '=', 't.cashier_id')
             ->whereNull('t.cutoff_id')
-            ->where('t.transaction_status', '!=', 'Voided') 
+            ->where('t.transaction_status', '!=', 'Voided')
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
@@ -655,9 +779,10 @@ class PosController extends Controller
             'report' => $this->buildSalesReport($transactions, $itemsByTxn),
         ]);
     }
+
     private function buildReportFooter(string $authorizedBy, int $voidCount, float $voidTotal, bool $isPreview, $voidedTxnCount = 0, $voidedTxnTotal = 0)
-{
-    return "
+    {
+        return "
         <div class=\"report-receipt\" style=\"border-top:2px dashed #ccc;margin-top:6px;padding-top:6px;\">
             <div class=\"receipt-vat-section\">
                 <div class=\"vat-row\"><span>Voided Item(s)</span><span>{$voidCount}</span></div>
@@ -670,7 +795,8 @@ class PosController extends Controller
                 " . ($isPreview ? 'Prepared by' : 'Cut-off Authorized by') . ": " . htmlspecialchars($authorizedBy) . "
             </div>
         </div>";
-}
+    }
+
     // ================= DAY LOCK (cut-off) =================
     private function isDayLocked(): bool
     {
@@ -690,112 +816,126 @@ class PosController extends Controller
         ]);
     }
 
-public function voidTransaction(Request $request)
-{
-    if (!session()->has('user_id')) {
-        return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+    public function voidTransaction(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['success' => false, 'message' => 'Not authenticated.'], 401);
+        }
+
+        $data = $request->validate([
+            'invoice_number' => 'required|integer',
+            'reason'         => 'required|string|max:255',
+            'authorized_by'  => 'required|string',
+        ]);
+
+        $transactionId = (int) $data['invoice_number'];
+
+        $txn = DB::table('sales_transactions')->where('transaction_id', $transactionId)->first();
+
+        if (!$txn) {
+            return response()->json(['success' => false, 'message' => 'Invoice #' . $transactionId . ' not found.']);
+        }
+
+        if ($txn->transaction_status === 'Voided') {
+            return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
+        }
+
+        // Kunin muna ang items BAGO tayo mag-void, gagamitin natin ito
+        // para sa "voided receipt" na ipapakita pagkatapos.
+        $items = DB::table('transaction_items')
+            ->where('transaction_id', $transactionId)
+            ->get()
+            ->map(fn($i) => [
+                'name'  => $i->product_name,
+                'price' => (float) $i->price,
+                'qty'   => (int)   $i->quantity,
+            ])->toArray();
+
+        try {
+            DB::transaction(function () use ($transactionId, $data, $txn) {
+                // I-mark bilang Voided — hindi natin dini-delete ang record para
+                // sa audit trail (BIR-compliant, dapat traceable lahat ng void).
+                DB::table('sales_transactions')
+                    ->where('transaction_id', $transactionId)
+                    ->update([
+                        'transaction_status' => 'Voided',
+                        'void_reason'        => $data['reason'],
+                        'voided_by'          => $data['authorized_by'],
+                        'voided_at'          => now(),
+                    ]);
+
+                // Kung online-booking voucher ang transaction na ito, ibalik
+                // ang voucher sa "confirmed" para magamit ulit ng customer.
+                DB::table('bookings')
+                    ->where('redeemed_transaction_id', $transactionId)
+                    ->update([
+                        'status'                  => 'confirmed',
+                        'redeemed_at'             => null,
+                        'redeemed_by'             => null,
+                        'redeemed_transaction_id' => null,
+                        'updated_at'              => now(),
+                    ]);
+
+                // I-restore ang stock ng mga tracked items na na-deduct noong
+                // orihinal na checkout.
+                $items = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
+
+                foreach ($items as $item) {
+                    if (!$item->product_id) continue; // voucher line, walang product/stock
+
+                    DB::table('products')
+                        ->where('product_id', $item->product_id)
+                        ->whereIn('category_id', function ($q) {
+                            $q->select('category_id')->from('categories')->where('is_stock_tracked', 1);
+                        })
+                        ->whereNotNull('stock')
+                        ->increment('stock', $item->quantity);
+                }
+
+                // I-log din sa voided_items para consistent sa existing void-log
+                // pattern mo (item-level void kanina), pero naka-tag na
+                // "Full Transaction Void" ito.
+                foreach ($items as $item) {
+                    DB::table('voided_items')->insert([
+                        'item_name'     => $item->product_name . ' (Full Txn Void — Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . ')',
+                        'price'         => $item->price,
+                        'qty'           => $item->quantity,
+                        'amount'        => $item->subtotal,
+                        'cashier_name'  => session('username') ?? session('fullname'),
+                        'authorized_by' => $data['authorized_by'],
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to void: ' . $e->getMessage()], 500);
+        }
+
+        $this->notify(
+            'Transaction Voided',
+            "Invoice #" . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . " was voided.\n" .
+            "Reason: {$data['reason']}\nAuthorized by: {$data['authorized_by']}",
+            url('/pos')
+        );
+
+        // I-balik ang buong details ng na-void na transaction para
+        // maipakita sa "Voided Receipt" sa frontend.
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction voided successfully.',
+            'transaction' => [
+                'invoice_number' => str_pad($transactionId, 11, '0', STR_PAD_LEFT),
+                'customer_name'  => $txn->customer_name,
+                'service_type'   => $txn->service_type,
+                'payment_method' => $txn->payment_method,
+                'total'          => (float) $txn->total_amount,
+                'discount'       => (float) $txn->discount_amount,
+                'items'          => $items,
+                'void_reason'    => $data['reason'],
+                'voided_by'      => $data['authorized_by'],
+                'voided_at'      => now()->format('m/d/Y h:i:s A'),
+            ],
+        ]);
     }
-
-    $data = $request->validate([
-        'invoice_number' => 'required|integer',
-        'reason'         => 'required|string|max:255',
-        'authorized_by'  => 'required|string',
-    ]);
-
-    $transactionId = (int) $data['invoice_number'];
-
-    $txn = DB::table('sales_transactions')->where('transaction_id', $transactionId)->first();
-
-    if (!$txn) {
-        return response()->json(['success' => false, 'message' => 'Invoice #' . $transactionId . ' not found.']);
-    }
-
-    if ($txn->transaction_status === 'Voided') {
-        return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
-    }
-
-    // Kunin muna ang items BAGO tayo mag-void, gagamitin natin ito
-    // para sa "voided receipt" na ipapakita pagkatapos.
-    $items = DB::table('transaction_items')
-        ->where('transaction_id', $transactionId)
-        ->get()
-        ->map(fn($i) => [
-            'name'  => $i->product_name,
-            'price' => (float) $i->price,
-            'qty'   => (int)   $i->quantity,
-        ])->toArray();
-
-    try {
-        DB::transaction(function () use ($transactionId, $data, $txn) {
-            // I-mark bilang Voided — hindi natin dini-delete ang record para
-            // sa audit trail (BIR-compliant, dapat traceable lahat ng void).
-            DB::table('sales_transactions')
-                ->where('transaction_id', $transactionId)
-                ->update([
-                    'transaction_status' => 'Voided',
-                    'void_reason'        => $data['reason'],
-                    'voided_by'          => $data['authorized_by'],
-                    'voided_at'          => now(),
-                ]);
-
-            // I-restore ang stock ng mga tracked items na na-deduct noong
-            // orihinal na checkout.
-            $items = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
-
-            foreach ($items as $item) {
-                DB::table('products')
-                    ->where('product_id', $item->product_id)
-                    ->whereIn('category_id', function ($q) {
-                        $q->select('category_id')->from('categories')->where('is_stock_tracked', 1);
-                    })
-                    ->whereNotNull('stock')
-                    ->increment('stock', $item->quantity);
-            }
-
-            // I-log din sa voided_items para consistent sa existing void-log
-            // pattern mo (item-level void kanina), pero naka-tag na
-            // "Full Transaction Void" ito.
-            foreach ($items as $item) {
-                DB::table('voided_items')->insert([
-                    'item_name'     => $item->product_name . ' (Full Txn Void — Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . ')',
-                    'price'         => $item->price,
-                    'qty'           => $item->quantity,
-                    'amount'        => $item->subtotal,
-                    'cashier_name'  => session('username') ?? session('fullname'),
-                    'authorized_by' => $data['authorized_by'],
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
-                ]);
-            }
-        });
-    } catch (\Throwable $e) {
-        return response()->json(['success' => false, 'message' => 'Failed to void: ' . $e->getMessage()], 500);
-    }
-
-    $this->notify(
-        'Transaction Voided',
-        "Invoice #" . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . " was voided.\n" .
-        "Reason: {$data['reason']}\nAuthorized by: {$data['authorized_by']}",
-        url('/pos')
-    );
-
-    // I-balik ang buong details ng na-void na transaction para
-    // maipakita sa "Voided Receipt" sa frontend.
-    return response()->json([
-        'success' => true,
-        'message' => 'Transaction voided successfully.',
-        'transaction' => [
-            'invoice_number' => str_pad($transactionId, 11, '0', STR_PAD_LEFT),
-            'customer_name'  => $txn->customer_name,
-            'service_type'   => $txn->service_type,
-            'payment_method' => $txn->payment_method,
-            'total'          => (float) $txn->total_amount,
-            'discount'       => (float) $txn->discount_amount,
-            'items'          => $items,
-            'void_reason'    => $data['reason'],
-            'voided_by'      => $data['authorized_by'],
-            'voided_at'      => now()->format('m/d/Y h:i:s A'),
-        ],
-    ]);
-}
 }

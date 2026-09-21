@@ -97,6 +97,7 @@ Route::get('/pos/get_transaction',    [PosController::class, 'getTransaction']);
 Route::post('/pos/verify_manager', [PosController::class, 'verifyManager']);
 Route::post('/pos/save-transaction', [PosController::class, 'saveTransaction']);
 Route::post('/pos/log-void', [PosController::class, 'logVoid']);
+Route::get('/pos/voucher-lookup', [PosController::class, 'lookupVoucher']);
 
 // Reports
 Route::get('/reports/present',        [AnalyticsController::class, 'reportPresent']);
