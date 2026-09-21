@@ -881,7 +881,13 @@ class BookingController extends Controller
             default                  => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'amber'],
         };
     }
-
+public function packageInfo(string $service, string $package): array
+{
+    return [
+        'service_name' => $this->services[$service]['name'] ?? ucfirst(str_replace('_', ' ', $service)),
+        'package_name' => $this->packages[$service][$package]['name'] ?? $package,
+    ];
+}
     /**
      * Build the next 7 days for the date strip on the booking page.
      */
