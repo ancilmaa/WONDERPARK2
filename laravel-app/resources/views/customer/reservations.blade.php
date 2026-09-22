@@ -210,6 +210,11 @@
             background: var(--pink-pale);
         }
 
+        /* CLICKABLE ROWS (opens voucher code modal) */
+        tbody tr.clickable-row {
+            cursor: pointer;
+        }
+
         td {
             color: var(--ink-soft);
         }
@@ -490,11 +495,12 @@
             border-color: var(--pink);
         }
 
-        /* ===== MODALS (New / Edit Reservation) ===== */
+        /* ===== MODALS (New / Edit Reservation, Voucher, Receipt) ===== */
         #reservationOverlay,
         #editReservationOverlay,
         #confirmOverlay,
-        #receiptOverlay {
+        #receiptOverlay,
+        #voucherOverlay {
             display: none;
             position: fixed;
             inset: 0;
@@ -511,7 +517,8 @@
         #reservationOverlay.active,
         #editReservationOverlay.active,
         #confirmOverlay.active,
-        #receiptOverlay.active {
+        #receiptOverlay.active,
+        #voucherOverlay.active {
             display: flex;
         }
 
@@ -656,6 +663,46 @@
                 opacity: 1;
                 transform: scale(1) translateY(0);
             }
+        }
+
+        /* ===== VOUCHER MODAL ===== */
+        .voucher-meta {
+            font-size: 12.5px;
+            color: var(--muted);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .voucher-meta strong {
+            color: var(--ink);
+        }
+
+        .voucher-code-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: var(--pink-pale);
+            border: 2px dashed var(--pink);
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
+
+        .voucher-code {
+            font-family: 'Courier New', monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            color: var(--pink-deep);
+            word-break: break-all;
+        }
+
+        .voucher-code.empty {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            letter-spacing: 0;
+            color: var(--muted);
+            font-weight: 500;
         }
 
         /* ===== CONFIRM DELETE MODAL ===== */
@@ -981,7 +1028,7 @@
 
 @section('content')
 
-     @php
+    @php
         $dummyRows = [
             ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'category' => 'Dino Adventure', 'package' => 'Whole Day Pass', 'pax' => 4],
             ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'category' => 'RollerFever', 'package' => 'Birthday Package', 'pax' => 12],
@@ -1030,12 +1077,6 @@
             <option value="Field of Rides">Field of Rides</option>
         </select>
 
-        <select id="paymentFilter">
-            <option value="">All Payments</option>
-            <option value="QR Ph">QR Ph</option>
-            <option value="Cash">Cash</option>
-        </select>
-
         <button type="button" class="filter-clear" id="clearFiltersBtn">
             <i class="fa-solid fa-arrow-rotate-left"></i> Clear
         </button>
@@ -1053,7 +1094,7 @@
 
         <table>
             <thead>
-                          <tr>
+                <tr>
                     <th>Customer</th>
                     <th>Email</th>
                     <th>Date</th>
@@ -1067,7 +1108,7 @@
             </thead>
             <tbody>
                 @if ($usingDummyData)
-                                       @foreach ($dummyRows as $row)
+                    @foreach ($dummyRows as $row)
                         <tr>
                             <td data-label="Customer">{{ $row['customer'] }}</td>
                             <td data-label="Email" class="email-cell">{{ $row['email'] }}</td>
@@ -1082,48 +1123,52 @@
                     @endforeach
                 @else
                     @foreach ($bookings as $booking)
-                        <tr>
-                          <td data-label="Customer">
-    {{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}
-</td>
-<td data-label="Email" class="email-cell">
-    {{ $booking->display_customer->email ?? '—' }}
-</td>
-<td data-label="Date">{{ $booking->display_date?->format('M d, Y') }}</td>
-<td data-label="Time">{{ $booking->display_time }}</td>
-<td data-label="Category">{{ $serviceLabels[$booking->service] ?? '—' }}</td>
-<td data-label="Package">{{ $booking->package }}</td>
-<td data-label="Pax">{{ $booking->display_pax }}</td>
-<td data-label="Payment">
-    @if ($booking->payment_method === 'qrph')
-        <span class="badge" style="background:var(--paid-soft);color:var(--paid);">QR Ph</span>
-    @elseif ($booking->payment_method === 'cash')
-        <span class="badge" style="background:var(--pending-soft);color:var(--pending);">Cash</span>
-    @else
-        <span style="color:var(--muted);font-size:12px;">&mdash;</span>
-    @endif
-</td>
+                        <tr class="clickable-row"
+                            data-voucher="{{ $booking->voucher_code ?? '' }}"
+                            data-customer="{{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}"
+                            data-package="{{ $booking->package }}"
+                            data-date="{{ $booking->display_date?->format('M d, Y') }}">
+                            <td data-label="Customer">
+                                {{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}
+                            </td>
+                            <td data-label="Email" class="email-cell">
+                                {{ $booking->display_customer->email ?? '—' }}
+                            </td>
+                            <td data-label="Date">{{ $booking->display_date?->format('M d, Y') }}</td>
+                            <td data-label="Time">{{ $booking->display_time }}</td>
+                            <td data-label="Category">{{ $serviceLabels[$booking->service] ?? '—' }}</td>
+                            <td data-label="Package">{{ $booking->package }}</td>
+                            <td data-label="Pax">{{ $booking->display_pax }}</td>
+                            <td data-label="Payment">
+                                @if ($booking->payment_method === 'qrph')
+                                    <span class="badge" style="background:var(--paid-soft);color:var(--paid);">QR Ph</span>
+                                @elseif ($booking->payment_method === 'cash')
+                                    <span class="badge" style="background:var(--pending-soft);color:var(--pending);">Cash</span>
+                                @else
+                                    <span style="color:var(--muted);font-size:12px;">&mdash;</span>
+                                @endif
+                            </td>
                             <td data-label="Actions">
                                 <div class="action-buttons">
                                     <button type="button" class="btn-icon-edit" title="Edit reservation"
                                         onclick="openEditModal({
                                             id: '{{ $booking->id }}',
-                                           customer_name: @js($booking->display_customer->fullname ?? $booking->customer_name ?? ''),
+                                            customer_name: @js($booking->display_customer->fullname ?? $booking->customer_name ?? ''),
                                             customer_contact: @js($booking->customer_contact ?? ''),
                                             package: @js($booking->package),
-                                           pax: {{ $booking->display_pax }},
-                                        reservation_date: '{{ $booking->display_date?->format('Y-m-d') }}',
-                                        reservation_time: '{{ $booking->display_time }}',
+                                            pax: {{ $booking->display_pax }},
+                                            reservation_date: '{{ $booking->display_date?->format('Y-m-d') }}',
+                                            reservation_time: '{{ $booking->display_time }}',
                                             notes: @js($booking->notes ?? '')
                                         })">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                        @if ($booking->payment_method === 'qrph' && $booking->receipt_path)
-                                                    <button type="button" class="btn-icon-edit" title="View receipt"
-                                                        onclick="openReceiptModal('{{ asset('storage/' . $booking->receipt_path) }}')">
-                                                        <i class="fa-solid fa-receipt"></i>
-                                                    </button>
-                                                @endif
+                                    @if ($booking->payment_method === 'qrph' && $booking->receipt_path)
+                                        <button type="button" class="btn-icon-edit" title="View receipt"
+                                            onclick="openReceiptModal('{{ asset('storage/' . $booking->receipt_path) }}')">
+                                            <i class="fa-solid fa-receipt"></i>
+                                        </button>
+                                    @endif
                                     <form action="{{ route('reservations.destroy', $booking) }}" method="POST"
                                         class="delete-form">
                                         @csrf
@@ -1273,9 +1318,11 @@
             </div>
         </div>
     </div>
-<!-- VIEW RECEIPT MODAL -->
+
+    <!-- VIEW RECEIPT MODAL -->
     <div id="receiptOverlay" aria-hidden="true">
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle" style="max-width:480px;">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle"
+            style="max-width:480px;">
             <div class="modal-head">
                 <div>
                     <div class="eyebrow">Payment Proof</div>
@@ -1290,6 +1337,35 @@
             </div>
         </div>
     </div>
+
+    <!-- VOUCHER CODE MODAL -->
+    <div id="voucherOverlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="voucherModalTitle"
+            style="max-width:440px;">
+            <div class="modal-head">
+                <div>
+                    <div class="eyebrow">Reservation</div>
+                    <h3 id="voucherModalTitle">Voucher Code</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeVoucherModal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="voucher-meta">
+                    <div><strong id="voucherCustomer"></strong></div>
+                    <div><span id="voucherPackage"></span> &middot; <span id="voucherDate"></span></div>
+                </div>
+                <div class="voucher-code-box">
+                    <span class="voucher-code" id="voucherCode"></span>
+                    <button type="button" class="btn-ghost" id="copyVoucherBtn">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST STACK -->
     <div id="toastStack" aria-live="polite"></div>
 
@@ -1376,6 +1452,7 @@
                 openReservationModal();
             @endif
         @endif
+
         // ── View Receipt modal ──
         const receiptOverlay = document.getElementById('receiptOverlay');
         const receiptImage = document.getElementById('receiptImage');
@@ -1447,6 +1524,74 @@
             }
         });
 
+        // ── Voucher Code modal (click a booking row) ──
+        const voucherOverlay = document.getElementById('voucherOverlay');
+        const voucherCodeEl = document.getElementById('voucherCode');
+        const copyVoucherBtn = document.getElementById('copyVoucherBtn');
+
+        function openVoucherModal(d) {
+            document.getElementById('voucherCustomer').textContent = d.customer || '';
+            document.getElementById('voucherPackage').textContent = d.package || '';
+            document.getElementById('voucherDate').textContent = d.date || '';
+
+            const code = (d.voucher || '').trim();
+            voucherCodeEl.textContent = code || 'Walang voucher code';
+            voucherCodeEl.classList.toggle('empty', !code);
+            copyVoucherBtn.style.display = code ? '' : 'none';
+
+            voucherOverlay.classList.add('active');
+            voucherOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeVoucherModal() {
+            voucherOverlay.classList.remove('active');
+            voucherOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        // Kopya ng text: gumagamit ng Clipboard API, may fallback kung hindi secure context (http)
+        async function copyText(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            if (!ok) throw new Error('copy failed');
+        }
+
+        document.querySelector('.table-box table tbody')?.addEventListener('click', (e) => {
+            // huwag mag-open kapag buttons/forms (edit, receipt, delete) ang pinindot
+            if (e.target.closest('button, a, form, select, input')) return;
+            const row = e.target.closest('tr.clickable-row');
+            if (!row) return;
+            openVoucherModal(row.dataset);
+        });
+
+        document.getElementById('closeVoucherModal')?.addEventListener('click', closeVoucherModal);
+        voucherOverlay?.addEventListener('click', (e) => {
+            if (e.target === voucherOverlay) closeVoucherModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && voucherOverlay.classList.contains('active')) closeVoucherModal();
+        });
+
+        copyVoucherBtn?.addEventListener('click', async () => {
+            try {
+                await copyText(voucherCodeEl.textContent.trim());
+                showToast('Voucher code copied.', 'success');
+            } catch (err) {
+                showToast('Hindi ma-copy ang code.', 'error');
+            }
+        });
+
         // ── Toast notifications ──
         const toastStack = document.getElementById('toastStack');
 
@@ -1501,7 +1646,6 @@
             const table = document.querySelector('.table-box table');
             const searchInput = document.getElementById('searchInput');
             const categoryFilter = document.getElementById('categoryFilter');
-            const paymentFilter = document.getElementById('paymentFilter');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             const filterCount = document.getElementById('filterCount');
             if (!paginationEl || !tbody) return;
@@ -1586,38 +1730,35 @@
             noMatchRow.innerHTML = `<td colspan="${COL_COUNT}"><i class="fa-solid fa-circle-info"></i> No reservations match your search or filters.</td>`;
             tbody.appendChild(noMatchRow);
 
-            function rowMatchesFilters(row, search, category, payment) {
+            function rowMatchesFilters(row, search, category) {
                 const customer = row.children[COL.customer]?.textContent.toLowerCase() || '';
                 const email = row.children[COL.email]?.textContent.toLowerCase() || '';
                 const rowCategory = row.children[COL.category]?.textContent.trim() || '';
-                const rowPayment = row.children[COL.payment]?.textContent.trim() || '';
 
                 const matchesSearch = !search || customer.includes(search) || email.includes(search);
                 const matchesCategory = !category || rowCategory === category;
-                const matchesPayment = !payment || rowPayment === payment;
 
-                return matchesSearch && matchesCategory && matchesPayment;
+                return matchesSearch && matchesCategory;
             }
 
             function getFilteredItems() {
                 const search = (searchInput?.value || '').toLowerCase().trim();
                 const category = categoryFilter?.value || '';
-                const payment = paymentFilter?.value || '';
-                const hasActiveFilter = !!(search || category || payment);
+                const hasActiveFilter = !!(search || category);
 
                 const result = [];
                 let matchedRowCount = 0;
 
                 items.forEach(item => {
                     if (item.type === 'single') {
-                        if (rowMatchesFilters(item.row, search, category, payment)) {
+                        if (rowMatchesFilters(item.row, search, category)) {
                             result.push(item);
                             matchedRowCount++;
                         }
                         return;
                     }
 
-                    const matchingRows = item.rows.filter(r => rowMatchesFilters(r, search, category, payment));
+                    const matchingRows = item.rows.filter(r => rowMatchesFilters(r, search, category));
                     if (matchingRows.length > 0) {
                         result.push({ ...item, matchingRows });
                         matchedRowCount += matchingRows.length;
@@ -1649,17 +1790,49 @@
                 });
             }
 
+            // Counts how many <tr> each item will actually show on screen right now
+            function computeVisibleRowCounts(filteredItems, hasActiveFilter) {
+                return filteredItems.map(item => {
+                    if (item.type === 'single') return 1;
+                    const manuallyExpanded = groupState.get(item.groupIndex);
+                    const expanded = hasActiveFilter ? true : manuallyExpanded;
+                    const rowsCount = hasActiveFilter ? item.matchingRows.length : item.rows.length;
+                    return 1 + (expanded ? rowsCount : 0); // +1 for the header row itself
+                });
+            }
+
+            // Splits items into pages so each page shows at most PAGE_SIZE visible rows
+            function paginateByVisibleRows(filteredItems, counts, pageSize) {
+                const pages = [];
+                let current = [];
+                let currentCount = 0;
+
+                filteredItems.forEach((item, idx) => {
+                    const c = counts[idx];
+                    if (currentCount > 0 && currentCount + c > pageSize) {
+                        pages.push(current);
+                        current = [];
+                        currentCount = 0;
+                    }
+                    current.push(item);
+                    currentCount += c;
+                });
+
+                if (current.length || pages.length === 0) pages.push(current);
+                return pages;
+            }
+
             function render() {
                 originalRows.forEach(row => row.style.display = 'none');
                 items.forEach(item => { if (item.type === 'group') item.header.style.display = 'none'; });
 
                 const { result: filtered, hasActiveFilter, matchedRowCount } = getFilteredItems();
+                const counts = computeVisibleRowCounts(filtered, hasActiveFilter);
+                const pages = paginateByVisibleRows(filtered, counts, PAGE_SIZE);
 
-                const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+                const totalPages = pages.length;
                 currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-                const start = (currentPage - 1) * PAGE_SIZE;
-                const end = start + PAGE_SIZE;
-                const pageItems = filtered.slice(start, end);
+                const pageItems = pages[currentPage - 1] || [];
 
                 pageItems.forEach(item => {
                     if (item.type === 'single') {
@@ -1690,7 +1863,7 @@
                 noMatchRow.style.display = filtered.length === 0 ? '' : 'none';
 
                 if (filterCount) {
-                    const hasFilterText = (searchInput?.value || '') || categoryFilter?.value || paymentFilter?.value;
+                    const hasFilterText = (searchInput?.value || '') || categoryFilter?.value;
                     filterCount.textContent = hasFilterText
                         ? `${matchedRowCount} of ${originalRows.length} bookings shown`
                         : '';
@@ -1701,12 +1874,10 @@
 
             searchInput?.addEventListener('input', () => { currentPage = 1; render(); });
             categoryFilter?.addEventListener('change', () => { currentPage = 1; render(); });
-            paymentFilter?.addEventListener('change', () => { currentPage = 1; render(); });
 
             clearFiltersBtn?.addEventListener('click', () => {
                 if (searchInput) searchInput.value = '';
                 if (categoryFilter) categoryFilter.value = '';
-                if (paymentFilter) paymentFilter.value = '';
                 currentPage = 1;
                 render();
             });
