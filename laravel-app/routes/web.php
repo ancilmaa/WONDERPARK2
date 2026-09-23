@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\User\BookingController;
+use App\Http\Controllers\BookingCmsController;
+
+
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
 Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])->name('attendance.checkin.store');
 Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance'])->name('attendance.store');
@@ -221,7 +224,7 @@ Route::delete('/notifications/bulk-destroy', [NotificationController::class, 'bu
     ->name('notifications.bulk-destroy');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
 
-Route::prefix('admin/cms')->name('cms.')->group(function () {
+Route::prefix('cms')->name('cms.')->group(function () {
 
     Route::get('/', [CmsController::class, 'index'])->name('index');
 
@@ -229,11 +232,14 @@ Route::prefix('admin/cms')->name('cms.')->group(function () {
     Route::get('/section/{section}', [CmsController::class, 'editSection'])->name('section.edit');
     Route::put('/section/{section}', [CmsController::class, 'updateSection'])->name('section.update');
 
-    Route::post('/collections', [CmsController::class, 'storeCollection'])
-        ->name('collections.store');
+    Route::post('/collections', [CmsController::class, 'storeCollection'])->name('collections.store');
+    Route::delete('/collections/{collection:slug}', [CmsController::class, 'destroyCollection'])->name('collections.destroy');
 
-    Route::delete('/collections/{collection:slug}', [CmsController::class, 'destroyCollection'])
-        ->name('collections.destroy');
+    // Booking & Pricing
+    Route::get('/booking', [BookingCmsController::class, 'edit'])->name('booking.pricing');
+    Route::put('/booking', [BookingCmsController::class, 'update'])->name('booking.pricing.update');
+    Route::post('/booking/package/{service}/{package}/reset', [BookingCmsController::class, 'resetPackage'])->name('booking.pricing.reset-package');
+    Route::post('/booking/addon/{service}/{addon}/reset', [BookingCmsController::class, 'resetAddon'])->name('booking.pricing.reset-addon');
 
     // Card-based sections: pass, attraction, service, step
     Route::get('/cards/{type}', [CmsController::class, 'cards'])->name('cards');
@@ -243,7 +249,6 @@ Route::prefix('admin/cms')->name('cms.')->group(function () {
     Route::put('/card/{card}', [CmsController::class, 'updateCard'])->name('cards.update');
     Route::delete('/card/{card}', [CmsController::class, 'destroyCard'])->name('cards.destroy');
 });
-
 
 Route::get('/app/bookings/{booking}/receipt', [BookingController::class, 'receipt'])
     ->name('user.bookings.receipt');

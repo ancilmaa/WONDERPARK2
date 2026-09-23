@@ -53,6 +53,12 @@ class CmsController extends Controller
         'footer' => [
             'tagline' => ['label' => 'Footer Tagline', 'type' => 'textarea'],
         ],
+        'booking' => [
+    'price_regular'   => ['label' => 'Regular Ticket Price (₱)', 'type' => 'text'],
+    'price_discount'  => ['label' => 'Discounted Price (₱)', 'type' => 'text'],
+    'discount_note'   => ['label' => 'Discount Note (e.g. Students, Seniors, PWD)', 'type' => 'text'],
+    'booking_notice'  => ['label' => 'Booking Notice / Terms', 'type' => 'textarea'],
+],
     ];
 
     /** Tags allowed to survive out of the rich-text editor. */
