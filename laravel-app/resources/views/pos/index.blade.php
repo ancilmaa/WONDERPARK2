@@ -492,6 +492,9 @@
                                 <button class="qbtn" onclick="openPwdSeniorDiscount()">
                                     <i class="ti ti-id-badge-2"></i>Discount
                                 </button>
+                                <button class="qbtn green" onclick="openVoucher()" title="Online booking voucher (Alt+Shift+O)">
+                                    <i class="ti ti-barcode"></i>Voucher
+                                </button>
                             </div>
                             <div class="rbox1-col">
                                 <div class="rbox1-head">Reports</div>
@@ -908,6 +911,37 @@
             <div id="histList"></div>
             <div class="modal-buttons">
                 <button class="mbtn close-btn" onclick="closeModal('historicalModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VOUCHER MODAL (online booking voucher) -->
+    <div class="modal-overlay" id="voucherModal">
+        <div class="modal-box small-box">
+            <h3><i class="ti ti-barcode"></i> Online Booking Voucher</h3>
+            <p style="font-size:12px;color:#888;margin-bottom:12px">
+                Enter the voucher code from the customer's booking receipt.
+                Prepaid na ito, kaya hindi na hihingi ng payment.
+            </p>
+            <div class="form-group">
+                <label>Voucher Code</label>
+                <input type="text" id="voucherInput" class="form-control" style="text-transform:uppercase"
+                    placeholder="Enter voucher code" autocomplete="off"
+                    onkeydown="if(event.key==='Enter') lookupVoucher()">
+            </div>
+            <div id="voucherPreview"
+                style="display:none;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;"></div>
+            <div id="voucherError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div class="modal-buttons">
+                <button class="mbtn print" id="voucherFindBtn" onclick="lookupVoucher()">
+                    <i class="ti ti-search"></i> Find Voucher
+                </button>
+                <button class="mbtn print" id="voucherLoadBtn" onclick="loadVoucherToCart()" style="display:none;">
+                    <i class="ti ti-check"></i> Load to Cart
+                </button>
+                <button class="mbtn close-btn" onclick="closeModal('voucherModal')">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
             </div>
         </div>
     </div>

@@ -7,12 +7,12 @@ use Illuminate\Support\Str;
 
 class Booking extends Model
 {
-    protected $fillable = [
+        protected $fillable = [
         'user_id', 'service', 'tier', 'price', 'addons', 'visit_date', 'visit_time', 'payment_method',
         'customer_id', 'customer_name', 'customer_contact', 'pax', 'reservation_date', 'reservation_time',
         'package', 'notes', 'status', 'payment_method', 'receipt_path',
         'voucher_code', 'payment_proof_path', 'payment_submitted_at', 'payment_verified_at',
-        'payment_rejection_reason', 'xendit_payment_request_id', 'xendit_reference_id',
+        'payment_rejection_reason',
     ];
 
     protected $casts = [

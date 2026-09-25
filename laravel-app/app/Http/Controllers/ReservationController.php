@@ -10,12 +10,12 @@ class ReservationController extends Controller
     /**
      * Display a listing of the resource.
      */
- public function index()
-{
-    $bookings = Booking::with(['customer', 'user'])->latest()->get();
+    public function index()
+    {
+        $bookings = Booking::with(['customer', 'user'])->latest()->get();
 
-    return view('customer.reservations', compact('bookings'));
-}
+        return view('customer.reservations', compact('bookings'));
+    }
 
     public function create()
     {
@@ -57,9 +57,20 @@ class ReservationController extends Controller
             ->with('success', 'Reservation created successfully.');
     }
 
+    /**
+     * Return a single reservation's details as JSON.
+     * Used by the expandable "Recent Visitor Logins" row on the
+     * Visitor Summary page (fetch('/reservations/{id}')).
+     */
     public function show(Booking $reservation)
     {
-        //
+        return response()->json([
+            'package'          => $reservation->package,
+            'pax'              => $reservation->pax,
+            'reservation_date' => optional($reservation->reservation_date)->format('M d, Y'),
+            'reservation_time' => $reservation->reservation_time,
+            'status'           => $reservation->status,
+        ]);
     }
 
     public function edit(Booking $reservation)
@@ -72,42 +83,43 @@ class ReservationController extends Controller
      * The blade posts here via the inline status dropdown on each row.
      */
     public function update(Request $request, Booking $reservation)
-{
-    // Quick status-only update (from the inline dropdown)
-    if ($request->has('status') && !$request->has('package')) {
+    {
+        // Quick status-only update (from the inline dropdown)
+        if ($request->has('status') && !$request->has('package')) {
+            $validated = $request->validate([
+                'status' => ['required', 'in:pending,confirmed,paid,cancelled'],
+            ]);
+
+            $reservation->update($validated);
+
+            return redirect()->route('reservations.index')->with('success', 'Reservation updated.');
+        }
+
+        // Full edit from the Edit modal
         $validated = $request->validate([
-            'status' => ['required', 'in:pending,confirmed,paid,cancelled'],
+            'customer_name'     => ['required', 'string', 'max:255'],
+            'customer_contact'  => ['nullable', 'string', 'max:50'],
+            'package'           => ['required', 'string', 'max:255'],
+            'pax'               => ['required', 'integer', 'min:1'],
+            'reservation_date'  => ['required', 'date'],
+            'reservation_time'  => ['required'],
+            'notes'             => ['nullable', 'string'],
         ]);
 
         $reservation->update($validated);
 
-        return redirect()->route('reservations.index')->with('success', 'Reservation updated.');
+        return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
     }
 
-    // Full edit from the Edit modal
-    $validated = $request->validate([
-        'customer_name'     => ['required', 'string', 'max:255'],
-        'customer_contact'  => ['nullable', 'string', 'max:50'],
-        'package'           => ['required', 'string', 'max:255'],
-        'pax'               => ['required', 'integer', 'min:1'],
-        'reservation_date'  => ['required', 'date'],
-        'reservation_time'  => ['required'],
-        'notes'             => ['nullable', 'string'],
-    ]);
+    /**
+     * Delete a reservation (used by the trash-icon button + confirm modal).
+     */
+    public function destroy(Booking $reservation)
+    {
+        $reservation->delete();
 
-    $reservation->update($validated);
-
-    return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
-}
-/**
- * Delete a reservation (used by the trash-icon button + confirm modal).
- */
-public function destroy(Booking $reservation)
-{
-    $reservation->delete();
-
-    return redirect()
-        ->route('reservations.index')
-        ->with('success', 'Reservation deleted.');
-}
+        return redirect()
+            ->route('reservations.index')
+            ->with('success', 'Reservation deleted.');
+    }
 }

@@ -709,7 +709,7 @@
 @section('content')
 
     <div class="toolbar">
-        <div class="eyebrow">Lipa Branch &middot; Salary and Deductions</div>
+        <div class="eyebrow">Lipa Branch &middot; Salary and Deductions &middot; {{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }}</div>
         <h2>Salary and Deductions</h2>
     </div>
 
@@ -800,41 +800,38 @@
                         @foreach ($group as $item)
                             @php
                                 $sal = $salaryMap->get($item->name);
-                                $daysWorked = 0;
-                                for ($i = 1; $i <= 15; $i++) {
-                                    if (($item->{"day_{$i}"} ?? '') === 'P') {
-                                        $daysWorked++;
-                                    }
-                                }
+                                $daysWorked = $item->days_worked ?? 0;
+                                $dailyRate = $rates->get(strtolower(str_replace([' ', '-'], '_', $category)))?->daily_rate ?? 0;
+                                $basicPay = $sal ? $sal->basic_salary : $daysWorked * $dailyRate;
                                 $totalDeductions = $sal
                                     ? $sal->deduction +
                                         $sal->sss_deduction +
                                         $sal->philhealth_deduction +
                                         $sal->pagibig_deduction +
                                         $sal->withholding_tax
-                                    : null;
+                                    : 0;
                             @endphp
                             <tr data-idx="{{ $idx++ }}">
                                 <td><strong>{{ $item->name }}</strong></td>
                                 <td>{{ $daysWorked }}</td>
-                                <td>{{ $sal ? '₱' . number_format($sal->basic_salary, 2) : '-' }}</td>
+                                <td>{{ '₱' . number_format($basicPay, 2) }}</td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->sss_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}
                                 </td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->philhealth_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}
                                 </td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->pagibig_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}
                                 </td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->withholding_tax, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
                                 </td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($totalDeductions, 2) : '-' }}
+                                    {{ '₱' . number_format($totalDeductions, 2) }}
                                 </td>
                                 <td class="{{ $sal ? 'money' : 'muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->net_salary, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}
                                 </td>
                                 <td>
                                     @if ($sal)
@@ -866,19 +863,16 @@
                 @foreach ($group as $item)
                     @php
                         $sal = $salaryMap->get($item->name);
-                        $daysWorked = 0;
-                        for ($i = 1; $i <= 15; $i++) {
-                            if (($item->{"day_{$i}"} ?? '') === 'P') {
-                                $daysWorked++;
-                            }
-                        }
+                        $daysWorked = $item->days_worked ?? 0;
+                        $dailyRate = $rates->get(strtolower(str_replace([' ', '-'], '_', $category)))?->daily_rate ?? 0;
+                        $basicPay = $sal ? $sal->basic_salary : $daysWorked * $dailyRate;
                         $totalDeductions = $sal
                             ? $sal->deduction +
                                 $sal->sss_deduction +
                                 $sal->philhealth_deduction +
                                 $sal->pagibig_deduction +
                                 $sal->withholding_tax
-                            : null;
+                            : 0;
                     @endphp
                     <div class="salary-card" data-idx="{{ $cidx++ }}">
                         <div class="salary-card-name">{{ $item->name }}</div>
@@ -889,42 +883,42 @@
                             </div>
                             <div>
                                 <div class="scg-label">Basic pay</div>
-                                <div class="scg-val">{{ $sal ? '₱' . number_format($sal->basic_salary, 2) : '-' }}</div>
+                                <div class="scg-val">{{ '₱' . number_format($basicPay, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">SSS</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->sss_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}
                                 </div>
                             </div>
                             <div>
                                 <div class="scg-label">PhilHealth</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->philhealth_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}
                                 </div>
                             </div>
                             <div>
                                 <div class="scg-label">Pag-IBIG</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->pagibig_deduction, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}
                                 </div>
                             </div>
                             <div>
                                 <div class="scg-label">Withholding tax</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->withholding_tax, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
                                 </div>
                             </div>
                             <div>
                                 <div class="scg-label">Deductions</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($totalDeductions, 2) : '-' }}
+                                    {{ '₱' . number_format($totalDeductions, 2) }}
                                 </div>
                             </div>
                             <div style="grid-column:1 / -1;">
                                 <div class="scg-label">Net salary</div>
                                 <div class="scg-val {{ $sal ? 'is-present' : 'is-muted' }}">
-                                    {{ $sal ? '₱' . number_format($sal->net_salary, 2) : '-' }}
+                                    {{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}
                                 </div>
                             </div>
                         </div>
@@ -957,8 +951,8 @@
             <div class="cutoff-select-wrap">
                 <label>Cutoff Type</label>
                 <select id="cutoffTypeSelect">
-                    <option value="1st">1st Cutoff (Day 1&ndash;15)</option>
-                    <option value="2nd">2nd Cutoff (Day 16&ndash;31)</option>
+                    <option value="1st" {{ ($cutoffType ?? '1st') === '1st' ? 'selected' : '' }}>1st Cutoff (Day 1&ndash;15)</option>
+                    <option value="2nd" {{ ($cutoffType ?? '1st') === '2nd' ? 'selected' : '' }}>2nd Cutoff (Day 16&ndash;31)</option>
                 </select>
             </div>
 

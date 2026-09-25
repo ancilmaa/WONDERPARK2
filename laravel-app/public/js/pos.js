@@ -291,6 +291,12 @@ function openPwdSeniorDiscount() {
     return;
   }
 
+  // Prepaid voucher = bayad na, walang discount na pwedeng ilagay
+  if (cart.some(c => c.voucher)) {
+    alert('Discounts cannot be applied to a prepaid online voucher.');
+    return;
+  }
+
   document.getElementById('pwdSeniorType').value   = specialDiscount?.type || 'Senior Citizen';
   document.getElementById('pwdSeniorName').value   = specialDiscount?.name || '';
   document.getElementById('pwdSeniorIdNum').value  = specialDiscount?.idNumber || '';
@@ -469,7 +475,8 @@ function startFreshTransaction() {
 
   renderCart();
   updateTotals();
-  localStorage.removeItem('pos_cart');
+  // FIX: dapat storageKey() ang gamit, kapareho ng persistCart()
+  localStorage.removeItem(storageKey('pos_cart'));
 }
 
 function persistPending() {
@@ -484,6 +491,12 @@ function persistPending() {
 //  CART OPERATIONS
 // ============================================================
 function addToCart(id) {
+  // Kapag may naka-load na voucher, voucher-only ang transaction
+  if (cart.some(c => c.voucher)) {
+    alert('An online voucher is loaded. Finish or remove it before adding other items.');
+    return;
+  }
+
   const product = phpProducts.find(p => p.id == id);
   if (!product) return;
 
@@ -522,6 +535,9 @@ function addToCart(id) {
 }
 
 function changeQty(id, delta) {
+  // Hindi pwedeng baguhin ang qty ng voucher line
+  if (cart.some(c => c.voucher)) return;
+
   const item = cart.find(c => c.id == id);
   if (!item) return;
 
@@ -567,7 +583,7 @@ function renderCart() {
       <span class="item-num">${i + 1}</span>
       <div class="item-desc">
         <div class="iname">${escHtml(item.name)}</div>
-        <div class="iprice">₱${item.price.toFixed(2)} each</div>
+        <div class="iprice">₱${item.price.toFixed(2)} each${item.voucher ? ' · PAID ONLINE' : ''}</div>
       </div>
       <div class="qty-ctrl">
         <button class="qcbtn" onclick="changeQty(${item.id}, -1)">−</button>
@@ -692,6 +708,20 @@ function doCheckout() {
   }
 
   const { total } = calcTotals();
+
+  // === PREPAID ONLINE VOUCHER: bayad na, walang payment modal ===
+  const voucherItem = cart.find(c => c.voucher);
+  if (voucherItem) {
+    if (Math.abs(total - voucherItem.price) > 0.01) {
+      alert('Discounts cannot be applied to a prepaid voucher. Please remove the discount first.');
+      return;
+    }
+    selectedPayment = 'online';
+    pendingTendered = total;
+    processCheckout(voucherItem.voucher_code);
+    return;
+  }
+  // ==============================================================
 
   selectedPayment = 'cash';
   document.querySelectorAll('#payModalOpts .pay-method-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
@@ -819,12 +849,16 @@ function processCheckout(refNumber = null) {
   const custName = document.getElementById('custName').value.trim() || 'Walk-in Customer';
   const invNum   = document.getElementById('invNum').textContent;
 
+  // Kung may voucher sa cart, isasama ang code para ang server ang mag-validate/mag-redeem
+  const voucherLine = cart.find(c => c.voucher);
+
   saveTransaction({
     invoice_number:   invNum,
     customer_name:    custName,
     service_type:     selectedService,
     payment_method:   selectedPayment,
     reference_number: refNumber || null,
+    voucher_code:     voucherLine ? voucherLine.voucher_code : null,
     tendered:         pendingTendered.toFixed(2),
     gross:            gross.toFixed(2),
     discount:         discountAmount.toFixed(2),
@@ -1627,6 +1661,7 @@ document.addEventListener('keydown', function (e) {
     h: () => openReport('historical'),  // Historical Reports
     b: () => openReport('bir'),         // BIR Backend Reports
     v: openCorrection,          // Correction
+    o: openVoucher,             // Online booking voucher
   };
 
   if (shortcutMap[key]) {
@@ -1872,4 +1907,120 @@ function closeVoidedReceiptModal() {
   document.getElementById('rVoidedDetails').style.display = 'none';
   document.getElementById('voidedCloseBtn').style.display = 'none';
   document.getElementById('normalCloseBtn').style.display = '';
+}
+
+// ============================================================
+//  ONLINE BOOKING VOUCHER
+//  Flow: cashier types the customer's voucher code -> POS shows
+//  what was availed + amount (from the bookings table) -> Load to
+//  Cart -> F9 checkout saves it as "Online" (ref = voucher code)
+//  and the server marks the booking as done.
+// ============================================================
+let pendingVoucher = null;
+
+function openVoucher() {
+  if (dayLocked) {
+    alert('Transactions are closed for today after cut-off. Please try again tomorrow.');
+    return;
+  }
+  if (cart.length > 0) {
+    alert('Cart must be empty before loading a voucher. Finish or hold the current transaction first.');
+    return;
+  }
+
+  pendingVoucher = null;
+  document.getElementById('voucherInput').value = '';
+  document.getElementById('voucherError').textContent = '';
+  document.getElementById('voucherPreview').style.display = 'none';
+  document.getElementById('voucherLoadBtn').style.display = 'none';
+  document.getElementById('voucherModal').classList.add('show');
+  setTimeout(() => document.getElementById('voucherInput').focus(), 100);
+}
+
+function lookupVoucher() {
+  const code = document.getElementById('voucherInput').value.trim();
+  if (!code) {
+    document.getElementById('voucherError').textContent = 'Please enter a voucher code.';
+    return;
+  }
+
+  pendingVoucher = null;
+  document.getElementById('voucherError').textContent = '';
+  document.getElementById('voucherPreview').style.display = 'none';
+  document.getElementById('voucherLoadBtn').style.display = 'none';
+  showLoading('Looking up voucher…');
+
+  fetch('/pos/voucher-lookup?code=' + encodeURIComponent(code), {
+    headers: {
+      'Accept':           'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+
+      if (!res.success) {
+        document.getElementById('voucherError').textContent = res.message || 'Voucher not found.';
+        return;
+      }
+
+      const v = res.voucher;
+      pendingVoucher = v;
+
+      const dateWarn = v.is_today ? '' : `
+        <div style="color:#E24B4A;font-weight:700;margin-top:6px">
+          ⚠ Visit date is not today. Please confirm with the customer.
+        </div>`;
+
+      const box = document.getElementById('voucherPreview');
+      box.style.display = '';
+      box.innerHTML = `
+        <strong>${escHtml(v.code)}</strong> — PAID (Online)<br>
+        Customer: ${escHtml(v.customer_name || 'N/A')}<br>
+        Availed: ${escHtml(v.item_name)}<br>
+        Visit: ${escHtml(v.visit_date)} ${escHtml(v.visit_time || '')}<br>
+        <strong>Amount: ₱${parseFloat(v.price).toFixed(2)}</strong>
+        ${dateWarn}`;
+
+      document.getElementById('voucherLoadBtn').style.display = '';
+    })
+    .catch(() => {
+      hideLoading();
+      document.getElementById('voucherError').textContent = 'Could not look up the voucher. Please try again.';
+    });
+}
+
+function loadVoucherToCart() {
+  if (!pendingVoucher) return;
+  if (cart.length > 0) {
+    alert('Cart must be empty before loading a voucher.');
+    return;
+  }
+
+  removeDiscount(); // walang discount sa prepaid voucher
+
+  cart.push({
+    id:           0,                          // walang product_id, galing sa booking
+    name:         pendingVoucher.item_name,
+    price:        parseFloat(pendingVoucher.price),
+    qty:          1,
+    voucher:      true,
+    voucher_code: pendingVoucher.code
+  });
+
+  if (pendingVoucher.customer_name) {
+    document.getElementById('custName').value = pendingVoucher.customer_name;
+  }
+
+  selectedService = 'Reserve';
+  document.querySelectorAll('.qs-pill').forEach(p => {
+    p.classList.toggle('active', p.textContent.trim() === 'Reserve');
+  });
+
+  pendingVoucher = null;
+  closeModal('voucherModal');
+  renderCart();
+  updateTotals();
+  persistCart();
 }
