@@ -233,6 +233,9 @@
       <option value="all">All Methods</option>
     </select>
   </div>
+  <button class="filter-btn" id="downloadReport" style="background:var(--fc-accent)">
+  <i class="fas fa-file-pdf"></i> Download Report
+</button>
   <div class="filter-spacer"></div>
   <button class="filter-btn" id="applyFilters">Apply</button>
   <button class="filter-btn-clear" id="clearFilters">Clear</button>
@@ -838,6 +841,9 @@
       document.getElementById('fPayment').value = 'all';
       reloadFilteredData();
   });
+  document.getElementById('downloadReport').addEventListener('click', () => {
+    window.location.href = ML_API + '/report' + currentFilters();
+});
 
   /* ── BOOT ───────────────────────────────────────────────────── */
   loadSummary();

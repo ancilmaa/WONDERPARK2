@@ -154,6 +154,9 @@ Route::get('/api/ml/hourly_peaks', [MlForecastController::class, 'hourlyPeaks'])
 Route::get('/api/ml/next_month_forecast', [MlForecastController::class, 'nextMonthForecast']);
 Route::get('/api/ml/monthly_trend', [MlForecastController::class, 'monthlyTrend']);
 
+Route::get('/api/ml/report', [MlForecastController::class, 'downloadReport']);
+Route::get('/api/zone-forecast/{zone}/report', [ZoneForecastController::class, 'downloadReport']);
+
 Route::post('/pos/reprint', [PosController::class, 'reprintTransaction'])->name('pos.reprint');
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
