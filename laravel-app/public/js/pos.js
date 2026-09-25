@@ -1226,9 +1226,10 @@ function searchHistorical() {
 
 // ============================================================
 //  SALES REPORT RENDERING
-//  Order: Overall -> Sales by Zone (Roller Fever, Snackbar,
-//  Field of Rides, Dino Adventure — only zones with sales show
-//  up) -> Per-Cashier breakdown.
+//  Order: Overall -> Vouchers Redeemed -> Void summary/footer ->
+//  Sales by Zone (Roller Fever, Snackbar, Field of Rides,
+//  Dino Adventure — only zones with sales show up) -> Per-Cashier
+//  breakdown.
 // ============================================================
 function renderSalesReport(res, isPreview, isReprint = false) {
   const r = res.report;
@@ -1241,6 +1242,13 @@ function renderSalesReport(res, isPreview, isReprint = false) {
     title, dateStr, r.overall.items, r.overall.total_sales, r.overall.total_discount,
     r.overall.payment_breakdown, null, isReprint
   );
+
+  // === VOUCHERS / ONLINE BOOKINGS REDEEMED ===
+  if (r.vouchers) {
+    html += buildVoucherReceipt(dateStr, r.vouchers.items, r.vouchers.count, r.vouchers.total, isReprint);
+  }
+  // =============================================
+
   html += buildReportFooter(
   res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview,
   res.voided_txn_count || 0, res.voided_txn_total || 0
@@ -1277,6 +1285,38 @@ function buildReportFooter(authorizedBy, voidCount, voidTotal, isPreview, voided
       <div style="text-align:center;font-size:12px;font-weight:700;margin-top:4px;">
         ${isPreview ? 'Prepared by' : 'Cut-off Authorized by'}: ${escHtml(authorizedBy || (typeof userName !== 'undefined' ? userName : 'N/A'))}
       </div>
+    </div>`;
+}
+
+// ============================================================
+//  VOUCHER / ONLINE BOOKING REDEMPTION RECEIPT BLOCK
+//  Ipinapakita: ilang booking/voucher ang na-redeem sa period na ito,
+//  at anong item/package ang inavail bawat isa (grouped by item name).
+// ============================================================
+function buildVoucherReceipt(dateStr, items, count, total, isReprint = false) {
+  const itemsHtml = (items || []).map(it => `
+    <div class="receipt-item-row"><span>${it.qty}</span><span>${escHtml(it.name)}</span><span style="text-align:right">₱${parseFloat(it.total).toFixed(2)}</span></div>
+  `).join('');
+
+  const reprintBanner = isReprint
+    ? `<div style="text-align:center;color:#E24B4A;font-weight:800;font-size:12px;letter-spacing:1px;margin-bottom:4px;">** REPRINT **</div>`
+    : '';
+
+  return `
+    <div class="report-receipt">
+      <div class="receipt-header">
+        ${reprintBanner}
+        <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+        <div class="receipt-title">ONLINE BOOKINGS REDEEMED</div>
+      </div>
+      <hr class="dashed">
+      <div class="receipt-datetime">${dateStr}</div>
+      <hr class="dashed">
+      <div class="receipt-items-head"><span>Qty</span><span>Item</span><span style="text-align:right">Total</span></div>
+      ${itemsHtml || '<div style="text-align:center;color:#aaa;font-size:12px;padding:6px 0">No vouchers redeemed.</div>'}
+      <hr class="dashed">
+      <div class="rt-row rt-total"><span>VOUCHERS REDEEMED</span><span>${count}</span></div>
+      <div class="rt-row"><span class="rt-label">Total Amount</span><span class="rt-val">₱${parseFloat(total).toFixed(2)}</span></div>
     </div>`;
 }
 
@@ -2023,4 +2063,4 @@ function loadVoucherToCart() {
   renderCart();
   updateTotals();
   persistCart();
-}
+} 

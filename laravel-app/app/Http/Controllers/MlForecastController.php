@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MlForecastController extends Controller
 {
@@ -92,9 +93,6 @@ class MlForecastController extends Controller
         ]);
     }
 
-    /**
-     * Store-wide revenue % breakdown per payment method.
-     */
     public function paymentBreakdown(Request $request)
     {
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -115,17 +113,6 @@ class MlForecastController extends Controller
         ]);
     }
 
-    /**
-     * Store-wide sales broken down per category_type and per category —
-     * never lumped together. Each category also carries a `products`
-     * preview array so admin/user can see EXACTLY which items generated
-     * that category's revenue.
-     *
-     * Best/Worst sellers are now actual PRODUCTS (not categories), so
-     * "best seller" always names a specific item.
-     * Requires the categories table join (category_type, is_stock_tracked
-     * live there, not on products).
-     */
     public function categoryBreakdown(Request $request)
     {
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -161,8 +148,6 @@ class MlForecastController extends Controller
 
         $byCategory = $this->withPercentages($byCategory, 'total_revenue');
 
-        // Product-level rows — the "preview" of exactly which items make up
-        // each category's revenue.
         $byProduct = DB::select("
             SELECT c.category_type, c.category_name, p.product_id, p.product_name,
                    SUM(ti.quantity) AS total_qty,
@@ -177,14 +162,11 @@ class MlForecastController extends Controller
             ORDER BY c.category_name, total_revenue DESC
         ", array_merge($dateBindings, $payBindings));
 
-        // Group products under their parent category name
         $productsByCategory = [];
         foreach ($byProduct as $r) {
             $productsByCategory[$r->category_name][] = $r;
         }
 
-        // Attach a 'products' preview array to each category row, each with
-        // its own % share of THAT category's revenue (not the grand total).
         foreach ($byCategory as &$cat) {
             $catTotal = (float) $cat['total_revenue'];
             $products = $productsByCategory[$cat['category_name']] ?? [];
@@ -203,7 +185,6 @@ class MlForecastController extends Controller
         }
         unset($cat);
 
-        // Best/Worst sellers = actual PRODUCTS (store-wide), ranked by revenue
         $flatProducts = $this->withPercentages($byProduct, 'total_revenue');
         usort($flatProducts, fn($a, $b) => $b['total_revenue'] <=> $a['total_revenue']);
 
@@ -422,6 +403,32 @@ class MlForecastController extends Controller
         $rows = array_reverse($rows);
 
         return response()->json(['monthly' => array_values($rows)]);
+    }
+
+    /**
+     * Generates and downloads a PDF report for the currently selected
+     * date_from / date_to / payment_method filters.
+     */
+    public function downloadReport(Request $request)
+    {
+        $dateFrom = $request->query('date_from');
+        $dateTo   = $request->query('date_to');
+        $payment  = $request->query('payment_method', 'all');
+
+        $pdf = Pdf::loadView('reports.sales_report', [
+            'title'             => 'WonderPark Lipa — Sales Forecast Report',
+            'zone'              => null,
+            'dateFrom'          => $dateFrom,
+            'dateTo'            => $dateTo,
+            'paymentMethod'     => $payment === 'all' ? null : $payment,
+            'summary'           => $this->summary($request)->getData(true),
+            'topProducts'       => $this->topProducts($request)->getData(true),
+            'paymentBreakdown'  => $this->paymentBreakdown($request)->getData(true),
+            'categoryBreakdown' => $this->categoryBreakdown($request)->getData(true),
+            'generatedAt'       => now()->format('F j, Y g:i A'),
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download('sales-report-' . now()->format('Y-m-d_His') . '.pdf');
     }
 
     /* ── Helpers ───────────────────────────────────────────── */

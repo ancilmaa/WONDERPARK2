@@ -1349,11 +1349,9 @@
                 </button>
             </div>
             <div class="modal-body" style="text-align:center;">
-                <p class="form-hint">I-print o i-display ito sa entrance. I-scan ng empleyado gamit ang sariling phone
-                    para mag-Time In/Out.</p>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
-                    <input type="text" id="qrLinkInput" readonly value="{{ route('attendance.checkin') }}">
+                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' }}">
                     <button type="button" class="btn-ghost" id="copyQrLinkBtn"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
