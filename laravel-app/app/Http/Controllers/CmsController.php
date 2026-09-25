@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CmsCollection;
 use App\Models\SiteCard;
 use App\Models\SiteContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CmsController extends Controller
 {
@@ -51,12 +53,36 @@ class CmsController extends Controller
         'footer' => [
             'tagline' => ['label' => 'Footer Tagline', 'type' => 'textarea'],
         ],
+        'booking' => [
+    'price_regular'   => ['label' => 'Regular Ticket Price (₱)', 'type' => 'text'],
+    'price_discount'  => ['label' => 'Discounted Price (₱)', 'type' => 'text'],
+    'discount_note'   => ['label' => 'Discount Note (e.g. Students, Seniors, PWD)', 'type' => 'text'],
+    'booking_notice'  => ['label' => 'Booking Notice / Terms', 'type' => 'textarea'],
+],
     ];
 
     /** Tags allowed to survive out of the rich-text editor. */
     private string $richtextAllowedTags = '<b><strong><i><em><u><span><br>';
 
-    private array $cardTypes = ['pass', 'attraction', 'service', 'step'];
+    /**
+     * Card types are no longer hardcoded — every row in cms_collections
+     * is a valid card type. The four original types are seeded there as
+     * system rows, so existing links and data keep working unchanged.
+     */
+    private function cardTypes(): array
+    {
+        return CmsCollection::orderBy('sort_order')->orderBy('id')->pluck('slug')->all();
+    }
+
+    /**
+     * Human label for a card type — the collection's own title, falling
+     * back to SiteCard's built-in labels for the original four.
+     */
+    private function typeLabel(string $type): string
+    {
+        return CmsCollection::where('slug', $type)->value('title')
+            ?? SiteCard::typeLabel($type);
+    }
 
     /**
      * Build the card-count map used by both the CMS dashboard and the
@@ -65,21 +91,28 @@ class CmsController extends Controller
      */
     private function cardCounts(): array
     {
+        $counts = SiteCard::selectRaw('type, COUNT(*) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->all();
+
+        // Make sure every collection has a key, even at zero cards.
         $cardCounts = [];
-        foreach ($this->cardTypes as $type) {
-            $cardCounts[$type] = SiteCard::type($type)->count();
+        foreach ($this->cardTypes() as $type) {
+            $cardCounts[$type] = (int) ($counts[$type] ?? 0);
         }
 
         return $cardCounts;
     }
 
     /**
-     * CMS dashboard — links to every editable section.
+     * CMS dashboard — links to every editable section and collection.
      */
     public function index()
     {
         return view('cms.index', [
             'sections'    => array_keys($this->sectionFields),
+            'collections' => CmsCollection::orderBy('sort_order')->orderBy('id')->get(),
             'cardCounts'  => $this->cardCounts(),
         ]);
     }
@@ -136,18 +169,79 @@ class CmsController extends Controller
         return redirect()->route('cms.section.edit', $section)->with('success', ucfirst($section) . ' section updated.');
     }
 
+    /* ---------------------------------------------------------------
+     | Collections
+     * ------------------------------------------------------------- */
+
+    public function storeCollection(Request $request)
+    {
+        $data = $request->validate([
+            'title'       => ['required', 'string', 'max:60'],
+            'description' => ['required', 'string', 'max:200'],
+            'icon'        => ['nullable', 'string', 'max:60'],
+            'unit_label'  => ['required', 'string', 'max:20'],
+        ]);
+
+        $slug = Str::slug($data['title']);
+
+        if ($slug === '' || CmsCollection::where('slug', $slug)->exists()) {
+            return back()
+                ->withInput()
+                ->withErrors(['title' => 'A collection with a similar name already exists. Pick another name.']);
+        }
+
+        CmsCollection::create([
+            'slug'        => $slug,
+            'title'       => $data['title'],
+            'description' => $data['description'],
+            'icon'        => $data['icon'] ?: 'fa-solid fa-layer-group',
+            'unit_label'  => $data['unit_label'],
+            'sort_order'  => (CmsCollection::max('sort_order') ?? 0) + 1,
+            'is_system'   => false,
+        ]);
+
+        Cache::flush();
+
+        return redirect()
+            ->route('cms.index')
+            ->with('success', "\"{$data['title']}\" collection created. Add cards to it from Manage.");
+    }
+
+    public function destroyCollection(CmsCollection $collection)
+    {
+        if ($collection->is_system) {
+            return back()->withErrors(['collection' => 'Core collections cannot be deleted.']);
+        }
+
+        if (SiteCard::where('type', $collection->slug)->exists()) {
+            return back()->withErrors(['collection' => 'Remove the cards in this collection before deleting it.']);
+        }
+
+        $title = $collection->title;
+        $collection->delete();
+        Cache::flush();
+
+        return redirect()
+            ->route('cms.index')
+            ->with('success', "\"{$title}\" collection deleted.");
+    }
+
+    /* ---------------------------------------------------------------
+     | Cards
+     * ------------------------------------------------------------- */
+
     /**
-     * List cards of a given type (pass / attraction / service / step).
+     * List cards of a given type (any collection slug).
      */
     public function cards(string $type)
     {
-        abort_unless(in_array($type, $this->cardTypes), 404);
+        abort_unless(in_array($type, $this->cardTypes(), true), 404);
 
         $cards = SiteCard::type($type)->ordered()->get();
 
         return view('cms.cards-index', [
             'type'       => $type,
-            'label'      => SiteCard::typeLabel($type),
+            'label'      => $this->typeLabel($type),
             'cards'      => $cards,
             'cardCounts' => $this->cardCounts(),
         ]);
@@ -155,11 +249,11 @@ class CmsController extends Controller
 
     public function createCard(string $type)
     {
-        abort_unless(in_array($type, $this->cardTypes), 404);
+        abort_unless(in_array($type, $this->cardTypes(), true), 404);
 
         return view('cms.card-form', [
             'type'  => $type,
-            'label' => SiteCard::typeLabel($type),
+            'label' => $this->typeLabel($type),
             'card'  => null,
         ]);
     }
@@ -168,14 +262,14 @@ class CmsController extends Controller
     {
         return view('cms.card-form', [
             'type'  => $card->type,
-            'label' => SiteCard::typeLabel($card->type),
+            'label' => $this->typeLabel($card->type),
             'card'  => $card,
         ]);
     }
 
     public function storeCard(Request $request, string $type)
     {
-        abort_unless(in_array($type, $this->cardTypes), 404);
+        abort_unless(in_array($type, $this->cardTypes(), true), 404);
 
         $data = $this->validateCard($request);
         $data['type'] = $type;
@@ -235,35 +329,35 @@ class CmsController extends Controller
     }
 
     private function validateCard(Request $request): array
-{
-    $data = $request->validate([
-        'slug'           => 'required|string|max:100',
-        'badge_label'    => 'nullable|string|max:100',
-        'badge_color'    => 'nullable|in:coral,teal,amber,violet',
-        'icon_type'      => 'nullable|in:fa,image',
-        'icon'           => 'nullable|string|max:50',
-        'icon_image'     => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
-        'title'          => 'required|string|max:150',
-        'description'    => 'nullable|string',
-        'price_display'  => 'nullable|string|max:50',
-        'button_text'    => 'nullable|string|max:50',
-        'button_link'    => 'nullable|string|max:255',
-        'sort_order'     => 'nullable|integer',
-        'image'          => 'nullable|image|max:4096',
-    ]);
+    {
+        $data = $request->validate([
+            'slug'           => 'required|string|max:100',
+            'badge_label'    => 'nullable|string|max:100',
+            'badge_color'    => 'nullable|in:coral,teal,amber,violet',
+            'icon_type'      => 'nullable|in:fa,image',
+            'icon'           => 'nullable|string|max:50',
+            'icon_image'     => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
+            'title'          => 'required|string|max:150',
+            'description'    => 'nullable|string',
+            'price_display'  => 'nullable|string|max:50',
+            'button_text'    => 'nullable|string|max:50',
+            'button_link'    => 'nullable|string|max:255',
+            'sort_order'     => 'nullable|integer',
+            'image'          => 'nullable|image|max:4096',
+        ]);
 
-    unset($data['icon_image']);
-    $data['icon_type']   = $data['icon_type'] ?? 'fa';
-    $data['badge_color'] = $data['badge_color'] ?? 'coral';
+        unset($data['icon_image']);
+        $data['icon_type']   = $data['icon_type'] ?? 'fa';
+        $data['badge_color'] = $data['badge_color'] ?? 'coral';
 
-    $data['features']   = $this->linesToArray($request->input('features_text'));
-    $data['modal_list'] = $this->linesToArray($request->input('modal_list_text'));
+        $data['features']   = $this->linesToArray($request->input('features_text'));
+        $data['modal_list'] = $this->linesToArray($request->input('modal_list_text'));
 
-    $data['is_featured'] = $request->boolean('is_featured');
-    $data['is_active']   = $request->boolean('is_active');
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active']   = $request->boolean('is_active');
 
-    return $data;
-}
+        return $data;
+    }
 
     private function storeResizedIcon(\Illuminate\Http\UploadedFile $file): string
     {

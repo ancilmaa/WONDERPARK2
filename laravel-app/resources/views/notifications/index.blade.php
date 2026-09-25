@@ -4,14 +4,47 @@
 
 @section('styles')
     <style>
+        /* ===== Top summary strip ===== */
+        .notif-topstrip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .78rem;
+            color: var(--ink-soft);
+            margin-bottom: 14px;
+        }
+
+        .notif-topstrip-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--pink-pale);
+            color: var(--pink-dark);
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+
+        .notif-topstrip-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--pink);
+            flex-shrink: 0;
+        }
+
+        .notif-topstrip-sep {
+            color: var(--muted);
+        }
+
         /* ===== Header ===== */
         .notif-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .notif-head-title {
@@ -21,20 +54,20 @@
         }
 
         .notif-head-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 11px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             background: var(--pink-light);
             color: var(--pink-deep);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             flex-shrink: 0;
         }
 
         .notif-head h1 {
-            font-size: 1.3rem;
+            font-size: 1.35rem;
             font-weight: 800;
             color: var(--ink);
             line-height: 1.2;
@@ -51,6 +84,61 @@
             font-weight: 700;
         }
 
+        .notif-head-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notif-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            border-radius: 10px;
+            padding: 9px 14px;
+            min-width: 220px;
+        }
+
+        .notif-search i {
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        .notif-search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: .8rem;
+            color: var(--ink);
+            width: 100%;
+        }
+
+        .notif-search input::placeholder {
+            color: var(--muted);
+        }
+
+        .notif-iconbtn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            color: var(--ink-soft);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .82rem;
+            flex-shrink: 0;
+            transition: background .12s, color .12s;
+        }
+
+        .notif-iconbtn:hover {
+            background: var(--pink-pale);
+            color: var(--pink-dark);
+        }
+
         .notif-markall-form button {
             display: inline-flex;
             align-items: center;
@@ -58,75 +146,119 @@
             background: var(--pink);
             color: #fff;
             border: none;
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: 10px;
             font-size: .82rem;
             font-weight: 700;
             cursor: pointer;
             transition: background .12s;
+            white-space: nowrap;
         }
 
         .notif-markall-form button:hover {
             background: var(--pink-dark);
         }
 
-        /* ===== Toolbar: filters in one dense row ===== */
+        /* ===== Toolbar ===== */
         .notif-toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
-            background: var(--card);
-            border-radius: 12px;
-            padding: 6px;
-            box-shadow: var(--shadow-sm);
             margin-bottom: 16px;
         }
 
-        .notif-filter-group {
+        .notif-toolbar-left {
             display: flex;
-            gap: 3px;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
         }
 
-        .notif-filter-pill {
+        /* Status segmented control */
+        .notif-segment {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            border-radius: 10px;
+            padding: 4px;
+        }
+
+        .notif-segment a {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 13px;
-            border-radius: 8px;
-            font-size: .78rem;
-            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: .8rem;
+            font-weight: 700;
             color: var(--ink-soft);
-            transition: background .12s, color .12s;
             white-space: nowrap;
+            transition: background .12s, color .12s;
         }
 
-        .notif-filter-pill:hover {
+        .notif-segment a:hover {
+            color: var(--ink);
+        }
+
+        .notif-segment a.active {
+            background: var(--ink);
+            color: #fff;
+        }
+
+        .notif-segment a .count {
+            font-weight: 800;
+            opacity: .75;
+        }
+
+        .notif-segment a.active .count {
+            opacity: .9;
+        }
+
+        /* Category tabs */
+        .notif-tabs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .notif-tabs a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+            white-space: nowrap;
+            transition: background .12s, color .12s;
+        }
+
+        .notif-tabs a:hover {
             background: var(--pink-pale);
             color: var(--ink);
         }
 
-        .notif-filter-pill.active {
-            background: var(--pink);
-            color: #fff;
+        .notif-tabs a.active {
+            background: var(--pink-pale);
+            color: var(--pink-dark);
         }
 
-        .notif-toolbar-divider {
-            width: 1px;
-            align-self: stretch;
-            background: var(--line);
-            margin: 4px 2px;
+        .notif-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
 
-        /* ===== Select all + bulk delete ===== */
         .notif-select-all-pill {
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            padding: 7px 13px;
-            border-radius: 8px;
-            font-size: .78rem;
+            font-size: .8rem;
             font-weight: 600;
             color: var(--ink-soft);
             cursor: pointer;
@@ -140,6 +272,25 @@
             cursor: pointer;
         }
 
+        .notif-markread-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            padding: 6px 4px;
+            transition: color .12s;
+        }
+
+        .notif-markread-btn:hover {
+            color: var(--pink-dark);
+        }
+
+        /* ===== Bulk bar (shown once a row is checked) ===== */
         .notif-bulk-bar {
             display: none;
             align-items: center;
@@ -245,15 +396,7 @@
             color: var(--ink);
         }
 
-        /* ===== Two-column layout: list + overview rail ===== */
-        .notif-layout {
-            display: grid;
-            grid-template-columns: 1fr 268px;
-            gap: 18px;
-            align-items: start;
-        }
-
-        /* ---- List panel ---- */
+        /* ===== List panel ===== */
         .notif-list-panel {
             background: var(--card);
             border-radius: 14px;
@@ -263,11 +406,10 @@
 
         .notif-row {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 11px 16px;
+            align-items: flex-start;
+            gap: 13px;
+            padding: 15px 18px;
             border-bottom: 1px solid var(--line);
-            border-left: 3px solid transparent;
             transition: background .12s;
             cursor: pointer;
         }
@@ -278,53 +420,47 @@
 
         .notif-row:hover,
         .notif-row:focus-visible {
-            background: var(--pink-pale);
+            background: var(--bg);
             outline: none;
         }
 
         .notif-row.unread {
             background: var(--pink-pale);
-            border-left-color: var(--pink);
+        }
+
+        .notif-row.unread:hover,
+        .notif-row.unread:focus-visible {
+            background: var(--pink-light);
         }
 
         .notif-row-checkbox-wrap {
             display: flex;
             align-items: center;
+            height: 22px;
             flex-shrink: 0;
         }
 
         .notif-row-checkbox {
-            width: 16px;
-            height: 16px;
+            width: 15px;
+            height: 15px;
             accent-color: var(--pink);
             cursor: pointer;
         }
 
-        .notif-row-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            flex-shrink: 0;
+        .notif-row-dot-wrap {
+            width: 8px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            font-size: .78rem;
+            align-items: center;
+            height: 22px;
+            flex-shrink: 0;
         }
 
-        .notif-row-icon.type-booking {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-        }
-
-        .notif-row-icon.type-low_stock,
-        .notif-row-icon.type-inventory {
-            background: var(--amber-light);
-            color: var(--amber);
-        }
-
-        .notif-row-icon.type-pos {
-            background: #E3F0FF;
-            color: #2563EB;
+        .notif-row-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--pink);
         }
 
         .notif-row-body {
@@ -334,45 +470,101 @@
 
         .notif-row-top {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
             gap: 10px;
         }
 
+        .notif-row-title-group {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+
         .notif-row-title {
             font-weight: 700;
-            font-size: .86rem;
+            font-size: .9rem;
             color: var(--ink);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .notif-row-time {
+        .notif-badge {
+            flex-shrink: 0;
             font-size: .68rem;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .notif-badge.type-booking {
+            background: var(--pink-light);
+            color: var(--pink-deep);
+        }
+
+        .notif-badge.type-low_stock,
+        .notif-badge.type-inventory {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .notif-badge.type-pos {
+            background: #E3F0FF;
+            color: #2563EB;
+        }
+
+        .notif-badge.type-default {
+            background: var(--line);
+            color: var(--ink-soft);
+        }
+
+        .notif-row-time {
+            font-size: .72rem;
             color: var(--muted);
             white-space: nowrap;
             flex-shrink: 0;
         }
 
         .notif-row-msg {
-            font-size: .78rem;
+            font-size: .8rem;
             color: var(--ink-soft);
-            margin-top: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-top: 4px;
+            line-height: 1.45;
         }
 
-        .notif-row-actions {
+        .notif-row-meta {
             display: flex;
             align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: .76rem;
         }
 
-        .notif-row-actions a,
-        .notif-row-actions button {
+        .notif-row-meta a {
+            color: var(--pink-dark);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .notif-row-meta a:hover {
+            text-decoration: underline;
+        }
+
+        .notif-row-meta-dot {
+            color: var(--muted);
+        }
+
+        .notif-row-meta-extra {
+            color: var(--muted);
+        }
+
+        .notif-row-delete {
+            flex-shrink: 0;
             width: 30px;
             height: 30px;
             display: inline-flex;
@@ -383,135 +575,13 @@
             cursor: pointer;
             font-size: .78rem;
             background: transparent;
-            color: var(--ink-soft);
+            color: var(--muted);
             transition: background .12s, color .12s;
         }
 
-        .notif-row-actions a:hover {
-            background: var(--line);
-            color: var(--ink);
-        }
-
-        .notif-row-actions button:hover {
+        .notif-row-delete:hover {
             background: #FEE2E2;
             color: #DC2626;
-        }
-
-        /* ---- Overview rail ---- */
-        .notif-rail {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: sticky;
-            top: 20px;
-        }
-
-        .notif-rail-card {
-            background: var(--card);
-            border-radius: 14px;
-            box-shadow: var(--shadow-sm);
-            padding: 16px;
-        }
-
-        .notif-rail-title {
-            font-size: .7rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: var(--muted);
-            margin-bottom: 12px;
-        }
-
-        .notif-rail-metric {
-            margin-bottom: 12px;
-        }
-
-        .notif-rail-metric:last-child {
-            margin-bottom: 0;
-        }
-
-        .notif-rail-metric-row {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .notif-rail-metric-label {
-            font-size: .8rem;
-            font-weight: 600;
-            color: var(--ink);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .notif-rail-metric-label i {
-            font-size: .7rem;
-            width: 14px;
-            text-align: center;
-        }
-
-        .notif-rail-metric-num {
-            font-size: .82rem;
-            font-weight: 800;
-            color: var(--ink);
-        }
-
-        .notif-rail-bar-track {
-            height: 6px;
-            border-radius: 999px;
-            background: var(--bg);
-            overflow: hidden;
-        }
-
-        .notif-rail-bar-fill {
-            height: 100%;
-            border-radius: 999px;
-        }
-
-        .notif-rail-bar-fill.fill-unread { background: var(--pink); }
-        .notif-rail-bar-fill.fill-booking { background: var(--pink-deep); }
-        .notif-rail-bar-fill.fill-inventory { background: var(--amber); }
-        .notif-rail-bar-fill.fill-pos { background: #2563EB; }
-
-        .notif-rail-links {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .notif-rail-links a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 8px;
-            border-radius: 8px;
-            font-size: .8rem;
-            font-weight: 600;
-            color: var(--ink-soft);
-            transition: background .12s, color .12s;
-        }
-
-        .notif-rail-links a i:first-child {
-            width: 15px;
-            text-align: center;
-            color: var(--muted);
-        }
-
-        .notif-rail-links a i:last-child {
-            margin-left: auto;
-            font-size: .68rem;
-            color: var(--muted);
-        }
-
-        .notif-rail-links a:hover {
-            background: var(--pink-pale);
-            color: var(--pink-dark);
-        }
-
-        .notif-rail-links a:hover i {
-            color: var(--pink-dark);
         }
 
         /* ---- Empty state ---- */
@@ -544,9 +614,24 @@
             font-weight: 700;
         }
 
-        /* ---- Pagination ---- */
-        .notif-pagination {
+        /* ---- Footer: pagination + status strip ---- */
+        .notif-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-top: 16px;
+        }
+
+        .notif-footer-count {
+            font-size: .8rem;
+            color: var(--ink-soft);
+        }
+
+        .notif-footer-count strong {
+            color: var(--ink);
+            font-weight: 700;
         }
 
         .notif-pagination nav > div:first-child {
@@ -581,25 +666,57 @@
             color: #fff;
         }
 
+        .notif-statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+            font-size: .72rem;
+            color: var(--muted);
+        }
+
+        .notif-statusbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notif-statusbar-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #22C55E;
+            flex-shrink: 0;
+        }
+
         a:focus-visible,
         button:focus-visible {
             outline: 2px solid var(--pink);
             outline-offset: 2px;
         }
 
-        @media (max-width: 960px) {
-            .notif-layout {
-                grid-template-columns: 1fr;
+        @media (max-width: 900px) {
+            .notif-head-right {
+                width: 100%;
             }
 
-            .notif-rail {
-                position: static;
+            .notif-search {
+                flex: 1;
+            }
+
+            .notif-toolbar-right {
+                width: 100%;
+                justify-content: space-between;
             }
         }
 
         @media (max-width: 560px) {
-            .notif-row-msg {
-                white-space: normal;
+            .notif-row-top {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -609,12 +726,20 @@
 
     @php
         $hasFilter = $status !== 'all' || $type !== 'all';
-        $unreadPct    = $stats['total'] > 0 ? round($stats['unread']    / $stats['total'] * 100) : 0;
-        $bookingPct   = $stats['total'] > 0 ? round($stats['booking']   / $stats['total'] * 100) : 0;
-        $inventoryPct = $stats['total'] > 0 ? round($stats['inventory'] / $stats['total'] * 100) : 0;
-        $posPct       = $stats['total'] > 0 ? round($stats['pos']       / $stats['total'] * 100) : 0;
+        $readCount = max($stats['total'] - $stats['unread'], 0);
     @endphp
 
+    {{-- ===== Top summary strip ===== --}}
+    <div class="notif-topstrip">
+        <span class="notif-topstrip-pill">
+            <span class="dot"></span>
+            {{ $stats['unread'] }} unread alert{{ $stats['unread'] === 1 ? '' : 's' }} needing attention
+        </span>
+        <span class="notif-topstrip-sep">&middot;</span>
+        <span>{{ $readCount }} resolved</span>
+    </div>
+
+    {{-- ===== Header ===== --}}
     <div class="notif-head">
         <div class="notif-head-title">
             <div class="notif-head-icon"><i class="fa-solid fa-bell"></i></div>
@@ -631,45 +756,57 @@
             </div>
         </div>
 
-        @if ($stats['unread'] > 0)
-            <form class="notif-markall-form" method="POST" action="{{ route('notifications.mark-all-read') }}">
-                @csrf
-                <button type="submit"><i class="fa-solid fa-check-double"></i> Mark all as read</button>
-            </form>
-        @endif
+        <div class="notif-head-right">
+            <div class="notif-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search notifications, tickets, &amp; invoices" disabled>
+            </div>
+            <button type="button" class="notif-iconbtn" title="Export" aria-label="Export" disabled>
+                <i class="fa-solid fa-download"></i>
+            </button>
+            @if ($stats['unread'] > 0)
+                <form class="notif-markall-form" method="POST" action="{{ route('notifications.mark-all-read') }}">
+                    @csrf
+                    <button type="submit"><i class="fa-solid fa-check-double"></i> Mark all as read</button>
+                </form>
+            @endif
+        </div>
     </div>
 
+    {{-- ===== Toolbar ===== --}}
     <div class="notif-toolbar">
-        <label class="notif-select-all-pill">
-            <input type="checkbox" id="notifSelectAll">
-            Select all
-        </label>
+        <div class="notif-toolbar-left">
+            <div class="notif-segment">
+                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'all'])) }}"
+                   class="{{ $status === 'all' ? 'active' : '' }}">All <span class="count">({{ $stats['total'] }})</span></a>
+                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'unread'])) }}"
+                   class="{{ $status === 'unread' ? 'active' : '' }}">Unread <span class="count">{{ $stats['unread'] }}</span></a>
+                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'read'])) }}"
+                   class="{{ $status === 'read' ? 'active' : '' }}">Read</a>
+            </div>
 
-        <div class="notif-toolbar-divider"></div>
-
-        <div class="notif-filter-group">
-            <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'all'])) }}"
-               class="notif-filter-pill {{ $status === 'all' ? 'active' : '' }}">All</a>
-            <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'unread'])) }}"
-               class="notif-filter-pill {{ $status === 'unread' ? 'active' : '' }}">Unread</a>
-            <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'read'])) }}"
-               class="notif-filter-pill {{ $status === 'read' ? 'active' : '' }}">Read</a>
+            <div class="notif-tabs">
+                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'all'])) }}"
+                   class="{{ $type === 'all' ? 'active' : '' }}">All categories</a>
+                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'booking'])) }}"
+                   class="{{ $type === 'booking' ? 'active' : '' }}">Bookings</a>
+                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'inventory'])) }}"
+                   class="{{ $type === 'inventory' ? 'active' : '' }}">Inventory</a>
+                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'pos'])) }}"
+                   class="{{ $type === 'pos' ? 'active' : '' }}">POS</a>
+            </div>
         </div>
 
-        <div class="notif-toolbar-divider"></div>
-
-        <div class="notif-filter-group">
-            <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'all'])) }}"
-               class="notif-filter-pill {{ $type === 'all' ? 'active' : '' }}">All types</a>
-            <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'booking'])) }}"
-               class="notif-filter-pill {{ $type === 'booking' ? 'active' : '' }}"><i class="fa-solid fa-ticket"></i> Booking</a>
-            <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'inventory'])) }}"
-               class="notif-filter-pill {{ $type === 'inventory' ? 'active' : '' }}"><i class="fa-solid fa-boxes-stacked"></i> Inventory</a>
-            <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'pos'])) }}"
-               class="notif-filter-pill {{ $type === 'pos' ? 'active' : '' }}"><i class="fa-solid fa-receipt"></i> POS</a>
+        <div class="notif-toolbar-right">
+            <label class="notif-select-all-pill">
+                <input type="checkbox" id="notifSelectAll">
+                Select all
+            </label>
+            <button type="button" class="notif-markread-btn" id="notifToolbarReadBtn">Mark read</button>
         </div>
     </div>
 
+    {{-- ===== Bulk bar (delete + read, shown once rows are checked) ===== --}}
     <div class="notif-bulk-bar" id="notifBulkBar">
         <div class="notif-bulk-count">
             <span class="notif-bulk-count-badge" id="notifBulkCount">0</span>
@@ -700,133 +837,105 @@
         <div id="notifBulkDeleteIds"></div>
     </form>
 
-    <div class="notif-layout">
-
-        {{-- ===== List panel ===== --}}
-        <div class="notif-list-panel">
-            @if ($notifications->count() === 0)
-                <div class="notif-empty">
-                    <i class="fa-solid fa-bell-slash"></i>
-                    <span class="notif-empty-text">
-                        @if ($hasFilter)
-                            No notifications match these filters.
-                        @else
-                            No notifications yet.
-                        @endif
-                    </span>
+    {{-- ===== List panel ===== --}}
+    <div class="notif-list-panel">
+        @if ($notifications->count() === 0)
+            <div class="notif-empty">
+                <i class="fa-solid fa-bell-slash"></i>
+                <span class="notif-empty-text">
                     @if ($hasFilter)
-                        <div class="notif-empty-sub">
-                            <a href="{{ route('notifications.index') }}">Clear filters</a>
-                        </div>
+                        No notifications match these filters.
                     @else
-                        <div class="notif-empty-sub">New bookings, inventory, and POS activity will show up here.</div>
+                        No notifications yet.
                     @endif
-                </div>
-            @else
-                @foreach ($notifications as $n)
-                    <div class="notif-row {{ $n->is_read ? '' : 'unread' }}"
-                         role="button" tabindex="0"
-                         data-id="{{ $n->id }}"
-                         data-title="{{ $n->title }}"
-                         data-message="{{ $n->message }}"
-                         data-time="{{ $n->time }}"
-                         data-url="{{ $n->url ?: '#' }}"
-                         data-type="{{ $n->type }}"
-                         data-read-url="{{ route('notifications.read', $n->id) }}">
-                        <div class="notif-row-checkbox-wrap">
-                            <input type="checkbox" class="notif-row-checkbox" value="{{ $n->id }}" onclick="event.stopPropagation()">
-                        </div>
-                        <div class="notif-row-icon type-{{ $n->type }}">
-                            <i class="fa-solid {{ in_array($n->type, ['low_stock', 'inventory']) ? 'fa-boxes-stacked' : ($n->type === 'pos' ? 'fa-receipt' : 'fa-ticket') }}"></i>
-                        </div>
-                        <div class="notif-row-body">
-                            <div class="notif-row-top">
+                </span>
+                @if ($hasFilter)
+                    <div class="notif-empty-sub">
+                        <a href="{{ route('notifications.index') }}">Clear filters</a>
+                    </div>
+                @else
+                    <div class="notif-empty-sub">New bookings, inventory, and POS activity will show up here.</div>
+                @endif
+            </div>
+        @else
+            @foreach ($notifications as $n)
+                @php
+                    $badgeClass = in_array($n->type, ['booking', 'low_stock', 'inventory', 'pos'])
+                        ? 'type-' . $n->type
+                        : 'type-default';
+                @endphp
+                <div class="notif-row {{ $n->is_read ? '' : 'unread' }}"
+                     role="button" tabindex="0"
+                     data-id="{{ $n->id }}"
+                     data-title="{{ $n->title }}"
+                     data-message="{{ $n->message }}"
+                     data-time="{{ $n->time }}"
+                     data-url="{{ $n->url ?: '#' }}"
+                     data-type="{{ $n->type }}"
+                     data-read-url="{{ route('notifications.read', $n->id) }}">
+                    <div class="notif-row-checkbox-wrap">
+                        <input type="checkbox" class="notif-row-checkbox" value="{{ $n->id }}" onclick="event.stopPropagation()">
+                    </div>
+                    <div class="notif-row-dot-wrap">
+                        @unless ($n->is_read)
+                            <span class="notif-row-dot"></span>
+                        @endunless
+                    </div>
+                    <div class="notif-row-body">
+                        <div class="notif-row-top">
+                            <div class="notif-row-title-group">
                                 <span class="notif-row-title">{{ $n->title }}</span>
-                                <span class="notif-row-time">{{ $n->time }}</span>
+                                <span class="notif-badge {{ $badgeClass }}">{{ ucfirst(str_replace('_', ' ', $n->type)) }}</span>
                             </div>
-                            <div class="notif-row-msg">{{ $n->message }}</div>
+                            <span class="notif-row-time">{{ $n->time }}</span>
                         </div>
-                        <div class="notif-row-actions">
-                            @if ($n->url)
-                                <a href="{{ $n->url }}" title="Open" aria-label="Open">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <div class="notif-row-msg">{{ $n->message }}</div>
+                        @if ($n->url)
+                            <div class="notif-row-meta">
+                                <a href="{{ $n->url }}" onclick="event.stopPropagation()">
+                                    View details <i class="fa-solid fa-chevron-right"></i>
                                 </a>
-                            @endif
-                            <form method="POST" action="{{ route('notifications.destroy', $n->id) }}"
-                                  onsubmit="return confirm('Delete this notification? This cannot be undone.')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" title="Delete" aria-label="Delete" onclick="event.stopPropagation()">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </form>
-                        </div>
+                            </div>
+                        @endif
                     </div>
-                @endforeach
-            @endif
-        </div>
-
-        {{-- ===== Overview rail ===== --}}
-        <div class="notif-rail">
-            <div class="notif-rail-card">
-                <div class="notif-rail-title">Overview</div>
-
-                <div class="notif-rail-metric">
-                    <div class="notif-rail-metric-row">
-                        <span class="notif-rail-metric-label"><i class="fa-solid fa-circle-dot" style="color:var(--pink)"></i> Unread</span>
-                        <span class="notif-rail-metric-num">{{ $stats['unread'] }}</span>
-                    </div>
-                    <div class="notif-rail-bar-track"><div class="notif-rail-bar-fill fill-unread" style="width:{{ $unreadPct }}%"></div></div>
+                    <form method="POST" action="{{ route('notifications.destroy', $n->id) }}"
+                          onsubmit="return confirm('Delete this notification? This cannot be undone.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="notif-row-delete" title="Delete" aria-label="Delete" onclick="event.stopPropagation()">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </form>
                 </div>
-
-                <div class="notif-rail-metric">
-                    <div class="notif-rail-metric-row">
-                        <span class="notif-rail-metric-label"><i class="fa-solid fa-ticket" style="color:var(--pink-deep)"></i> Booking</span>
-                        <span class="notif-rail-metric-num">{{ $stats['booking'] }}</span>
-                    </div>
-                    <div class="notif-rail-bar-track"><div class="notif-rail-bar-fill fill-booking" style="width:{{ $bookingPct }}%"></div></div>
-                </div>
-
-                <div class="notif-rail-metric">
-                    <div class="notif-rail-metric-row">
-                        <span class="notif-rail-metric-label"><i class="fa-solid fa-boxes-stacked" style="color:var(--amber)"></i> Inventory</span>
-                        <span class="notif-rail-metric-num">{{ $stats['inventory'] }}</span>
-                    </div>
-                    <div class="notif-rail-bar-track"><div class="notif-rail-bar-fill fill-inventory" style="width:{{ $inventoryPct }}%"></div></div>
-                </div>
-
-                <div class="notif-rail-metric">
-                    <div class="notif-rail-metric-row">
-                        <span class="notif-rail-metric-label"><i class="fa-solid fa-receipt" style="color:#2563EB"></i> POS</span>
-                        <span class="notif-rail-metric-num">{{ $stats['pos'] }}</span>
-                    </div>
-                    <div class="notif-rail-bar-track"><div class="notif-rail-bar-fill fill-pos" style="width:{{ $posPct }}%"></div></div>
-                </div>
-            </div>
-
-            <div class="notif-rail-card">
-                <div class="notif-rail-title">Quick Links</div>
-                <div class="notif-rail-links">
-                    <a href="{{ route('reservations.index') }}">
-                        <i class="fa-solid fa-ticket"></i> Reservations <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                    <a href="/inventory">
-                        <i class="fa-solid fa-boxes-stacked"></i> Inventory <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                    <a href="/pos">
-                        <i class="fa-solid fa-receipt"></i> POS <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
+            @endforeach
+        @endif
     </div>
 
+    {{-- ===== Footer: pagination ===== --}}
     @if ($notifications->count() > 0)
-        <div class="notif-pagination">
-            {{ $notifications->onEachSide(1)->links() }}
+        <div class="notif-footer">
+            <div class="notif-footer-count">
+                Showing <strong>{{ $notifications->firstItem() }}</strong> to <strong>{{ $notifications->lastItem() }}</strong>
+                of <strong>{{ $notifications->total() }}</strong> results
+            </div>
+            <div class="notif-pagination">
+                {{ $notifications->onEachSide(1)->links() }}
+            </div>
         </div>
     @endif
+
+    {{-- ===== Bottom status strip ===== --}}
+    <div class="notif-statusbar">
+        <div class="notif-statusbar-left">
+            <span>WonderParkCoreOS</span>
+            <span>&middot;</span>
+            <span>Lipa Branch Operations</span>
+            <span>&middot;</span>
+            <span class="notif-statusbar-dot"></span>
+            <span>Synced</span>
+        </div>
+        <div>&copy; {{ date('Y') }} WonderPark Corporation. All rights reserved.</div>
+    </div>
 
     <script>
     (function () {
@@ -836,6 +945,7 @@
     const bulkCountEl = document.getElementById('notifBulkCount');
     const clearBtn = document.getElementById('notifBulkClear');
 
+    const toolbarReadBtn = document.getElementById('notifToolbarReadBtn');
     const readBtn = document.getElementById('notifBulkReadBtn');
     const readForm = document.getElementById('notifBulkReadForm');
     const readIdsContainer = document.getElementById('notifBulkReadIds');
@@ -875,6 +985,14 @@
         });
     }
 
+    function submitRead() {
+        const ids = getCheckedIds();
+        if (ids.length === 0) return;
+
+        fillHiddenIds(readIdsContainer, ids);
+        readForm.submit();
+    }
+
     getCheckboxes().forEach(cb => cb.addEventListener('change', updateBulkBar));
 
     if (selectAllBtn) {
@@ -891,14 +1009,12 @@
         });
     }
 
-    if (readBtn) {
-        readBtn.addEventListener('click', function () {
-            const ids = getCheckedIds();
-            if (ids.length === 0) return;
+    if (toolbarReadBtn) {
+        toolbarReadBtn.addEventListener('click', submitRead);
+    }
 
-            fillHiddenIds(readIdsContainer, ids);
-            readForm.submit();
-        });
+    if (readBtn) {
+        readBtn.addEventListener('click', submitRead);
     }
 
     if (deleteBtn) {
