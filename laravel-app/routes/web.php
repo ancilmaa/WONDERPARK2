@@ -49,6 +49,13 @@ Route::post('/two-factor/resend', [AuthController::class, 'resendTwoFactor'])->n
 
 // Register
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+
+// Forgot / Reset Password (email code)
+Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('forgot-password.show');
+Route::post('/forgot-password', [AuthController::class, 'sendResetCode'])->name('forgot-password.send');
+Route::get('/reset-password', [AuthController::class, 'showResetForm'])->name('reset-password.show');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('reset-password.update');
+Route::post('/reset-password/resend', [AuthController::class, 'resendResetCode'])->name('reset-password.resend');
 Route::post('/register', [AuthController::class, 'register']);
 
 // User app (customer-facing) — Account, Waiver, Booking, My Bookings
@@ -59,6 +66,10 @@ Route::prefix('app')
         Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
         Route::post('/account', [UserDashboardController::class, 'update'])->name('account.update');
         Route::post('/account/two-factor', [UserDashboardController::class, 'toggleTwoFactor'])->name('account.two-factor.toggle');
+        Route::post('/account/password', [UserDashboardController::class, 'requestPasswordChange'])->name('account.password.request');
+        Route::post('/account/password/confirm', [UserDashboardController::class, 'confirmPasswordChange'])->name('account.password.confirm');
+        Route::post('/account/password/cancel', [UserDashboardController::class, 'cancelPasswordChange'])->name('account.password.cancel');
+        Route::post('/account/password/resend', [UserDashboardController::class, 'resendPasswordChangeCode'])->name('account.password.resend');
 
         Route::get('/waiver', [UserWaiverController::class, 'show'])->name('waiver');
         Route::post('/waiver', [UserWaiverController::class, 'store'])->name('waiver.store');

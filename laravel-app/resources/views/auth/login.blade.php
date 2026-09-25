@@ -51,6 +51,9 @@
                 @if (session('error'))
                     <div class="auth-error">{{ session('error') }}</div>
                 @endif
+                @if (session('status'))
+                    <div class="auth-error" style="background:#e6f7f1;color:#0c8b80;border-color:#0c8b8033;">{{ session('status') }}</div>
+                @endif
 
                 <form method="POST" action="{{ url('/login') }}">
                     @csrf
@@ -65,6 +68,7 @@
                         <label for="password">Password</label>
                         <input id="password" type="password" name="password" required
                             autocomplete="current-password">
+                        <a href="{{ url('/forgot-password') }}" style="display:inline-block;margin-top:6px;font-size:11.5px;color:var(--pink-deep,#B82850);font-weight:600;">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Log In</button>
