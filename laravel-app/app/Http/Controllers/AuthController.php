@@ -228,4 +228,121 @@ class AuthController extends Controller
 
 return redirect('/app/waiver');
 }
+
+    public function showForgotPasswordForm()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetCode(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = DB::table('users')->where('email', $request->email)->first();
+
+        // Hindi natin sasabihin kung existing ba yung email o hindi (para sa security) —
+        // palaging same generic message, pero padadalhan lang talaga kung meron.
+        if ($user) {
+            $code = (string) random_int(100000, 999999);
+
+            DB::table('users')->where('user_id', $user->user_id)->update([
+                'password_change_code'       => $code,
+                'password_change_expires_at' => now()->addMinutes(10),
+            ]);
+
+            try {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email.",
+                    function ($message) use ($user) {
+                        $message->to($user->email)->subject('Reset your WonderPark password');
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Password reset email failed: ' . $e->getMessage());
+            }
+
+            session(['reset_pending_user_id' => $user->user_id]);
+        }
+
+        return redirect('/reset-password')
+            ->with('status', 'If that email is registered, a reset code has been sent to it.');
+    }
+
+    public function showResetForm()
+    {
+        if (!session()->has('reset_pending_user_id')) {
+            return redirect('/forgot-password');
+        }
+        return view('auth.reset-password');
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $pendingId = session('reset_pending_user_id');
+        if (!$pendingId) {
+            return redirect('/forgot-password');
+        }
+
+        $request->validate([
+            'code' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = DB::table('users')->where('user_id', $pendingId)->first();
+
+        if (!$user) {
+            session()->forget('reset_pending_user_id');
+            return redirect('/forgot-password')->with('error', 'Something went wrong. Please try again.');
+        }
+
+        if (empty($user->password_change_code) || $user->password_change_code !== $request->code) {
+            return back()->with('error', 'Incorrect code. Please try again.');
+        }
+
+        if (!$user->password_change_expires_at || now()->greaterThan($user->password_change_expires_at)) {
+            return back()->with('error', 'This code has expired. Please request a new one.');
+        }
+
+        DB::table('users')->where('user_id', $user->user_id)->update([
+            'password'                   => password_hash($request->new_password, PASSWORD_DEFAULT),
+            'password_change_code'       => null,
+            'password_change_expires_at' => null,
+        ]);
+
+        session()->forget('reset_pending_user_id');
+
+        return redirect('/login')->with('status', 'Your password has been reset. You can now log in.');
+    }
+
+    public function resendResetCode()
+    {
+        $pendingId = session('reset_pending_user_id');
+        if (!$pendingId) {
+            return redirect('/forgot-password');
+        }
+
+        $user = DB::table('users')->where('user_id', $pendingId)->first();
+        if (!$user) {
+            return redirect('/forgot-password');
+        }
+
+        $code = (string) random_int(100000, 999999);
+        DB::table('users')->where('user_id', $user->user_id)->update([
+            'password_change_code'       => $code,
+            'password_change_expires_at' => now()->addMinutes(10),
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\Mail::raw(
+                "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes.",
+                function ($message) use ($user) {
+                    $message->to($user->email)->subject('Reset your WonderPark password');
+                }
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Password reset resend email failed: ' . $e->getMessage());
+        }
+
+        return back()->with('status', 'A new code has been sent to your email.');
+    }
 }
