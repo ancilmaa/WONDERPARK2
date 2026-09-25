@@ -539,8 +539,48 @@ class PosController extends Controller
             })->toArray();
     }
 
+    // ================= VOUCHER REDEMPTION SUMMARY =================
+    // Kinukuha dito kung ilang booking/voucher ang na-redeem sa mga
+    // transaction na kasama sa report, at kung anong item ang inavail.
+    // Base sa bookings.redeemed_transaction_id (hindi sa payment_method),
+    // para tama ang bilang kahit paano pa i-configure ang payment methods
+    // sa hinaharap.
+    private function getVoucherRedemptions(\Illuminate\Support\Collection $transactionIds)
+    {
+        $bookings = DB::table('bookings')
+            ->whereIn('redeemed_transaction_id', $transactionIds)
+            ->get();
+
+        $items = [];
+        $total = 0;
+
+        foreach ($bookings as $b) {
+            $info = app(\App\Http\Controllers\User\BookingController::class)
+                ->packageInfo($b->service, $b->package);
+
+            $name = $info['service_name'] . ' — ' . $info['package_name'] . ' (' . $b->tier . ' pax)';
+
+            if (!isset($items[$name])) {
+                $items[$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
+            }
+            $items[$name]['qty']   += 1;
+            $items[$name]['total'] += (float) $b->price;
+            $total += (float) $b->price;
+        }
+
+        return [
+            'count' => $bookings->count(),
+            'items' => array_values($items),
+            'total' => $total,
+        ];
+    }
+
     private function buildSalesReport(\Illuminate\Support\Collection $transactions, array $itemsByTxn)
     {
+        // === VOUCHER/BOOKING SUMMARY ===
+        $vouchers = $this->getVoucherRedemptions($transactions->pluck('transaction_id'));
+        // ================================
+
         $overallItems = [];
         $overallTotal = 0;
         $overallDiscount = 0;
@@ -635,6 +675,7 @@ class PosController extends Controller
                 'total_discount' => $overallDiscount,
                 'payment_breakdown' => $overallPayments,
             ],
+            'vouchers' => $vouchers,
             'cashiers' => array_map(function ($c) {
                 $c['items'] = array_values($c['items']);
                 return $c;
@@ -701,6 +742,7 @@ class PosController extends Controller
             "Transactions: " . $transactions->count(),
             "Total Sales: ₱" . number_format($report['overall']['total_sales'], 2),
             "Total Discount: ₱" . number_format($report['overall']['total_discount'], 2),
+            "Vouchers Redeemed: " . $report['vouchers']['count'] . " (₱" . number_format($report['vouchers']['total'], 2) . ")",
             "Voided Items: " . $voidedItems->count() . " (₱" . number_format($voidedItems->sum('amount'), 2) . ")",
         ];
         $this->notify(

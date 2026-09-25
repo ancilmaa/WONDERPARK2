@@ -5,18 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ZoneForecastController extends Controller
 {
-    /**
-     * Valid zones — must match categories.zone exactly.
-     */
     private const ZONES = ['Roller Fever', 'Field of Rides', 'Dino Adventure'];
 
-    /**
-     * Render the forecast page for a given zone.
-     * Called via routes with ->defaults('zone', '...')
-     */
     public function index($zone)
     {
         $zone = $this->resolveZone($zone);
@@ -32,7 +26,6 @@ class ZoneForecastController extends Controller
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
         [$paySql, $payBindings]   = $this->buildPaymentFilter($request);
 
-        // If no explicit date range given, default to "this month" (original behavior)
         $defaultMonthSql = $dateSql === ''
             ? " AND MONTH(st.created_at) = MONTH(CURDATE()) AND YEAR(st.created_at) = YEAR(CURDATE()) "
             : $dateSql;
@@ -118,10 +111,6 @@ class ZoneForecastController extends Controller
         ]);
     }
 
-    /**
-     * Revenue % breakdown per payment method (Cash, GCash, Card, etc.)
-     * Values are read straight from the DB — nothing hardcoded.
-     */
     public function paymentBreakdown(Request $request, $zone)
     {
         $zone = $this->resolveZone($zone);
@@ -147,15 +136,6 @@ class ZoneForecastController extends Controller
         ]);
     }
 
-    /**
-     * Sales broken down per category_type (e.g. Rides, Rentals, F&B) and
-     * per individual category — never lumped together. Each category also
-     * carries a `products` preview array so admin/user can see EXACTLY
-     * which items generated that category's revenue.
-     *
-     * Best/Worst sellers are now actual PRODUCTS (not categories), so
-     * "best seller" always names a specific item.
-     */
     public function categoryBreakdown(Request $request, $zone)
     {
         $zone = $this->resolveZone($zone);
@@ -194,8 +174,6 @@ class ZoneForecastController extends Controller
 
         $byCategory = $this->withPercentages($byCategory, 'total_revenue');
 
-        // Product-level rows — the "preview" of exactly which items make up
-        // each category's revenue.
         $byProduct = DB::select("
             SELECT c.category_type, c.category_name, p.product_id, p.product_name,
                    SUM(ti.quantity) AS total_qty,
@@ -211,14 +189,11 @@ class ZoneForecastController extends Controller
             ORDER BY c.category_name, total_revenue DESC
         ", array_merge([$zone], $dateBindings, $payBindings));
 
-        // Group products under their parent category name
         $productsByCategory = [];
         foreach ($byProduct as $r) {
             $productsByCategory[$r->category_name][] = $r;
         }
 
-        // Attach a 'products' preview array to each category row, each with
-        // its own % share of THAT category's revenue (not the grand total).
         foreach ($byCategory as &$cat) {
             $catTotal = (float) $cat['total_revenue'];
             $products = $productsByCategory[$cat['category_name']] ?? [];
@@ -237,7 +212,6 @@ class ZoneForecastController extends Controller
         }
         unset($cat);
 
-        // Best/Worst sellers = actual PRODUCTS (zone-wide), ranked by revenue
         $flatProducts = $this->withPercentages($byProduct, 'total_revenue');
         usort($flatProducts, fn($a, $b) => $b['total_revenue'] <=> $a['total_revenue']);
 
@@ -481,6 +455,34 @@ class ZoneForecastController extends Controller
         return response()->json(['monthly' => array_values($rows)]);
     }
 
+    /**
+     * Generates and downloads a PDF report for this zone, scoped to the
+     * currently selected date_from / date_to / payment_method filters.
+     */
+    public function downloadReport(Request $request, $zone)
+    {
+        $zone = $this->resolveZone($zone);
+        $dateFrom = $request->query('date_from');
+        $dateTo   = $request->query('date_to');
+        $payment  = $request->query('payment_method', 'all');
+
+        $pdf = Pdf::loadView('reports.sales_report', [
+            'title'             => $zone . ' — Forecast Report',
+            'zone'              => $zone,
+            'dateFrom'          => $dateFrom,
+            'dateTo'            => $dateTo,
+            'paymentMethod'     => $payment === 'all' ? null : $payment,
+            'summary'           => $this->summary($request, $zone)->getData(true),
+            'topProducts'       => $this->topProducts($request, $zone)->getData(true),
+            'paymentBreakdown'  => $this->paymentBreakdown($request, $zone)->getData(true),
+            'categoryBreakdown' => $this->categoryBreakdown($request, $zone)->getData(true),
+            'generatedAt'       => now()->format('F j, Y g:i A'),
+        ])->setPaper('a4', 'portrait');
+
+        $slug = str_replace(' ', '-', strtolower($zone));
+        return $pdf->download("zone-report-{$slug}-" . now()->format('Y-m-d_His') . '.pdf');
+    }
+
     /* ── Helpers ───────────────────────────────────────────── */
 
     private function resolveZone($zone): string
@@ -494,12 +496,6 @@ class ZoneForecastController extends Controller
         return $zone;
     }
 
-    /**
-     * Builds an optional "AND DATE(st.created_at) BETWEEN ? AND ?" fragment
-     * from ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD query params.
-     * Returns ['', []] when no filter is supplied — callers fall back to
-     * their own default (e.g. current month).
-     */
     private function buildDateFilter(Request $request): array
     {
         $dateFrom = $request->query('date_from');
@@ -520,10 +516,6 @@ class ZoneForecastController extends Controller
         return [$sql, $bindings];
     }
 
-    /**
-     * Builds an optional "AND st.payment_method = ?" fragment from
-     * ?payment_method=Cash (pass "all" or omit for no filter).
-     */
     private function buildPaymentFilter(Request $request): array
     {
         $method = $request->query('payment_method');
@@ -535,10 +527,6 @@ class ZoneForecastController extends Controller
         return ['', []];
     }
 
-    /**
-     * Adds a `percentage` field (of the total across all rows) to each row,
-     * based on the given numeric field name. Rounded to 1 decimal.
-     */
     private function withPercentages(array $rows, string $field): array
     {
         $grandTotal = array_sum(array_map(fn($r) => (float) $r->$field, $rows));
