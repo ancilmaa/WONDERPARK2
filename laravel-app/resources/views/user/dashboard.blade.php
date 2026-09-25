@@ -165,8 +165,50 @@
                 <div class="ap-static-field">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     <span style="flex:1;letter-spacing:2px;color:var(--muted);">••••••••••••</span>
-                    <span class="rb-badge rb-badge-neutral">Coming soon</span>
+                    @if (!empty($user->pending_password_hash))
+                        <span class="rb-badge" style="background:var(--amber-pale);color:var(--amber-deep);">Code sent</span>
+                    @endif
                 </div>
+
+                @if (!empty($user->pending_password_hash))
+                    {{-- Step 2: enter the code emailed to confirm the change --}}
+                    <div style="margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);">
+                        <p style="margin:0 0 8px;font-size:11px;color:var(--muted);">
+                            We emailed a 6-digit code to confirm your new password. It expires 10 minutes after it was sent.
+                        </p>
+                        <form method="POST" action="{{ route('user.account.password.confirm') }}" style="display:flex;gap:8px;flex-wrap:wrap;">
+                            @csrf
+                            <input type="text" name="code" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="6-digit code" required
+                                style="flex:1;min-width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;letter-spacing:3px;font-family:'Space Mono',monospace;">
+                            <button type="submit" class="rb-badge rb-badge-teal" style="border:none;cursor:pointer;">Confirm change</button>
+                        </form>
+                        <div style="display:flex;gap:14px;margin-top:8px;">
+                            <form method="POST" action="{{ route('user.account.password.resend') }}">
+                                @csrf
+                                <button type="submit" style="background:none;border:none;padding:0;font-size:10.5px;color:var(--pink-deep);font-weight:700;cursor:pointer;">Resend code</button>
+                            </form>
+                            <form method="POST" action="{{ route('user.account.password.cancel') }}">
+                                @csrf
+                                <button type="submit" style="background:none;border:none;padding:0;font-size:10.5px;color:var(--muted);font-weight:700;cursor:pointer;">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+                @else
+                    {{-- Step 1: request the change --}}
+                    <details style="margin-top:10px;">
+                        <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--pink-deep);">Change password</summary>
+                        <form method="POST" action="{{ route('user.account.password.request') }}" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+                            @csrf
+                            <input type="password" name="current_password" placeholder="Current password" required
+                                style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;">
+                            <input type="password" name="new_password" placeholder="New password (min. 8 characters)" required minlength="8"
+                                style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;">
+                            <input type="password" name="new_password_confirmation" placeholder="Confirm new password" required minlength="8"
+                                style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;">
+                            <button type="submit" class="rb-badge rb-badge-neutral" style="border:none;cursor:pointer;align-self:flex-start;">Send verification code</button>
+                        </form>
+                    </details>
+                @endif
 
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;">
                     <div>
