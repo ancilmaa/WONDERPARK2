@@ -755,7 +755,7 @@
             border-radius: 18px;
             width: 100%;
             max-width: 480px;
-            max-height: calc(100vh - 40px);
+            max-height: calc(100vh - 24px);
             overflow-y: auto;
             box-shadow: var(--shadow-md);
             animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
@@ -765,34 +765,34 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 22px 24px 18px;
+            padding: 16px 20px 12px;
             border-bottom: 1px solid var(--line);
         }
 
         .modal-head .eyebrow {
-            font-size: .66rem;
+            font-size: .64rem;
             font-weight: 700;
             color: var(--pink-deep);
             text-transform: uppercase;
             letter-spacing: .09em;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .modal-head h3 {
             font-family: 'Source Serif 4', serif;
-            font-size: 1.1rem;
+            font-size: 1.02rem;
             font-weight: 700;
             color: var(--ink);
         }
 
         .modal-close {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 9px;
             border: none;
             background: var(--bg);
             color: var(--ink-soft);
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             flex-shrink: 0;
             display: flex;
@@ -806,19 +806,19 @@
         }
 
         .modal-body {
-            padding: 22px 24px;
+            padding: 16px 20px;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
+            gap: 10px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .form-group.full {
@@ -826,7 +826,7 @@
         }
 
         .form-group label {
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--ink-soft);
             text-transform: uppercase;
@@ -835,10 +835,10 @@
 
         .form-group input,
         .form-group select {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            font-size: 13.5px;
+            border-radius: 9px;
+            font-size: 13px;
             font-family: 'Inter', sans-serif;
             color: var(--ink);
             background: var(--bg);
@@ -860,7 +860,7 @@
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            padding: 18px 24px 24px;
+            padding: 12px 20px 16px;
         }
 
         #qrCodeBox {
@@ -886,12 +886,12 @@
         }
 
         .chip-btn {
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 999px;
             border: 1px solid var(--line-strong);
             background: var(--bg);
             color: var(--ink-soft);
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 600;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
@@ -910,9 +910,69 @@
         }
 
         .chip-empty {
-            font-size: 11.5px;
+            font-size: 11px;
             color: var(--muted);
-            padding: 6px 2px;
+            padding: 4px 2px;
+        }
+
+        /* Paged + searchable employee chip picker (Manual Entry modal).
+           Typing in the Employee Name field filters this list live, and
+           whatever matches is shown in fixed, compact pages instead of one
+           long scrolling column — same spirit as the table pagination used
+           elsewhere in this app. Kept deliberately compact (small chips,
+           small gaps) so the whole modal fits on screen without needing
+           its own scrollbar in most cases. */
+        .chip-page {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 60px;
+            align-content: flex-start;
+        }
+
+        .chip-pagination {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--line);
+        }
+
+        .chip-pagination.active {
+            display: flex;
+        }
+
+        .chip-pagination-info {
+            font-size: 10.5px;
+            color: var(--muted);
+            margin-right: 4px;
+        }
+
+        .chip-pagination button {
+            min-width: 24px;
+            padding: 4px 7px;
+            border: 1px solid var(--line-strong);
+            background: #fff;
+            color: var(--ink-soft);
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chip-pagination button.active {
+            background: var(--pink-deep);
+            border-color: var(--pink-deep);
+            color: #fff;
+        }
+
+        .chip-pagination button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
         }
 
         @media(max-width:900px) {
@@ -1286,8 +1346,6 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="form-hint" style="margin-bottom:16px;">Gamitin ito kung walang kuryente ang bio device —
-                        i-encode base sa physical logbook.</p>
                     <div class="form-grid">
                         <div class="form-group full">
                             <label for="me_category">Category</label>
@@ -1300,8 +1358,10 @@
                         <div class="form-group full">
                             <label for="me_employee_name">Employee name</label>
                             <input type="text" name="employee_name" id="me_employee_name" required
-                                placeholder="Piliin sa listahan sa ibaba o mag-type">
-                            <div id="meEmployeeChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;"></div>
+                                autocomplete="off"
+                                placeholder="Enter employee name">
+                            <div id="meEmployeeChips" class="chip-page" style="margin-top:2px;"></div>
+                            <div id="meEmployeeChipsPagination" class="chip-pagination no-print"></div>
                         </div>
                         <div class="form-group">
                             <label for="me_attendance_date">Date</label>
@@ -1351,9 +1411,15 @@
             <div class="modal-body" style="text-align:center;">
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
-                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' }}">
+                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' . ($currentToken ? '?token=' . $currentToken : '') }}">
                     <button type="button" class="btn-ghost" id="copyQrLinkBtn"><i class="fa-solid fa-copy"></i></button>
                 </div>
+                <button type="button" class="btn-ghost" id="regenQrBtn" style="width:100%;margin-top:10px;">
+                    <i class="fa-solid fa-rotate"></i> Generate New QR
+                </button>
+                <p class="form-hint" style="margin-top:8px;">
+                    Gumagawa ito ng bagong QR code at awtomatikong mawawalan ng bisa ang lumang QR (kahit naka-print na ito).
+                </p>
             </div>
         </div>
     </div>
@@ -1457,21 +1523,51 @@
         const meCategorySelect = document.getElementById('me_category');
         const meEmployeeInput = document.getElementById('me_employee_name');
         const meEmployeeChips = document.getElementById('meEmployeeChips');
+        const meEmployeeChipsPagination = document.getElementById('meEmployeeChipsPagination');
 
         const employeesByCategory = JSON.parse(
             document.getElementById('employeesByCategoryData')?.textContent || '{}'
         );
 
+        // ── Paged + live-searchable employee chip picker ──
+        // Typing in the Employee Name field filters the chip list by
+        // substring match (case-insensitive) — e.g. typing "s" shows only
+        // names that contain an "s". Whatever matches is then paginated in
+        // fixed-size pages, the same way the main Attendance table is
+        // paginated elsewhere in this app.
+        const CHIPS_PAGE_SIZE = 15;
+        let meChipPage = 1;
+
         function renderEmployeeChips() {
             const cat = (meCategorySelect.value || '').toUpperCase();
-            const names = employeesByCategory[cat] || [];
+            const allNames = employeesByCategory[cat] || [];
 
-            if (!names.length) {
-                meEmployeeChips.innerHTML = '<span class="chip-empty">Walang naka-record pang empleyado sa category na ito — mag-type na lang.</span>';
+            if (!allNames.length) {
+                meEmployeeChips.innerHTML = '<span class="chip-empty">No employees recorded yet for this category — just type the name manually.</span>';
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
                 return;
             }
 
-            meEmployeeChips.innerHTML = names.map(n =>
+            const query = (meEmployeeInput.value || '').trim().toLowerCase();
+            const names = query
+                ? allNames.filter(n => n.toLowerCase().includes(query))
+                : allNames;
+
+            if (!names.length) {
+                meEmployeeChips.innerHTML = '<span class="chip-empty">No matching name in the list — you can still type it in manually.</span>';
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.max(1, Math.ceil(names.length / CHIPS_PAGE_SIZE));
+            meChipPage = Math.min(Math.max(meChipPage, 1), totalPages);
+
+            const start = (meChipPage - 1) * CHIPS_PAGE_SIZE;
+            const pageNames = names.slice(start, start + CHIPS_PAGE_SIZE);
+
+            meEmployeeChips.innerHTML = pageNames.map(n =>
                 `<button type="button" class="chip-btn" data-name="${n}">${n}</button>`
             ).join('');
 
@@ -1485,10 +1581,46 @@
                     chipBtn.classList.add('active');
                 });
             });
+
+            renderChipPagination(totalPages);
+        }
+
+        function renderChipPagination(totalPages) {
+            if (totalPages <= 1) {
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
+                return;
+            }
+
+            meEmployeeChipsPagination.classList.add('active');
+
+            let html = `<span class="chip-pagination-info">Page ${meChipPage} of ${totalPages}</span>`;
+            html += `<button type="button" ${meChipPage === 1 ? 'disabled' : ''} data-chip-page="${meChipPage - 1}">&laquo;</button>`;
+            for (let p = 1; p <= totalPages; p++) {
+                html += `<button type="button" class="${p === meChipPage ? 'active' : ''}" data-chip-page="${p}">${p}</button>`;
+            }
+            html += `<button type="button" ${meChipPage === totalPages ? 'disabled' : ''} data-chip-page="${meChipPage + 1}">&raquo;</button>`;
+
+            meEmployeeChipsPagination.innerHTML = html;
+
+            meEmployeeChipsPagination.querySelectorAll('button[data-chip-page]').forEach(b => {
+                b.addEventListener('click', () => {
+                    meChipPage = parseInt(b.dataset.chipPage, 10);
+                    renderEmployeeChips();
+                });
+            });
         }
 
         meCategorySelect?.addEventListener('change', () => {
             meEmployeeInput.value = '';
+            meChipPage = 1;
+            renderEmployeeChips();
+        });
+
+        // Live filter: every keystroke re-renders the chip list, reset to
+        // page 1 so the person always sees the most relevant matches first.
+        meEmployeeInput?.addEventListener('input', () => {
+            meChipPage = 1;
             renderEmployeeChips();
         });
 
@@ -1496,6 +1628,7 @@
             if (meDateInput && !meDateInput.value) {
                 meDateInput.value = new Date().toISOString().slice(0, 10);
             }
+            meChipPage = 1;
             renderEmployeeChips();
             manualEntryOverlay.classList.add('active');
             manualEntryOverlay.setAttribute('aria-hidden', 'false');
@@ -1522,22 +1655,24 @@
         const qrCodeBox = document.getElementById('qrCodeBox');
         const qrLinkInput = document.getElementById('qrLinkInput');
         const copyQrLinkBtn = document.getElementById('copyQrLinkBtn');
-        let qrRendered = false;
+        const regenQrBtn = document.getElementById('regenQrBtn');
+        let qrInstance = null;
+        let qrArmed = false;
+        let qrArmTimeout = null;
 
         function openQrModal() {
             qrOverlay.classList.add('active');
             qrOverlay.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
 
-            if (!qrRendered && window.QRCode) {
-                new QRCode(qrCodeBox, {
+            if (!qrInstance && window.QRCode) {
+                qrInstance = new QRCode(qrCodeBox, {
                     text: qrLinkInput.value,
                     width: 220,
                     height: 220,
                     colorDark: '#221A2B',
                     colorLight: '#ffffff',
                 });
-                qrRendered = true;
             }
         }
 
@@ -1559,6 +1694,77 @@
             showToast('Link copied!', 'success', { duration: 1800 });
         });
 
+        // "Generate New QR" — two-tap confirm before it fires, since this
+        // instantly invalidates any old printed QR the moment it succeeds.
+        regenQrBtn?.addEventListener('click', () => {
+            if (!qrArmed) {
+                qrArmed = true;
+                regenQrBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Click again to confirm';
+                clearTimeout(qrArmTimeout);
+                qrArmTimeout = setTimeout(() => {
+                    qrArmed = false;
+                    regenQrBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Generate New QR';
+                }, 4000);
+                return;
+            }
+
+            clearTimeout(qrArmTimeout);
+            qrArmed = false;
+            regenQrBtn.disabled = true;
+            regenQrBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating&hellip;';
+
+            fetch("{{ route('attendance.qr.regenerate') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        || document.querySelector('input[name="_token"]')?.value,
+                },
+            })
+            .then(async (res) => {
+                // Try to read the response as JSON first. If the server
+                // crashed before returning JSON (a 500 error page, a 419
+                // CSRF page, etc.), fall back to reading it as raw text so
+                // the toast can still show something useful instead of a
+                // generic message — this is what actually tells us WHY it
+                // failed instead of just THAT it failed.
+                const raw = await res.text();
+                let data = {};
+                try { data = JSON.parse(raw); } catch (e) { /* not JSON */ }
+
+                if (!res.ok) {
+                    const detail = data.message
+                        || (raw ? raw.replace(/<[^>]*>/g, ' ').trim().slice(0, 160) : '');
+                    throw new Error(`(HTTP ${res.status}) ${detail || 'Failed to generate a new QR code.'}`);
+                }
+
+                qrLinkInput.value = data.url;
+
+                if (qrInstance && qrInstance.makeCode) {
+                    qrInstance.makeCode(data.url);
+                } else if (window.QRCode) {
+                    qrCodeBox.innerHTML = '';
+                    qrInstance = new QRCode(qrCodeBox, {
+                        text: data.url,
+                        width: 220,
+                        height: 220,
+                        colorDark: '#221A2B',
+                        colorLight: '#ffffff',
+                    });
+                }
+
+                showToast('New QR code generated. Any previously printed QR is now expired.', 'success', { duration: 3200 });
+            })
+            .catch((err) => {
+                showToast(err.message || 'Something went wrong. Please try again.', 'error', { duration: 6000 });
+            })
+            .finally(() => {
+                regenQrBtn.disabled = false;
+                regenQrBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Generate New QR';
+            });
+        });
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (manualEntryOverlay.classList.contains('active')) closeManualEntry();
@@ -1566,7 +1772,7 @@
             }
         });
 
-        // ===== SEARCH, FILTER & PAGINATION =====
+        // ===== SEARCH, FILTER & PAGINATION (main Attendance table) =====
         (function() {
             const searchInput = document.getElementById('employeeSearch');
             const categoryFilter = document.getElementById('categoryFilter');

@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use App\Models\Payroll;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\SalaryRate;
 use App\Models\PayrollSetting;
 use Carbon\Carbon;
@@ -59,25 +63,32 @@ class AttendanceController extends Controller
             return $obj;
         })->values();
 
-        // Every employee name seen so far, grouped by category — powers the
-        // clickable name chips in the Manual Entry modal so HR can tap a name
-        // instead of typing it. Keyed by uppercase category to match the
-        // <option value="Manager"> etc. selects in the view (case-insensitive
-        // lookup happens on the JS side).
+        // Every ACTIVE employee on file, grouped by category — powers the
+        // clickable name chips in the Manual Entry modal so HR can tap a
+        // name instead of typing it. Keyed by uppercase category to match
+        // the <option value="Manager"> etc. selects in the view
+        // (case-insensitive lookup happens on the JS side).
         //
-        // Uses each employee's MOST RECENT attendance record to decide their
-        // category — not every distinct category they've ever been recorded
-        // under. Without this, an employee who was once mis-encoded under
-        // the wrong category (e.g. a typo during an early manual entry)
-        // would keep showing up under that stale category forever, even
-        // after being correctly recorded elsewhere.
-        $employeesByCategory = Attendance::orderByDesc('attendance_date')
+        // Source is the Employees table (Phase 3) rather than derived from
+        // past Attendance records, so a deactivated employee disappears
+        // from these chips immediately.
+        $employeesByCategory = Employee::active()
+            ->orderBy('employee_name')
             ->get(['employee_name', 'category'])
-            ->unique('employee_name') // first = latest, since sorted desc above
             ->groupBy(fn($e) => strtoupper(trim($e->category ?? '')))
             ->map(fn($group) => $group->pluck('employee_name')->unique()->sort()->values());
 
-        return view('attendance.attendance', compact('records', 'cutoffType', 'periodStart', 'periodEnd', 'employeesByCategory'));
+        // Current QR token (if one has ever been generated) — needed here
+        // so the QR modal opens with the CORRECT, currently-valid link from
+        // the start. Without this, a fresh page load always shows the bare
+        // /attendance/checkin URL with no token, which — once a token has
+        // been generated at all — is itself treated as an expired/invalid
+        // link by showCheckin(). The JS-side update after clicking
+        // "Generate New QR" only lives in memory, so this is what keeps
+        // the modal correct across a page reload too.
+        $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
+
+        return view('attendance.attendance', compact('records', 'cutoffType', 'periodStart', 'periodEnd', 'employeesByCategory', 'currentToken'));
     }
 
     // ─── Which half-month period to show, based on the latest import ───
@@ -103,12 +114,11 @@ class AttendanceController extends Controller
         return $this->cutoffRangeForDate(Carbon::parse($latestDate));
     }
 
-    // ─── Same as latestCutoffRange(), pero puwedeng pilitin ang half ───
-    // Kinukuha ang BUWAN mula sa pinakabagong attendance na nasa file
-    // (para tugma sa Attendance page), at ang $cutoffType ('1st'/'2nd')
-    // lang ang nag-o-override kung aling kalahati. Ginagamit ng Salary
-    // page at ng Generate Salary para laging iisang period ang tinitingnan
-    // ng Attendance, Salary, at Payroll.
+    // ─── Same as latestCutoffRange(), but can force a half ───
+    // Takes the MONTH from the most recent attendance on file (matching
+    // the Attendance page), and only the $cutoffType ('1st'/'2nd')
+    // overrides which half. Used by the Salary page and Generate Salary so
+    // Attendance, Salary, and Payroll always look at the same period.
     private function latestCutoffRangeFor($cutoffType = null)
     {
         $latestDate = Attendance::max('attendance_date');
@@ -163,9 +173,9 @@ class AttendanceController extends Controller
         return $this->cutoffRangeForDate($today);
     }
 
-    // ─── Kumuha ng late minutes / OT hours mula sa remarks ("-15", "+1.5") ──
-    // Ito ang parehong format na ginagamit sa buildWideAttendanceRows() para
-    // sa import: "+N" = OT hours, "-N" (numeric) = late/undertime minutes.
+    // ─── Extract late minutes / OT hours from remarks ("-15", "+1.5") ──
+    // Same format used in buildWideAttendanceRows() for import: "+N" = OT
+    // hours, "-N" (numeric) = late/undertime minutes.
     private function parseRemarks(?string $remarks): array
     {
         $remarks = trim((string) $remarks);
@@ -175,12 +185,12 @@ class AttendanceController extends Controller
         }
 
         if (str_starts_with($remarks, '+')) {
-            // "+1.5" = overtime hours mula sa bio scanner
+            // "+1.5" = overtime hours from the bio scanner
             return ['late_minutes' => 0, 'ot_hours' => (float) substr($remarks, 1)];
         }
 
         if (str_starts_with($remarks, '-') && is_numeric(substr($remarks, 1))) {
-            // "-15" = late/undertime nang ganito karaming minuto
+            // "-15" = late/undertime by this many minutes
             return ['late_minutes' => (int) abs((float) $remarks), 'ot_hours' => 0.0];
         }
 
@@ -224,10 +234,10 @@ class AttendanceController extends Controller
                     $obj->{"day_{$dayNum}"} = $rec->remarks
                         ?: (strtolower($rec->status) === 'present' ? 'P' : 'A');
 
-                    // Days Worked = bilang ng araw na status = present.
-                    // Kasama na rito ang "-15", "-40", "+1.5" at iba pa (late/
-                    // undertime pa rin ay pumasok), at ito rin mismo ang
-                    // ginagamit ng storePayroll() — kaya laging tugma.
+                    // Days Worked = count of days where status = present.
+                    // Includes "-15", "-40", "+1.5" etc. (late/undertime still
+                    // counts as having worked), and this is the same value
+                    // used by storePayroll() — so the two always match.
                     if (strtolower($rec->status) === 'present') {
                         $obj->days_worked++;
                     }
@@ -237,11 +247,11 @@ class AttendanceController extends Controller
             return $obj;
         })->values();
 
-        // Payroll na na-generate PARA SA PERIOD NA ITO, at PAGKATAPOS pa ng
-        // huling import ng attendance para sa period na ito. Kapag nag-import
-        // ulit ng bagong file, ang mga naunang payroll ay itinuturing nang
-        // luma (hindi binubura — nananatili sila sa Payroll History), kaya
-        // walang computation na lalabas hanggang mag-Generate Salary ulit.
+        // Payroll generated FOR THIS PERIOD, and generated AFTER the last
+        // import of attendance for this period. If a new file is imported,
+        // any earlier payroll is treated as stale (not deleted — it stays
+        // in Payroll History), so nothing shows here until Generate Salary
+        // is run again.
         $importedAt = DB::table('attendance_imports')
             ->whereDate('period_start', $periodStart->format('Y-m-d'))
             ->whereDate('period_end', $periodEnd->format('Y-m-d'))
@@ -319,8 +329,9 @@ class AttendanceController extends Controller
         $applyGovt = $request->input('apply_govt_deductions') === '1';
         $holidays = $request->input('holidays', []); // [day_number => 'regular'|'special']
 
-        // Buwan ng pinakabagong attendance (tugma sa Attendance at Salary
-        // page), at ang napiling cutoff sa modal ang nagdedesisyon ng half.
+        // Month comes from the most recent attendance (matches Attendance
+        // and Salary page), and the selected cutoff in the modal decides
+        // the half.
         [$periodStart, $periodEnd] = $this->latestCutoffRangeFor($cutoffType);
 
         $rates = SalaryRate::all()->keyBy('position');
@@ -364,16 +375,17 @@ class AttendanceController extends Controller
 
                 $totalDays++;
 
-                // "Day 1–15" sa holiday modal ay relative sa simula ng cutoff
-                // (kaya Day 1 = petsa 16 sa 2nd cutoff), hindi ang araw ng buwan.
+                // "Day 1–15" in the holiday modal is relative to the start
+                // of the cutoff (so Day 1 = the 16th on the 2nd cutoff),
+                // not the day of the month.
                 $dayNum = Carbon::parse($rec->attendance_date)->day - $periodStart->day + 1;
                 $holidayType = $holidays[$dayNum] ?? null;
                 $isHoliday = $holidayType !== null;
                 $multiplier = $holidayType === 'regular' ? 2.0 : ($holidayType === 'special' ? 1.3 : 1.0);
 
-                // Straight pay muna para sa araw na ito (hiwalay sa holiday
-                // premium para makita sa payslip ang "Daily Rate" at
-                // "Holiday" nang hiwalay, hindi lump-sum).
+                // Straight pay first for this day (kept separate from the
+                // holiday premium so the payslip can show "Daily Rate" and
+                // "Holiday" separately, not lumped together).
                 $basicPay += $dailyRate;
 
                 if ($isHoliday) {
@@ -397,7 +409,7 @@ class AttendanceController extends Controller
 
             $grossPay = $basicPay + $holidayPay + $overtimePay + $holidayOtPay;
 
-            // NOTE: placeholder computation only — palitan mo ito ng tamang
+            // NOTE: placeholder computation only — replace with the correct
             // SSS / PhilHealth / Pag-IBIG / withholding tax brackets.
             $sss = 0; $philhealth = 0; $pagibig = 0; $withholding = 0;
             if ($applyGovt) {
@@ -511,7 +523,13 @@ class AttendanceController extends Controller
         }
 
         $validated = $request->validate([
-            'employee_name' => 'required|string',
+            // Must be an existing AND active record in the Employees
+            // table — no more typing a random/typo'd name, and it can't be
+            // encoded under a deactivated employee either.
+            'employee_name' => [
+                'required', 'string',
+                Rule::exists('employees', 'employee_name')->where('status', 'active'),
+            ],
             'category' => 'required|string',
             'attendance_date' => 'required|date',
             'time_in' => 'nullable',
@@ -520,6 +538,8 @@ class AttendanceController extends Controller
             // Optional exact value (e.g. "+1.5", "-15") — falls back to a
             // plain P/- based on status when left blank.
             'remarks' => 'nullable|string|max:10',
+        ], [
+            'employee_name.exists' => 'This name is not registered, or is no longer active, in the Employees list.',
         ]);
 
         $remarks = $validated['remarks'] ?: ($validated['status'] === 'present' ? 'P' : '-');
@@ -557,37 +577,111 @@ class AttendanceController extends Controller
     /**
      * Public check-in page — no login required, since the employee reaches
      * this by scanning a QR code with their own phone. Employees are
-     * listed from names already on file (this app has no separate
-     * Employee table yet) so they just pick their name from a dropdown.
+     * listed straight from the Employees table (Phase 3), so a
+     * deactivated employee simply disappears from the dropdown.
+     *
+     * Phase 5: the URL now carries a ?token= that must match the current
+     * value stored in app_settings (key = 'checkin_qr_token'). This is
+     * what lets HR "revoke" an old printed QR just by generating a new
+     * one — the old link keeps working as a URL, but the token inside it
+     * no longer matches, so this page shows an "expired" screen instead
+     * of the check-in form.
+     *
+     * If no token has ever been generated yet (fresh install, nobody has
+     * clicked "Generate New QR" yet), we don't enforce anything — this
+     * keeps the feature backward compatible instead of breaking check-in
+     * for everyone the moment this ships.
      *
      * GET /attendance/checkin
      */
-    public function showCheckin()
+    public function showCheckin(Request $request)
     {
-        // Same "most recent category wins" fix as employeesByCategory in
-        // index() — avoids listing an employee twice (or under a stale
-        // category) if they were ever mis-encoded under the wrong one.
-        $employees = Attendance::orderByDesc('attendance_date')
-            ->get(['employee_name', 'category'])
-            ->unique('employee_name')
-            ->sortBy('employee_name')
-            ->values();
+        $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
 
-        return view('attendance.checkin', compact('employees'));
+        if ($currentToken && $request->query('token') !== $currentToken) {
+            return view('attendance.expired');
+        }
+
+        $employees = Employee::active()
+            ->orderBy('employee_name')
+            ->get(['employee_name', 'category']);
+
+        return view('attendance.checkin', compact('employees', 'currentToken'));
     }
 
     /**
      * Handle the "Time In" / "Time Out" tap from the QR check-in page.
      *
+     * Phase 4: this is now PIN-protected. Since this page is public (no
+     * login, reachable by anyone with the QR link), the PIN is what
+     * actually proves the person tapping the button is the employee they
+     * selected from the dropdown — the name alone is not enough.
+     *
+     * Phase 5: also re-checks the token that was submitted along with the
+     * form (see the hidden `token` field in attendance.checkin). This
+     * closes the gap where someone already had the check-in page open in
+     * their browser BEFORE it got revoked — even if their page was
+     * loaded under the old QR, the submit itself is rejected once the
+     * token no longer matches.
+     *
      * POST /attendance/checkin
      */
     public function storeCheckin(Request $request)
     {
+        $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
+
+        if ($currentToken && $request->input('token') !== $currentToken) {
+            $message = 'This QR code has expired. Please scan the current QR code posted for check-in.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $message], 410);
+            }
+
+            return back()->with('error', $message);
+        }
+
         $validated = $request->validate([
-            'employee_name' => 'required|string',
+            'employee_name' => [
+                'required', 'string',
+                Rule::exists('employees', 'employee_name')->where('status', 'active'),
+            ],
             'category' => 'required|string',
             'type' => 'required|in:in,out',
+            // Exactly 4 digits — kept as a string so a leading zero (e.g.
+            // "0512") isn't silently dropped.
+            'pin' => ['required', 'digits:4'],
+        ], [
+            'employee_name.exists' => 'You could not be recognized as an active employee. Please contact HR.',
+            'pin.required' => 'Please enter your 4-digit PIN.',
+            'pin.digits' => 'PIN must be exactly 4 digits.',
         ]);
+
+        $employee = Employee::where('employee_name', $validated['employee_name'])
+            ->where('status', 'active')
+            ->first();
+
+        if (!$employee || !$employee->pin_code) {
+            // No PIN has been set for this employee yet — reject rather
+            // than silently letting anyone check in as them. HR needs to
+            // set a PIN first from the Employee Management page.
+            $message = 'No PIN has been set for your account yet. Please ask HR to set one.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
+
+        if (!Hash::check($validated['pin'], $employee->pin_code)) {
+            $message = 'Incorrect PIN.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
 
         $today = now()->format('Y-m-d');
         $now = now()->format('H:i:s');
@@ -628,6 +722,37 @@ class AttendanceController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Issue a brand new QR token, instantly invalidating every previously
+     * printed/shared QR link (they all point at the old token). Admin/HR
+     * only — gate this behind auth + role middleware on the route.
+     *
+     * Returns the full new check-in URL so the front-end can regenerate
+     * the QR image and update the "Copy Link" text without a page reload.
+     *
+     * POST /attendance/qr/regenerate
+     */
+    public function regenerateQr(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $token = Str::random(32);
+
+        DB::table('app_settings')->updateOrInsert(
+            ['key' => 'checkin_qr_token'],
+            ['value' => $token, 'updated_at' => now()]
+        );
+
+        $url = route('attendance.checkin', ['token' => $token]);
+
+        return response()->json([
+            'token' => $token,
+            'url' => $url,
+        ]);
     }
 
     // ─── BIO FILE IMPORT (CSV or Excel) ─────────────
@@ -727,8 +852,8 @@ class AttendanceController extends Controller
                 $imported += count($chunk);
             }
 
-            // Itala kung kailan huling na-import ang period na ito. Ginagamit ng
-            // Salary page para malaman kung luma na ang na-generate na payroll.
+            // Record when this period was last imported. Used by the
+            // Salary page to know if a generated payroll is stale.
             DB::table('attendance_imports')->updateOrInsert(
                 [
                     'period_start' => $periodStart->format('Y-m-d'),

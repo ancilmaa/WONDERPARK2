@@ -29,6 +29,22 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\User\BookingController;
+use App\Http\Controllers\EmployeeController;
+
+
+Route::post('/attendance/qr/regenerate', [AttendanceController::class, 'regenerateQr'])
+    ->name('attendance.qr.regenerate');
+
+Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+Route::delete('/employees/clear-all', [EmployeeController::class, 'clearAll'])->name('employees.clear-all');
+
+Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
+Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+Route::post('/employees/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('employees.deactivate');
+Route::post('/employees/{employee}/activate', [EmployeeController::class, 'activate'])->name('employees.activate');
+
+
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
 Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])->name('attendance.checkin.store');
 Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance'])->name('attendance.store');
