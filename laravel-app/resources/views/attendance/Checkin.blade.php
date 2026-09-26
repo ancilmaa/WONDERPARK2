@@ -56,7 +56,9 @@
         color: var(--ink);
         margin-bottom: 6px;
     }
-    select {
+    select,
+    input[type="password"],
+    input[type="tel"] {
         width: 100%;
         padding: 12px 14px;
         border-radius: 10px;
@@ -66,9 +68,15 @@
         background: #fff;
         margin-bottom: 18px;
     }
-    select:focus {
+    select:focus,
+    input:focus {
         outline: none;
         border-color: var(--pink);
+    }
+    input#pin {
+        letter-spacing: 6px;
+        font-weight: 700;
+        text-align: center;
     }
     .btn-row {
         display: flex;
@@ -150,6 +158,23 @@
             </select>
 
             <input type="hidden" id="category" name="category" value="">
+            {{-- Phase 5: current QR token, carried along with every submit so
+                 storeCheckin() can reject it if a newer QR has since been
+                 generated (e.g. this page was already open in someone's
+                 browser before HR issued a new QR). --}}
+            <input type="hidden" id="token" name="token" value="{{ $currentToken ?? '' }}">
+
+            <label for="pin">Enter your 4-digit PIN</label>
+            <input
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                id="pin"
+                name="pin"
+                maxlength="4"
+                autocomplete="off"
+                placeholder="••••"
+            >
 
             <div class="btn-row">
                 <button type="button" class="action-btn btn-in" id="btnTimeIn">Time In</button>
@@ -159,13 +184,15 @@
 
         <div id="messageBox" class="message-box"></div>
 
-        <p class="hint">Pumili ng pangalan bago pindutin ang Time In / Time Out.</p>
+        <p class="hint">Select your name and enter your PIN before tapping Time In / Time Out.</p>
     </div>
 </div>
 
 <script>
     const employeeSelect = document.getElementById('employee_name');
     const categoryInput = document.getElementById('category');
+    const tokenInput = document.getElementById('token');
+    const pinInput = document.getElementById('pin');
     const btnTimeIn = document.getElementById('btnTimeIn');
     const btnTimeOut = document.getElementById('btnTimeOut');
     const messageBox = document.getElementById('messageBox');
@@ -176,6 +203,13 @@
         categoryInput.value = selected ? (selected.getAttribute('data-category') || '') : '';
     });
 
+    // Digits only, capped at 4 characters, since the PIN is always exactly
+    // 4 digits — this keeps the field consistent even on devices that
+    // ignore the input's pattern/maxlength hints.
+    pinInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+    });
+
     function showMessage(text, type) {
         messageBox.textContent = text;
         messageBox.className = 'message-box ' + type;
@@ -183,7 +217,12 @@
 
     function submitCheckin(type) {
         if (!employeeSelect.value) {
-            showMessage('Pumili muna ng pangalan.', 'error');
+            showMessage('Please select your name first.', 'error');
+            return;
+        }
+
+        if (pinInput.value.length !== 4) {
+            showMessage('Please enter your 4-digit PIN.', 'error');
             return;
         }
 
@@ -200,19 +239,33 @@
             body: JSON.stringify({
                 employee_name: employeeSelect.value,
                 category: categoryInput.value,
+                pin: pinInput.value,
                 type: type,
+                token: tokenInput.value,
             }),
         })
         .then(async (res) => {
             const data = await res.json().catch(() => ({}));
             if (res.ok) {
-                showMessage(data.message || 'Naitala ang iyong attendance.', 'success');
+                showMessage(data.message || 'Your attendance has been recorded.', 'success');
+                // Clear the PIN after every attempt (success or failure) —
+                // it should never linger in the field on a shared device.
+                pinInput.value = '';
+            } else if (res.status === 410) {
+                // Token no longer matches — a new QR has been issued since
+                // this page was loaded. Don't just show an error, refresh
+                // the page so the person lands on the actual expired view
+                // (or the fresh form, if somehow the token now matches).
+                showMessage(data.message || 'This QR code has expired. Reloading…', 'error');
+                setTimeout(() => window.location.reload(), 1500);
             } else {
-                showMessage(data.message || 'May problema, subukan ulit.', 'error');
+                showMessage(data.message || 'Something went wrong. Please try again.', 'error');
+                pinInput.value = '';
+                pinInput.focus();
             }
         })
         .catch(() => {
-            showMessage('Hindi makakonekta sa server. Subukan ulit.', 'error');
+            showMessage('Could not connect to the server. Please try again.', 'error');
         })
         .finally(() => {
             btnTimeIn.disabled = false;

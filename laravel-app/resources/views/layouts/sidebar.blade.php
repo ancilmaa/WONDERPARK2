@@ -1229,7 +1229,7 @@
 
                         @php
                             $isOnVisitorRoute = request()->routeIs('visitor-summary') || request()->routeIs('reservations.*');
-                            $isOnManpowerRoute = request()->routeIs('attendance') || request()->routeIs('salary') || request()->routeIs('payroll-history');
+                            $isOnManpowerRoute = request()->routeIs('attendance') || request()->routeIs('salary') || request()->routeIs('payroll-history') || request()->routeIs('employees.*');
                         @endphp
 
                         {{-- Visitor Login and Booking Summary group --}}
@@ -1265,6 +1265,9 @@
                                 </button>
                             </div>
                             <div class="nav-submenu {{ $isOnManpowerRoute ? 'open' : '' }}" id="manpowerSubmenu">
+                                <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-id-badge"></i> <span>Employees</span>
+                                </a>
                                 <a href="{{ route('attendance') }}" class="{{ request()->routeIs('attendance') ? 'active' : '' }}">
                                     <i class="fa-solid fa-clipboard-check"></i> <span>Attendance</span>
                                 </a>
