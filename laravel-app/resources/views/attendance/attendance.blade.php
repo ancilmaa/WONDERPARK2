@@ -59,6 +59,28 @@
             max-width: 210px;
         }
 
+        /* "Import into: 1st/2nd half" dropdown — tells the import which
+           half-month period the bio file belongs to. Defaults to the
+           period currently shown on the sheet. */
+        .toolbar .period-select {
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: var(--ink-soft);
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            background: var(--bg);
+            cursor: pointer;
+            max-width: 260px;
+        }
+
+        .toolbar .period-select:focus {
+            outline: none;
+            border-color: var(--pink);
+            background: #fff;
+        }
+
         .stats-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -267,6 +289,14 @@
             box-shadow: var(--shadow-sm);
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            /* Scrollable pa rin (mouse wheel, trackpad, swipe) — itinatago
+               lang ang visual na scrollbar mismo. */
+            scrollbar-width: none;       /* Firefox */
+            -ms-overflow-style: none;    /* Old Edge / IE */
+        }
+
+        .table-box::-webkit-scrollbar {
+            display: none;              /* Chrome, Safari, new Edge */
         }
 
         .payroll-header {
@@ -374,6 +404,25 @@
             font-weight: 400;
         }
 
+        /* QR Time In with no Time Out yet — not counted until Time Out */
+        .cell-pending {
+            color: #C98A1F;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: .04em;
+        }
+
+        .cell-pending.src-qr::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #2F6FE0;
+            margin-left: 3px;
+            vertical-align: super;
+        }
+
         .cell-present.src-qr::after,
         .cell-deduction.src-qr::after {
             content: '';
@@ -439,6 +488,30 @@
         .print-btn:hover {
             background: var(--pink-dark);
             box-shadow: 0 0 0 3px var(--pink-light);
+        }
+
+        /* Same shape/font/size as .print-btn — solid filled button,
+           parehong itsura — pero gamit ang isang totoong pula
+           (hindi var(--deduct), dahil pareho pala ito ng pink-deep na
+           ginagamit ng Print sa theme na ito) para talagang
+           makilalang naiiba at destructive ito. */
+        .clear-all-btn {
+            padding: 11px 20px;
+            background: #C62828;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: background .15s ease, box-shadow .15s ease;
+        }
+
+        .clear-all-btn:hover {
+            background: #9E1F1F;
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.18);
         }
 
         #uploadBtn {
@@ -660,7 +733,8 @@
 
         #uploadOverlay,
         #manualEntryOverlay,
-        #qrOverlay {
+        #qrOverlay,
+        #clearAllOverlay {
             display: none;
             position: fixed;
             inset: 0;
@@ -676,7 +750,8 @@
 
         #uploadOverlay.active,
         #manualEntryOverlay.active,
-        #qrOverlay.active {
+        #qrOverlay.active,
+        #clearAllOverlay.active {
             display: flex;
         }
 
@@ -759,6 +834,14 @@
             overflow-y: auto;
             box-shadow: var(--shadow-md);
             animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
+            /* Scrollable pa rin (scroll wheel, trackpad, swipe) — itinatago
+               lang ang visual na scrollbar mismo. */
+            scrollbar-width: none;       /* Firefox */
+            -ms-overflow-style: none;    /* Old Edge / IE */
+        }
+
+        .modal-card::-webkit-scrollbar {
+            display: none;              /* Chrome, Safari, new Edge */
         }
 
         .modal-head {
@@ -993,6 +1076,11 @@
                 width: 100%;
             }
 
+            .toolbar .period-select {
+                max-width: none;
+                width: 100%;
+            }
+
             .toolbar-actions button {
                 width: 100%;
             }
@@ -1133,11 +1221,13 @@
         $grouped = isset($records) ? $records->groupBy('category') : collect();
         $totalCategories = $grouped->count();
 
+        $days = $periodDays ?? 15;
+
         $totalDaysAll = 0;
         if (isset($records)) {
             foreach ($records as $rec) {
                 $d = 0;
-                for ($i = 1; $i <= 15; $i++) {
+                for ($i = 1; $i <= $days; $i++) {
                     $v = $rec->{'day_' . $i} ?? '';
                     if (isDayPresent($v)) {
                         $d++;
@@ -1153,15 +1243,37 @@
             <div class="eyebrow">Lipa Branch &middot; Bio Attendance</div>
             <h2>Bio Attendance Sheet</h2>
             <p class="sub" style="font-size:12px;color:var(--muted);margin-top:4px;">
-                Showing: <strong>{{ $cutoffType === '1st' ? 'Days 1–15' : 'Days 16–31' }}</strong>
+                Showing: <strong>Days {{ $periodStart->day }}&ndash;{{ $periodEnd->day }}</strong>
                 ({{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }})
             </p>
+            {{-- View a specific half-month. The import dropdown below follows
+                 whichever period is on screen. --}}
+            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">View</span>
+                <select class="period-select" aria-label="View period"
+                    onchange="window.location.href='{{ route('attendance') }}?period=' + encodeURIComponent(this.value)">
+                    @foreach (($periodOptions ?? []) as $opt)
+                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>{{ $opt['label'] }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="toolbar-actions">
             <form id="uploadForm" action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data"
                 style="display:contents;">
                 @csrf
+                {{-- Which half-month period this bio file belongs to. Defaults
+                     to the period currently on screen (where the QR/Manual
+                     entries live), so importing after the cutoff ends no
+                     longer targets the wrong period. --}}
+                <select name="period_start" class="period-select" title="Import into period" aria-label="Import into period">
+                    @foreach (($periodOptions ?? []) as $opt)
+                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>
+                            Import into: {{ $opt['label'] }}
+                        </option>
+                    @endforeach
+                </select>
                 <input type="file" name="import_file" required>
                 <button id="uploadBtn" type="submit">Import Bio File</button>
             </form>
@@ -1172,6 +1284,12 @@
                 <i class="fa-solid fa-qrcode"></i> Show QR Code
             </button>
             <button class="print-btn" onclick="window.print()">Print</button>
+
+            <form id="clearAllForm" action="{{ route('attendance.clear-all') }}" method="POST" style="display:contents;">
+                @csrf
+                @method('DELETE')
+                <button type="button" class="clear-all-btn" id="openClearAllBtn">Clear All</button>
+            </form>
         </div>
     </div>
 
@@ -1217,6 +1335,7 @@
             <span><span class="dot dot-bio"></span> Bio scanner</span>
             <span><span class="dot dot-qr"></span> QR self check-in</span>
             <span><span class="dot dot-manual"></span> Manual entry</span>
+            <span><strong style="color:#C98A1F;">IN</strong> Timed in, waiting for Time Out</span>
         </div>
 
         <table>
@@ -1224,8 +1343,8 @@
                 <tr>
                     <th>NO</th>
                     <th colspan="2" style="text-align:left;padding-left:14px;">Name of Employee</th>
-                    @for ($i = 1; $i <= 15; $i++)
-                        <th class="{{ $i == 5 || $i == 10 ? 'week-end' : '' }}">{{ $i }}</th>
+                    @for ($i = 1; $i <= $days; $i++)
+                        <th class="{{ $i % 5 == 0 && $i != $days ? 'week-end' : '' }}">{{ $i }}</th>
                     @endfor
                     <th>Days Worked</th>
                 </tr>
@@ -1242,7 +1361,7 @@
 
                     @foreach ($grouped as $category => $employees)
                         <tr class="category-row" data-cat-row="{{ strtolower($category) }}">
-                            <td colspan="19">{{ strtoupper($category) }}</td>
+                            <td colspan="{{ $days + 4 }}">{{ strtoupper($category) }}</td>
                         </tr>
 
                         @foreach ($employees as $item)
@@ -1250,7 +1369,7 @@
                                 $daysWorked = 0;
                                 $hasOvertime = false;
                                 $hasLate = false;
-                                for ($i = 1; $i <= 15; $i++) {
+                                for ($i = 1; $i <= $days; $i++) {
                                     $v = $item->{'day_' . $i} ?? '';
                                     if (isDayPresent($v)) {
                                         $daysWorked++;
@@ -1271,17 +1390,19 @@
                                 <td>{{ $no++ }}</td>
                                 <td colspan="2">{{ $item->name }}</td>
 
-                                @for ($i = 1; $i <= 15; $i++)
+                                @for ($i = 1; $i <= $days; $i++)
                                     @php
                                         $val = $item->{'day_' . $i} ?? '';
                                         $src = $item->{'source_' . $i} ?? null;
-                                        $weekEndClass = $i == 5 || $i == 10 ? 'week-end' : '';
+                                        $weekEndClass = $i % 5 == 0 && $i != $days ? 'week-end' : '';
                                         $srcClass = $src === 'qr' ? 'src-qr' : ($src === 'manual' ? 'src-manual' : '');
-                                        $srcTitle = $src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner');
+                                        $srcTitle = $val === 'IN' ? 'Timed in — waiting for Time Out' : ($src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner'));
                                     @endphp
 
                                     <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle }}" @endif>
-                                        @if ($val === 'P' || str_starts_with((string) $val, '+'))
+                                        @if ($val === 'IN')
+                                            <span class="cell-pending src-qr">IN</span>
+                                        @elseif ($val === 'P' || str_starts_with((string) $val, '+'))
                                             <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
                                         @elseif(str_starts_with((string) $val, '-'))
                                             <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
@@ -1298,18 +1419,18 @@
                     @endforeach
 
                     <tr id="noMatchRow" class="no-print" style="display:none;">
-                        <td colspan="19">No employees match your search or filters.</td>
+                        <td colspan="{{ $days + 4 }}">No employees match your search or filters.</td>
                     </tr>
 
                     <tr class="total-row">
-                        <td colspan="18" style="text-align:center;">
+                        <td colspan="{{ $days + 3 }}" style="text-align:center;">
                             TOTAL SALARY FOR {{ strtoupper($latestUpload->branch ?? 'DINO PLAY, THE OUTLET AT LIPA') }}
                         </td>
                         <td>{{ $totalDays }}.00</td>
                     </tr>
                 @else
                     <tr>
-                        <td colspan="19" style="padding:24px;color:var(--muted);">No attendance data found. Please import
+                        <td colspan="{{ $days + 4 }}" style="padding:24px;color:var(--muted);">No attendance data found. Please import
                             a BIO file.</td>
                     </tr>
                 @endif
@@ -1364,8 +1485,22 @@
                             <div id="meEmployeeChipsPagination" class="chip-pagination no-print"></div>
                         </div>
                         <div class="form-group">
-                            <label for="me_attendance_date">Date</label>
-                            <input type="date" name="attendance_date" id="me_attendance_date" required>
+                            <label for="me_attendance_date">Day</label>
+                            @php $meToday = now()->format('Y-m-d'); @endphp
+                            {{-- Pick a DAY of the period on screen instead of a calendar
+                                 date. The option value is still the real date
+                                 (Y-m-d), so the controller receives the same
+                                 `attendance_date` as before. --}}
+                            <select name="attendance_date" id="me_attendance_date" required>
+                                @for ($i = 1; $i <= $days; $i++)
+                                    @php
+                                        $meDate = $periodStart->copy()->addDays($i - 1);
+                                    @endphp
+                                    <option value="{{ $meDate->format('Y-m-d') }}" {{ $meDate->format('Y-m-d') === $meToday ? 'selected' : '' }}>
+                                        Day {{ $i }} ({{ $meDate->format('M j') }})
+                                    </option>
+                                @endfor
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="me_status">Status</label>
@@ -1409,6 +1544,25 @@
                 </button>
             </div>
             <div class="modal-body" style="text-align:center;">
+                <div class="form-group full" style="text-align:left;margin-bottom:14px;">
+                    <label for="qrForDate">This QR is for day</label>
+                    @php
+                        $qrDateValue = $qrDate ?? now()->format('Y-m-d');
+                    @endphp
+                    <select id="qrForDate" name="qr_for_day">
+                        @for ($i = 1; $i <= $days; $i++)
+                            @php
+                                $dayDate = $periodStart->copy()->addDays($i - 1)->format('Y-m-d');
+                                $dayLabel = $periodStart->copy()->addDays($i - 1)->format('M j');
+                            @endphp
+                            <option value="{{ $dayDate }}" {{ $qrDateValue === $dayDate ? 'selected' : '' }}>
+                                Day {{ $i }} ({{ $dayLabel }})
+                            </option>
+                        @endfor
+                    </select>
+                    <p class="form-hint">Every scan using this QR gets recorded under this day — change this
+                        before generating if you need to catch up on an earlier day.</p>
+                </div>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
                  <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' . ($currentToken ? '?token=' . $currentToken : '') }}">
@@ -1420,6 +1574,34 @@
                 <p class="form-hint" style="margin-top:8px;">
                     Gumagawa ito ng bagong QR code at awtomatikong mawawalan ng bisa ang lumang QR (kahit naka-print na ito).
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLEAR ALL ATTENDANCE — custom confirm modal (not the native browser confirm()) -->
+    <div id="clearAllOverlay" class="no-print" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clearAllTitle" style="max-width:400px;">
+            <div class="modal-head">
+                <div>
+                    <div class="eyebrow" style="color:#C62828;">Dangerous Action</div>
+                    <h3 id="clearAllTitle">Delete All Attendance?</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeClearAllModal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
+                    This will delete <strong>all</strong> attendance records — every period, every source
+                    (bio, manual, and QR). The import history will be cleared as well. <strong>This cannot be
+                        undone.</strong>
+                </p>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-ghost" id="cancelClearAll">Cancel</button>
+                <button type="button" class="clear-all-btn" id="confirmClearAllBtn">
+                    <i class="fa-solid fa-trash"></i> Yes, delete everything
+                </button>
             </div>
         </div>
     </div>
@@ -1625,9 +1807,6 @@
         });
 
         function openManualEntry() {
-            if (meDateInput && !meDateInput.value) {
-                meDateInput.value = new Date().toISOString().slice(0, 10);
-            }
             meChipPage = 1;
             renderEmployeeChips();
             manualEntryOverlay.classList.add('active');
@@ -1721,6 +1900,9 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
                         || document.querySelector('input[name="_token"]')?.value,
                 },
+                body: JSON.stringify({
+                    for_date: document.getElementById('qrForDate')?.value || null,
+                }),
             })
             .then(async (res) => {
                 // Try to read the response as JSON first. If the server
@@ -1754,7 +1936,7 @@
                     });
                 }
 
-                showToast('New QR code generated. Any previously printed QR is now expired.', 'success', { duration: 3200 });
+                showToast(`New QR code generated for ${data.for_date}. Any previously printed QR is now expired.`, 'success', { duration: 3200 });
             })
             .catch((err) => {
                 showToast(err.message || 'Something went wrong. Please try again.', 'error', { duration: 6000 });
@@ -1769,7 +1951,44 @@
             if (e.key === 'Escape') {
                 if (manualEntryOverlay.classList.contains('active')) closeManualEntry();
                 if (qrOverlay.classList.contains('active')) closeQrModal();
+                if (clearAllOverlay.classList.contains('active')) closeClearAllModal();
             }
+        });
+
+        // ── Clear All Attendance — custom confirm modal ──
+        const clearAllOverlay = document.getElementById('clearAllOverlay');
+        const openClearAllBtn = document.getElementById('openClearAllBtn');
+        const closeClearAllModalBtn = document.getElementById('closeClearAllModal');
+        const cancelClearAllBtn = document.getElementById('cancelClearAll');
+        const confirmClearAllBtn = document.getElementById('confirmClearAllBtn');
+        const clearAllForm = document.getElementById('clearAllForm');
+
+        function openClearAllModal() {
+            clearAllOverlay.classList.add('active');
+            clearAllOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeClearAllModal() {
+            clearAllOverlay.classList.remove('active');
+            clearAllOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        openClearAllBtn?.addEventListener('click', openClearAllModal);
+        closeClearAllModalBtn?.addEventListener('click', closeClearAllModal);
+        cancelClearAllBtn?.addEventListener('click', closeClearAllModal);
+        clearAllOverlay?.addEventListener('click', (e) => {
+            if (e.target === clearAllOverlay) closeClearAllModal();
+        });
+
+        // Only this click actually submits the form — a plain click on
+        // "Clear All" in the toolbar just opens the modal above, it never
+        // submits by itself.
+        confirmClearAllBtn?.addEventListener('click', () => {
+            confirmClearAllBtn.disabled = true;
+            confirmClearAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting&hellip;';
+            clearAllForm.submit();
         });
 
         // ===== SEARCH, FILTER & PAGINATION (main Attendance table) =====
