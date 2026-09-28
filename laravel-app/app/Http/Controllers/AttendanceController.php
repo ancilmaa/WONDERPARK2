@@ -26,33 +26,70 @@ class AttendanceController extends Controller
         // No more manual period switcher. The page always shows whichever
         // half-month period was most recently imported into (or last
         // touched by a manual/QR entry) — see latestCutoffRange() below.
-        [$periodStart, $periodEnd, $cutoffType] = $this->latestCutoffRange();
+        // FIX: the sheet can now be pointed at a specific half-month with
+        // ?period=YYYY-MM-DD (the "View" dropdown, and the redirect after an
+        // import / manual entry). Without it, fall back to auto-detect
+        // (the half that contains the most recent attendance_date).
+        // Before this, importing into a period OTHER than the one holding
+        // the newest record left the sheet on the old period, so the import
+        // looked like it "did nothing".
+        $requestedPeriod = $request->query('period');
+        $range = null;
+        if ($requestedPeriod && preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedPeriod)) {
+            try {
+                $range = $this->cutoffRangeForDate(Carbon::parse($requestedPeriod));
+            } catch (\Throwable $e) {
+                $range = null;
+            }
+        }
+        [$periodStart, $periodEnd, $cutoffType] = $range ?? $this->latestCutoffRange();
+
+        // How many actual days are in THIS period — always 15 for the 1st
+        // half, but 13/14/15/16 for the 2nd half depending on the month
+        // (Feb vs. a 30-day month vs. a 31-day month). Everything below
+        // uses this instead of a hardcoded 15, so Day 16 on a 31-day
+        // month's 2nd cutoff is no longer silently dropped.
+        $periodDays = $periodStart->diffInDays($periodEnd) + 1;
 
         $attendance = Attendance::whereBetween('attendance_date', [
             $periodStart->format('Y-m-d'),
             $periodEnd->format('Y-m-d'),
         ])->get();
 
-        // Pivot into day_1..day_15 shape, since that's what the view expects
-        $records = $attendance->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart) {
+        // Pivot into day_1..day_N shape, since that's what the view expects
+        $pendingNames = [];
+        $records = $attendance->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays, &$pendingNames) {
             $first = $recs->first();
             $obj = new \stdClass();
             $obj->name = $name;
-            $obj->category = $first->category ?? 'Staff';
+            // Normalized so "Manager", "MANAGER", "manager" (inconsistent
+            // casing from CSV imports / manual entry / QR check-in) all
+            // collapse into one group instead of showing up as separate
+            // duplicate categories in the table and the filter dropdown.
+            $obj->category = $first->category ? ucwords(strtolower(trim($first->category))) : 'Staff';
 
-            for ($i = 1; $i <= 15; $i++) {
+            for ($i = 1; $i <= $periodDays; $i++) {
                 $obj->{"day_{$i}"} = null;
                 $obj->{"source_{$i}"} = null;
             }
 
             foreach ($recs as $rec) {
                 $dayNum = Carbon::parse($rec->attendance_date)->day - $periodStart->day + 1;
-                if ($dayNum >= 1 && $dayNum <= 15) {
+                if ($dayNum >= 1 && $dayNum <= $periodDays) {
                     // Prefer the exact bio-scan value ("+1.5", "-15", etc.) saved
                     // in `remarks`. Only fall back to a plain P/- when remarks is
                     // empty (e.g. records saved before this column existed).
-                    $obj->{"day_{$dayNum}"} = $rec->remarks
-                        ?: (strtolower($rec->status) === 'present' ? 'P' : '-');
+                    // QR Time In with no Time Out yet -> shown as "IN" (not
+                    // counted as a worked day until they Time Out).
+                    $isPending = ($rec->source ?? null) === 'qr' && empty($rec->time_out);
+                    if ($isPending) {
+                        $pendingNames[] = $name;
+                    }
+
+                    $obj->{"day_{$dayNum}"} = $isPending
+                        ? 'IN'
+                        : ($rec->remarks
+                            ?: (strtolower($rec->status) === 'present' ? 'P' : '-'));
                     // Carried alongside the value so the view can show a small
                     // dot indicating whether this came from the bio scanner,
                     // an employee's QR self check-in, or a manual HR entry.
@@ -87,8 +124,61 @@ class AttendanceController extends Controller
         // "Generate New QR" only lives in memory, so this is what keeps
         // the modal correct across a page reload too.
         $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
+        $qrDate = DB::table('app_settings')->where('key', 'checkin_qr_date')->value('value') ?? now()->format('Y-m-d');
 
-        return view('attendance.attendance', compact('records', 'cutoffType', 'periodStart', 'periodEnd', 'employeesByCategory', 'currentToken'));
+        // Choices for the "Import into period" dropdown. Default (first,
+        // selected) = the period currently on screen, i.e. where the
+        // QR/Manual entries already live.
+        $periodOptions = $this->periodOptionsAround($periodStart);
+
+        // Employees who timed in via QR but haven't timed out yet (shown as "IN").
+        $pendingNames = array_values(array_unique($pendingNames));
+
+        return view('attendance.attendance', compact('records', 'cutoffType', 'periodStart', 'periodEnd', 'periodDays', 'employeesByCategory', 'currentToken', 'qrDate', 'periodOptions', 'pendingNames'));
+    }
+
+    // ─── Half-month periods for the "View" and "Import into" dropdowns ───
+    // Includes: the period on screen, the one before and after it, today's
+    // period, and every period that already has attendance data. Newest
+    // first. The one on screen is marked selected.
+    private function periodOptionsAround(Carbon $displayedStart): array
+    {
+        $starts = [];
+        $add = function (Carbon $d) use (&$starts) {
+            [$ps] = $this->cutoffRangeForDate($d);
+            $starts[$ps->format('Y-m-d')] = true;
+        };
+
+        $displayed = $this->cutoffRangeForDate($displayedStart)[0];
+        $add($displayed);
+
+        if ($displayed->day === 1) {
+            $add($displayed->copy()->subMonthNoOverflow()->day(16));
+            $add($displayed->copy()->day(16));
+        } else {
+            $add($displayed->copy()->day(1));
+            $add($displayed->copy()->addMonthNoOverflow()->day(1));
+        }
+
+        $add(now());
+
+        Attendance::query()->select('attendance_date')->distinct()->pluck('attendance_date')
+            ->each(fn($d) => $add(Carbon::parse($d)));
+
+        krsort($starts);
+
+        $options = [];
+        foreach (array_keys($starts) as $key) {
+            [$ps, $pe] = $this->cutoffRangeForDate(Carbon::parse($key));
+            $options[] = [
+                'value' => $ps->format('Y-m-d'),
+                'label' => ($ps->day === 1 ? '1st half' : '2nd half')
+                    . ' (' . $ps->format('M j') . '–' . $pe->format('j, Y') . ')',
+                'selected' => $key === $displayed->format('Y-m-d'),
+            ];
+        }
+
+        return $options;
     }
 
     // ─── Which half-month period to show, based on the latest import ───
@@ -121,7 +211,7 @@ class AttendanceController extends Controller
     // Attendance, Salary, and Payroll always look at the same period.
     private function latestCutoffRangeFor($cutoffType = null)
     {
-        $latestDate = Attendance::max('attendance_date');
+        $latestDate = $this->completedOnly(Attendance::query())->max('attendance_date');
         $base = $latestDate ? Carbon::parse($latestDate) : now();
 
         if ($cutoffType) {
@@ -173,6 +263,22 @@ class AttendanceController extends Controller
         return $this->cutoffRangeForDate($today);
     }
 
+    // ─── QR check-ins that haven't been timed out yet ───
+    // A QR self check-in is only "complete" once the employee taps Time Out.
+    // Until then (Time In only) the Attendance sheet shows it as "IN", but
+    // it must NOT be counted in Salary / Payroll. This filter drops those
+    // incomplete rows for Salary, Generate Payroll and the Salary page's
+    // period detection. Bio and Manual rows are never affected (they have
+    // no Time In / Time Out flow).
+    private function completedOnly($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('source')
+              ->orWhere('source', '!=', 'qr')
+              ->orWhereNotNull('time_out');
+        });
+    }
+
     // ─── Extract late minutes / OT hours from remarks ("-15", "+1.5") ──
     // Same format used in buildWideAttendanceRows() for import: "+N" = OT
     // hours, "-N" (numeric) = late/undertime minutes.
@@ -211,26 +317,37 @@ class AttendanceController extends Controller
         // what's shown here always matches what's on the Attendance Sheet.
         [$periodStart, $periodEnd, $cutoffType] = $this->latestCutoffRangeFor();
 
-        $records = Attendance::whereBetween('attendance_date', [
+        // Total days in THIS half (see index() for why this can't be a
+        // hardcoded 15 — a 31-day month's 2nd cutoff has 16 days).
+        $periodDays = $periodStart->diffInDays($periodEnd) + 1;
+
+        // The 2nd-cutoff day count for the CURRENT month, regardless of
+        // which half happens to be showing right now — needed so the
+        // holiday modal can build the right number of rows even when HR
+        // switches the cutoff dropdown from 1st to 2nd inside the modal.
+        $daysInMonth = $periodStart->copy()->startOfMonth()->daysInMonth;
+        $secondCutoffDays = $daysInMonth - 15;
+
+        $records = $this->completedOnly(Attendance::query())->whereBetween('attendance_date', [
             $periodStart->format('Y-m-d'),
             $periodEnd->format('Y-m-d'),
         ])->get();
 
-        // Pivot attendance rows into day_1..day_15 shape, since that's what the view expects
-        $attendance = $records->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart) {
+        // Pivot attendance rows into day_1..day_N shape, since that's what the view expects
+        $attendance = $records->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays) {
             $first = $recs->first();
             $obj = new \stdClass();
             $obj->name = $name;
-            $obj->category = $first->category ?? 'Staff';
+            $obj->category = $first->category ? ucwords(strtolower(trim($first->category))) : 'Staff';
             $obj->days_worked = 0;
 
-            for ($i = 1; $i <= 15; $i++) {
+            for ($i = 1; $i <= $periodDays; $i++) {
                 $obj->{"day_{$i}"} = null;
             }
 
             foreach ($recs as $rec) {
                 $dayNum = Carbon::parse($rec->attendance_date)->day - $periodStart->day + 1;
-                if ($dayNum >= 1 && $dayNum <= 15) {
+                if ($dayNum >= 1 && $dayNum <= $periodDays) {
                     $obj->{"day_{$dayNum}"} = $rec->remarks
                         ?: (strtolower($rec->status) === 'present' ? 'P' : 'A');
 
@@ -271,7 +388,7 @@ class AttendanceController extends Controller
             ->keyBy('name');
 
         return view('attendance.salary', compact(
-            'rates', 'attendance', 'salaryMap', 'periodStart', 'periodEnd', 'cutoffType', 'settings'
+            'rates', 'attendance', 'salaryMap', 'periodStart', 'periodEnd', 'cutoffType', 'settings', 'periodDays', 'secondCutoffDays'
         ));
     }
 
@@ -344,7 +461,7 @@ class AttendanceController extends Controller
             'staff' => 'staff',
         ];
 
-        $records = Attendance::whereBetween('attendance_date', [
+        $records = $this->completedOnly(Attendance::query())->whereBetween('attendance_date', [
             $periodStart->format('Y-m-d'),
             $periodEnd->format('Y-m-d'),
         ])->get();
@@ -554,7 +671,7 @@ class AttendanceController extends Controller
             ->where('attendance_date', $validated['attendance_date'])
             ->first();
 
-        Attendance::updateOrCreate(
+        $record = Attendance::updateOrCreate(
             [
                 'employee_name' => $validated['employee_name'],
                 'attendance_date' => $validated['attendance_date'],
@@ -569,7 +686,17 @@ class AttendanceController extends Controller
             ]
         );
 
-        return redirect()->route('attendance')->with('success', 'Attendance record saved manually.');
+        // FIX: force-write `source` and `remarks` directly. If the Attendance
+        // model's $fillable doesn't list them, updateOrCreate() silently drops
+        // them and the column default ('bio') is stored instead — which made
+        // manual entries look like bio rows, so the next bio import deleted
+        // them (it wipes every source='bio' row in the period).
+        $record->forceFill(['source' => 'manual', 'remarks' => $remarks])->save();
+
+        $savedPeriodStart = $this->cutoffRangeForDate(Carbon::parse($validated['attendance_date']))[0];
+
+        return redirect()->route('attendance', ['period' => $savedPeriodStart->format('Y-m-d')])
+            ->with('success', 'Attendance record saved manually.');
     }
 
     // ─── QR SELF CHECK-IN (employee scans a QR code with their phone) ──
@@ -597,6 +724,7 @@ class AttendanceController extends Controller
     public function showCheckin(Request $request)
     {
         $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
+        $qrDate = DB::table('app_settings')->where('key', 'checkin_qr_date')->value('value') ?? now()->format('Y-m-d');
 
         if ($currentToken && $request->query('token') !== $currentToken) {
             return view('attendance.expired');
@@ -606,7 +734,7 @@ class AttendanceController extends Controller
             ->orderBy('employee_name')
             ->get(['employee_name', 'category']);
 
-        return view('attendance.checkin', compact('employees', 'currentToken'));
+        return view('attendance.checkin', compact('employees', 'currentToken', 'qrDate'));
     }
 
     /**
@@ -683,7 +811,12 @@ class AttendanceController extends Controller
             return back()->with('error', $message);
         }
 
-        $today = now()->format('Y-m-d');
+        // Petsa na itinakda ng admin nang huling mag-generate ng QR (tingnan
+        // ang regenerateQr()) — hindi galing sa client/request, kaya hindi
+        // ito puwedeng i-tamper ng sinumang mag-s-scan. Kung wala pang
+        // na-set kailanman (fresh install), fallback sa ngayong araw.
+        $qrDate = DB::table('app_settings')->where('key', 'checkin_qr_date')->value('value');
+        $today = $qrDate ?: now()->format('Y-m-d');
         $now = now()->format('H:i:s');
 
         $existing = Attendance::where('employee_name', $validated['employee_name'])
@@ -699,7 +832,7 @@ class AttendanceController extends Controller
             $timeOut = $now;
         }
 
-        Attendance::updateOrCreate(
+        $record = Attendance::updateOrCreate(
             [
                 'employee_name' => $validated['employee_name'],
                 'attendance_date' => $today,
@@ -714,8 +847,16 @@ class AttendanceController extends Controller
             ]
         );
 
+        // FIX: same as manual entry — make sure `source` is really saved as
+        // 'qr' even if the model's $fillable doesn't include it.
+        $record->forceFill(['source' => 'qr', 'remarks' => 'P'])->save();
+
         $label = $validated['type'] === 'in' ? 'Timed in' : 'Timed out';
         $message = "{$label} successfully at " . now()->format('g:i A') . ". Thank you, {$validated['employee_name']}!";
+
+        if ($validated['type'] === 'in') {
+            $message .= ' Your attendance will be counted once you Time Out.';
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => $message]);
@@ -729,6 +870,14 @@ class AttendanceController extends Controller
      * printed/shared QR link (they all point at the old token). Admin/HR
      * only — gate this behind auth + role middleware on the route.
      *
+     * Also accepts an optional `for_date` — the date that every scan
+     * against this QR will be recorded under (see storeCheckin()). Admin
+     * only sets this, never the employee doing the scanning; this is what
+     * lets HR generate a QR "for Day 7" during a bio outage, print or
+     * display it just for that day, and have every scan land on the
+     * correct date without trusting anything the scanning device sends.
+     * Defaults to today when not provided.
+     *
      * Returns the full new check-in URL so the front-end can regenerate
      * the QR image and update the "Copy Link" text without a page reload.
      *
@@ -740,11 +889,21 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
+        $validated = $request->validate([
+            'for_date' => 'nullable|date',
+        ]);
+
         $token = Str::random(32);
+        $forDate = $validated['for_date'] ?? now()->format('Y-m-d');
 
         DB::table('app_settings')->updateOrInsert(
             ['key' => 'checkin_qr_token'],
             ['value' => $token, 'updated_at' => now()]
+        );
+
+        DB::table('app_settings')->updateOrInsert(
+            ['key' => 'checkin_qr_date'],
+            ['value' => $forDate, 'updated_at' => now()]
         );
 
         $url = route('attendance.checkin', ['token' => $token]);
@@ -752,6 +911,7 @@ class AttendanceController extends Controller
         return response()->json([
             'token' => $token,
             'url' => $url,
+            'for_date' => $forDate,
         ]);
     }
 
@@ -769,14 +929,62 @@ class AttendanceController extends Controller
         $file = $request->file('import_file');
         $ext = strtolower($file->getClientOriginalExtension());
 
-        // Which half of the month this file's day-1..day-15 columns map
-        // onto — no manual toggle. Always inferred from TODAY's real
-        // date, since a bio file is normally uploaded shortly after its
-        // cutoff period ends (e.g. uploading on the 16th almost always
-        // means "here's the 1st-half data").
-        [$periodStart, $periodEnd, $cutoffType] = $this->currentCutoffRange();
+        $request->validate([
+            'period_start' => 'nullable|date',
+        ]);
+
+        // FIX: which half of the month this file's day-1..day-N columns
+        // map onto. This used to be derived from TODAY's real date, which
+        // broke as soon as the bio file was uploaded AFTER the cutoff
+        // ended (e.g. uploading on Oct 1 for the Sep 16-30 period): the
+        // import targeted Oct 1-15 instead, so the protected QR/Manual
+        // entries in Sep 16-30 were never looked at, and the sheet jumped
+        // to a different period, making those entries seem to vanish.
+        //
+        // Now: use the period picked in the Import dropdown (period_start).
+        // If none was sent, default to the period currently shown on the
+        // Attendance sheet (where the QR/Manual entries are), and only
+        // fall back to today's period when there is no data at all.
+        if ($request->filled('period_start')) {
+            [$periodStart, $periodEnd, $cutoffType] = $this->cutoffRangeForDate(Carbon::parse($request->input('period_start')));
+        } else {
+            [$periodStart, $periodEnd, $cutoffType] = $this->latestCutoffRange();
+        }
+        $periodDays = $periodStart->diffInDays($periodEnd) + 1;
+
+        // Active employee names, normalized (lowercase + trimmed) for
+        // case/whitespace-insensitive matching against the bio export —
+        // "juan dela cruz" in the CSV should still match "Juan Dela Cruz"
+        // in the Employees table. Used to keep the bio file from creating
+        // "ghost" attendance rows for names that aren't real, active
+        // employees (typos in the bio device, resigned employees still in
+        // its memory, new hires not yet encoded in Employees).
+        //
+        // FIX: this now maps to the EXACT, canonical name as stored in the
+        // Employees table (e.g. "Juan Dela Cruz"), not just `true`. Before
+        // this fix, buildWideAttendanceRows() saved whatever casing the
+        // bio file happened to use verbatim (e.g. "JUAN DELA CRUZ" or
+        // "juan dela cruz"). If a QR/Manual entry for the same person had
+        // already been saved earlier in the period under a different
+        // casing (QR/Manual always use the Employees-table casing), the
+        // two ended up as two DIFFERENT `employee_name` strings. That's
+        // harmless at the database-row level (the bio-overwrite guard
+        // below is already case-insensitive and correctly protects the
+        // QR/Manual row from being deleted or overwritten) — but the
+        // Attendance/Salary pages group rows with `groupBy('employee_name')`,
+        // which is a literal, case-sensitive string match. The result:
+        // the person appeared as TWO separate rows on the sheet — one
+        // built from the bio import, one built from the single QR/Manual
+        // day — making it look like that one day's entry had vanished
+        // when it had actually just landed in a second, easy-to-miss row.
+        // Normalizing every bio row to the same canonical name merges
+        // everything back into a single row as expected.
+        $knownNames = Employee::active()
+            ->pluck('employee_name')
+            ->mapWithKeys(fn($n) => [strtolower(trim($n)) => $n]);
 
         $allRows = [];
+        $unmatchedNames = []; // rows skipped because the name isn't a known active employee
 
         try {
             if ($ext === 'csv') {
@@ -798,7 +1006,7 @@ class AttendanceController extends Controller
                         $row = array_pad(array_slice($row, 0, count($header)), count($header), '');
                     }
                     $rowData = array_combine($header, $row);
-                    $allRows = array_merge($allRows, $this->buildWideAttendanceRows($rowData, $periodStart));
+                    $allRows = array_merge($allRows, $this->buildWideAttendanceRows($rowData, $periodStart, $periodDays, $knownNames, $unmatchedNames));
                 }
                 fclose($handle);
             } else {
@@ -818,13 +1026,62 @@ class AttendanceController extends Controller
                         $row = array_pad(array_slice($row, 0, count($header)), count($header), '');
                     }
                     $rowData = array_combine($header, $row);
-                    $allRows = array_merge($allRows, $this->buildWideAttendanceRows($rowData, $periodStart));
+                    $allRows = array_merge($allRows, $this->buildWideAttendanceRows($rowData, $periodStart, $periodDays, $knownNames, $unmatchedNames));
                 }
             }
 
-            if (empty($allRows)) {
+            if (empty($allRows) && empty($unmatchedNames)) {
                 return redirect()->route('attendance')->with('error', 'No valid attendance rows found in the file.');
             }
+
+            if (empty($allRows) && !empty($unmatchedNames)) {
+                // Every single row was unmatched — most likely the wrong
+                // file, or the Employees list hasn't been set up yet.
+                return redirect()->route('attendance')->with('error',
+                    'Walang na-import — lahat ng pangalan sa file ay hindi nakita sa listahan ng Employees: '
+                    . implode(', ', array_unique($unmatchedNames)) . '.');
+            }
+
+            // ── PROTECT existing QR / Manual entries for this period ──
+            // A bio export marks a day as "-" (absent) whenever the
+            // employee did NOT physically scan the bio device that day —
+            // which is EXACTLY what happens when they checked in via QR or
+            // were encoded manually instead (no bio access, outage, etc).
+            // Without this guard, the upsert() below would match on the
+            // same (employee_name, attendance_date) key and blindly
+            // overwrite that already-correct QR/Manual "present" record
+            // with the bio file's "-", wiping out the very thing QR/Manual
+            // entry exists to preserve.
+            //
+            // Fix: any employee+date combo that already has a non-bio
+            // record for this period is dropped from the incoming bio
+            // rows entirely — QR and Manual entries always win over a
+            // same-day bio import, never the other way around.
+            //
+            // NOTE: this key is (and always was) built case-insensitively
+            // (strtolower(trim(...))), so this protection itself already
+            // matched correctly across casing differences. The bug that
+            // made a protected day appear to "disappear" was downstream,
+            // in how the SAVED employee_name casing affected grouping on
+            // the Attendance/Salary pages — see the $knownNames fix above.
+            $protectedKeys = Attendance::whereBetween('attendance_date', [
+                    $periodStart->format('Y-m-d'),
+                    $periodEnd->format('Y-m-d'),
+                ])
+                ->where('source', '!=', 'bio')
+                ->get(['employee_name', 'attendance_date'])
+                ->map(fn($r) => strtolower(trim($r->employee_name)) . '|' . Carbon::parse($r->attendance_date)->format('Y-m-d'))
+                ->flip();
+
+            $protectedCount = 0;
+            $allRows = array_values(array_filter($allRows, function ($row) use ($protectedKeys, &$protectedCount) {
+                $key = strtolower(trim($row['employee_name'])) . '|' . $row['attendance_date'];
+                if (isset($protectedKeys[$key])) {
+                    $protectedCount++;
+                    return false;
+                }
+                return true;
+            }));
 
             // Full replace, scoped to bio data only: clear out whatever was
             // previously imported from the bio scanner for this exact
@@ -862,27 +1119,103 @@ class AttendanceController extends Controller
                 ['imported_at' => now()]
             );
 
+            $successMessage = "Imported {$imported} attendance record(s) into Days {$periodStart->day}-{$periodEnd->day} ({$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}) successfully!";
+
+            if ($protectedCount > 0) {
+                $successMessage .= " {$protectedCount} na entry mula sa QR/Manual ang hindi na-overwrite (na-preserve dahil mas prioritized ito sa bio file para sa araw na iyon).";
+            }
+
+            if (!empty($unmatchedNames)) {
+                $uniqueUnmatched = array_unique($unmatchedNames);
+                // Appended (not a separate flash key) so it's guaranteed to
+                // show even if the view doesn't have a dedicated "warning"
+                // banner style set up yet.
+                $successMessage .= ' Hindi na-import ang ' . count($uniqueUnmatched)
+                    . ' pangalan na wala sa listahan ng Employees: ' . implode(', ', $uniqueUnmatched)
+                    . '. Idagdag muna sila sa Employees, tapos i-import ulit ang file.';
+            }
+
             // No cutoff param needed in the redirect — index() auto-detects
             // the period from the data we just upserted (via MAX(attendance_date)),
             // so this newly imported CSV is what shows up immediately.
-            return redirect()->route('attendance')
-                ->with('success', "Imported {$imported} attendance record(s) into the " . ($cutoffType === '1st' ? '1st half (Days 1-15)' : '2nd half (Days 16-31)') . " successfully!");
+            return redirect()->route('attendance', ['period' => $periodStart->format('Y-m-d')])->with('success', $successMessage);
 
         } catch (\Throwable $e) {
             return redirect()->route('attendance')->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 
-    private function buildWideAttendanceRows(array $rowData, Carbon $periodStart): array
+    // ─── CLEAR ALL ATTENDANCE (para sa testing / fresh start) ──────
+    // Binubura ang LAHAT ng attendance records — lahat ng period, lahat ng
+    // source (bio, manual, qr). Kasama ring binubura ang import history
+    // (attendance_imports), dahil kung hindi, mananatiling naka-tala doon
+    // ang mga lumang "imported_at" timestamps na wala nang katumbas na
+    // data — ito ang ginagamit ng Salary page para malaman kung "stale" na
+    // ba ang isang generated payroll.
+    //
+    // Payroll records ay SADYANG HINDI kasama dito — nasa Payroll History
+    // pa rin ang mga naunang generated na payslip, kahit mabura ang
+    // attendance na pinagbatayan nito.
+    public function clearAll(Request $request)
     {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        Attendance::query()->delete();
+        DB::table('attendance_imports')->delete();
+
+        return redirect()->route('attendance')->with('success', 'All attendance records have been cleared.');
+    }
+
+    private function buildWideAttendanceRows(
+        array $rowData,
+        Carbon $periodStart,
+        int $periodDays = 15,
+        ?\Illuminate\Support\Collection $knownNames = null,
+        array &$unmatchedNames = []
+    ): array {
         $name = $rowData['name'] ?? null;
         if (!$name) return [];
+
+        // FIX: use the canonical, Employees-table casing of this name for
+        // everything we save, instead of whatever casing the bio file
+        // happened to use. See the long comment above $knownNames in
+        // importAttendance() for why this matters — without it, a day
+        // encoded via QR/Manual (saved under the Employees-table casing)
+        // and the same person's days from a bio import (saved under
+        // whatever casing the bio device exports) end up as two different
+        // `employee_name` values, which splits them into two separate rows
+        // on the Attendance/Salary pages (both of which group by
+        // `employee_name` as a literal string).
+        $canonicalName = $name;
+
+        // Skip rows for names that aren't a known, active employee —
+        // prevents the bio file from creating a "ghost" attendance record
+        // that Salary/Payroll can't match to a real employee_id/category.
+        // $knownNames being null (not passed) skips this check entirely,
+        // so existing callers/tests that don't pass it keep working.
+        if ($knownNames !== null) {
+            $key = strtolower(trim($name));
+
+            if (!$knownNames->has($key)) {
+                $unmatchedNames[] = $name;
+                return [];
+            }
+
+            $canonicalName = $knownNames->get($key);
+        }
 
         $category = $rowData['category'] ?? 'Staff';
         $rows = [];
 
-        for ($day = 1; $day <= 15; $day++) {
-            $val = trim((string)($rowData[(string)$day] ?? ''));
+        for ($day = 1; $day <= $periodDays; $day++) {
+            // Suporta sa dalawang posibleng header format ng bio export:
+            // "day1", "day2"... o plain "1", "2"... Sinusubukan muna ang
+            // "day{n}", tapos "{n}" bilang fallback, kaya hindi masisira
+            // kahit alin sa dalawa ang gamit ng totoong device, o kahit
+            // magpalit pa sila ng format balang araw.
+            $val = trim((string)($rowData["day{$day}"] ?? $rowData[(string)$day] ?? ''));
             if ($val === '') continue;
 
             $status = null;
@@ -901,7 +1234,7 @@ class AttendanceController extends Controller
             }
 
             $rows[] = [
-                'employee_name' => $name,
+                'employee_name' => $canonicalName,
                 'attendance_date' => $periodStart->copy()->addDays($day - 1)->format('Y-m-d'),
                 'category' => $category,
                 'status' => $status,
