@@ -63,8 +63,11 @@ return array(
     'App\\Observers\\BookingObserver' => $baseDir . '/app/Observers/BookingObserver.php',
     'App\\Providers\\AppServiceProvider' => $baseDir . '/app/Providers/AppServiceProvider.php',
     'App\\Services\\PromoRecommendationService' => $baseDir . '/app/Services/PromoRecommendationService.php',
+<<<<<<< HEAD
     'App\\Support\\BookingCatalog' => $baseDir . '/app/Support/BookingCatalog.php',
     'App\\Support\\BookingPricingOverrides' => $baseDir . '/app/Support/BookingPricingOverrides.php',
+=======
+>>>>>>> aef912c7cdb1469a5ceca0e779a04babd1135b09
     'App\\View\\Components\\AppLayout' => $baseDir . '/app/View/Components/AppLayout.php',
     'App\\View\\Components\\GuestLayout' => $baseDir . '/app/View/Components/GuestLayout.php',
     'App\\View\\Composers\\NotificationComposer' => $baseDir . '/app/View/Composers/NotificationComposer.php',

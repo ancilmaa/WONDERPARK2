@@ -790,8 +790,11 @@ class ComposerStaticInit1fefbbaec8093917018bd3361a44e78b
         'App\\Observers\\BookingObserver' => __DIR__ . '/../..' . '/app/Observers/BookingObserver.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Services\\PromoRecommendationService' => __DIR__ . '/../..' . '/app/Services/PromoRecommendationService.php',
+<<<<<<< HEAD
         'App\\Support\\BookingCatalog' => __DIR__ . '/../..' . '/app/Support/BookingCatalog.php',
         'App\\Support\\BookingPricingOverrides' => __DIR__ . '/../..' . '/app/Support/BookingPricingOverrides.php',
+=======
+>>>>>>> aef912c7cdb1469a5ceca0e779a04babd1135b09
         'App\\View\\Components\\AppLayout' => __DIR__ . '/../..' . '/app/View/Components/AppLayout.php',
         'App\\View\\Components\\GuestLayout' => __DIR__ . '/../..' . '/app/View/Components/GuestLayout.php',
         'App\\View\\Composers\\NotificationComposer' => __DIR__ . '/../..' . '/app/View/Composers/NotificationComposer.php',

@@ -59,6 +59,28 @@
             max-width: 210px;
         }
 
+        /* "Import into: 1st/2nd half" dropdown — tells the import which
+           half-month period the bio file belongs to. Defaults to the
+           period currently shown on the sheet. */
+        .toolbar .period-select {
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: var(--ink-soft);
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            background: var(--bg);
+            cursor: pointer;
+            max-width: 260px;
+        }
+
+        .toolbar .period-select:focus {
+            outline: none;
+            border-color: var(--pink);
+            background: #fff;
+        }
+
         .stats-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -267,6 +289,14 @@
             box-shadow: var(--shadow-sm);
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            /* Scrollable pa rin (mouse wheel, trackpad, swipe) — itinatago
+               lang ang visual na scrollbar mismo. */
+            scrollbar-width: none;       /* Firefox */
+            -ms-overflow-style: none;    /* Old Edge / IE */
+        }
+
+        .table-box::-webkit-scrollbar {
+            display: none;              /* Chrome, Safari, new Edge */
         }
 
         .payroll-header {
@@ -374,6 +404,25 @@
             font-weight: 400;
         }
 
+        /* QR Time In with no Time Out yet — not counted until Time Out */
+        .cell-pending {
+            color: #C98A1F;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: .04em;
+        }
+
+        .cell-pending.src-qr::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #2F6FE0;
+            margin-left: 3px;
+            vertical-align: super;
+        }
+
         .cell-present.src-qr::after,
         .cell-deduction.src-qr::after {
             content: '';
@@ -439,6 +488,30 @@
         .print-btn:hover {
             background: var(--pink-dark);
             box-shadow: 0 0 0 3px var(--pink-light);
+        }
+
+        /* Same shape/font/size as .print-btn — solid filled button,
+           parehong itsura — pero gamit ang isang totoong pula
+           (hindi var(--deduct), dahil pareho pala ito ng pink-deep na
+           ginagamit ng Print sa theme na ito) para talagang
+           makilalang naiiba at destructive ito. */
+        .clear-all-btn {
+            padding: 11px 20px;
+            background: #C62828;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: background .15s ease, box-shadow .15s ease;
+        }
+
+        .clear-all-btn:hover {
+            background: #9E1F1F;
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.18);
         }
 
         #uploadBtn {
@@ -660,7 +733,8 @@
 
         #uploadOverlay,
         #manualEntryOverlay,
-        #qrOverlay {
+        #qrOverlay,
+        #clearAllOverlay {
             display: none;
             position: fixed;
             inset: 0;
@@ -676,7 +750,8 @@
 
         #uploadOverlay.active,
         #manualEntryOverlay.active,
-        #qrOverlay.active {
+        #qrOverlay.active,
+        #clearAllOverlay.active {
             display: flex;
         }
 
@@ -755,44 +830,52 @@
             border-radius: 18px;
             width: 100%;
             max-width: 480px;
-            max-height: calc(100vh - 40px);
+            max-height: calc(100vh - 24px);
             overflow-y: auto;
             box-shadow: var(--shadow-md);
             animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
+            /* Scrollable pa rin (scroll wheel, trackpad, swipe) — itinatago
+               lang ang visual na scrollbar mismo. */
+            scrollbar-width: none;       /* Firefox */
+            -ms-overflow-style: none;    /* Old Edge / IE */
+        }
+
+        .modal-card::-webkit-scrollbar {
+            display: none;              /* Chrome, Safari, new Edge */
         }
 
         .modal-head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 22px 24px 18px;
+            padding: 16px 20px 12px;
             border-bottom: 1px solid var(--line);
         }
 
         .modal-head .eyebrow {
-            font-size: .66rem;
+            font-size: .64rem;
             font-weight: 700;
             color: var(--pink-deep);
             text-transform: uppercase;
             letter-spacing: .09em;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .modal-head h3 {
             font-family: 'Source Serif 4', serif;
-            font-size: 1.1rem;
+            font-size: 1.02rem;
             font-weight: 700;
             color: var(--ink);
         }
 
         .modal-close {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 9px;
             border: none;
             background: var(--bg);
             color: var(--ink-soft);
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             flex-shrink: 0;
             display: flex;
@@ -806,19 +889,19 @@
         }
 
         .modal-body {
-            padding: 22px 24px;
+            padding: 16px 20px;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
+            gap: 10px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .form-group.full {
@@ -826,7 +909,7 @@
         }
 
         .form-group label {
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--ink-soft);
             text-transform: uppercase;
@@ -835,10 +918,10 @@
 
         .form-group input,
         .form-group select {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            font-size: 13.5px;
+            border-radius: 9px;
+            font-size: 13px;
             font-family: 'Inter', sans-serif;
             color: var(--ink);
             background: var(--bg);
@@ -860,7 +943,7 @@
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            padding: 18px 24px 24px;
+            padding: 12px 20px 16px;
         }
 
         #qrCodeBox {
@@ -886,12 +969,12 @@
         }
 
         .chip-btn {
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 999px;
             border: 1px solid var(--line-strong);
             background: var(--bg);
             color: var(--ink-soft);
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 600;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
@@ -910,9 +993,69 @@
         }
 
         .chip-empty {
-            font-size: 11.5px;
+            font-size: 11px;
             color: var(--muted);
-            padding: 6px 2px;
+            padding: 4px 2px;
+        }
+
+        /* Paged + searchable employee chip picker (Manual Entry modal).
+           Typing in the Employee Name field filters this list live, and
+           whatever matches is shown in fixed, compact pages instead of one
+           long scrolling column — same spirit as the table pagination used
+           elsewhere in this app. Kept deliberately compact (small chips,
+           small gaps) so the whole modal fits on screen without needing
+           its own scrollbar in most cases. */
+        .chip-page {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 60px;
+            align-content: flex-start;
+        }
+
+        .chip-pagination {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--line);
+        }
+
+        .chip-pagination.active {
+            display: flex;
+        }
+
+        .chip-pagination-info {
+            font-size: 10.5px;
+            color: var(--muted);
+            margin-right: 4px;
+        }
+
+        .chip-pagination button {
+            min-width: 24px;
+            padding: 4px 7px;
+            border: 1px solid var(--line-strong);
+            background: #fff;
+            color: var(--ink-soft);
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chip-pagination button.active {
+            background: var(--pink-deep);
+            border-color: var(--pink-deep);
+            color: #fff;
+        }
+
+        .chip-pagination button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
         }
 
         @media(max-width:900px) {
@@ -929,6 +1072,11 @@
             }
 
             .toolbar-actions input[type="file"] {
+                max-width: none;
+                width: 100%;
+            }
+
+            .toolbar .period-select {
                 max-width: none;
                 width: 100%;
             }
@@ -1073,11 +1221,13 @@
         $grouped = isset($records) ? $records->groupBy('category') : collect();
         $totalCategories = $grouped->count();
 
+        $days = $periodDays ?? 15;
+
         $totalDaysAll = 0;
         if (isset($records)) {
             foreach ($records as $rec) {
                 $d = 0;
-                for ($i = 1; $i <= 15; $i++) {
+                for ($i = 1; $i <= $days; $i++) {
                     $v = $rec->{'day_' . $i} ?? '';
                     if (isDayPresent($v)) {
                         $d++;
@@ -1093,15 +1243,37 @@
             <div class="eyebrow">Lipa Branch &middot; Bio Attendance</div>
             <h2>Bio Attendance Sheet</h2>
             <p class="sub" style="font-size:12px;color:var(--muted);margin-top:4px;">
-                Showing: <strong>{{ $cutoffType === '1st' ? 'Days 1–15' : 'Days 16–31' }}</strong>
+                Showing: <strong>Days {{ $periodStart->day }}&ndash;{{ $periodEnd->day }}</strong>
                 ({{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }})
             </p>
+            {{-- View a specific half-month. The import dropdown below follows
+                 whichever period is on screen. --}}
+            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">View</span>
+                <select class="period-select" aria-label="View period"
+                    onchange="window.location.href='{{ route('attendance') }}?period=' + encodeURIComponent(this.value)">
+                    @foreach (($periodOptions ?? []) as $opt)
+                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>{{ $opt['label'] }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="toolbar-actions">
             <form id="uploadForm" action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data"
                 style="display:contents;">
                 @csrf
+                {{-- Which half-month period this bio file belongs to. Defaults
+                     to the period currently on screen (where the QR/Manual
+                     entries live), so importing after the cutoff ends no
+                     longer targets the wrong period. --}}
+                <select name="period_start" class="period-select" title="Import into period" aria-label="Import into period">
+                    @foreach (($periodOptions ?? []) as $opt)
+                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>
+                            Import into: {{ $opt['label'] }}
+                        </option>
+                    @endforeach
+                </select>
                 <input type="file" name="import_file" required>
                 <button id="uploadBtn" type="submit">Import Bio File</button>
             </form>
@@ -1112,6 +1284,12 @@
                 <i class="fa-solid fa-qrcode"></i> Show QR Code
             </button>
             <button class="print-btn" onclick="window.print()">Print</button>
+
+            <form id="clearAllForm" action="{{ route('attendance.clear-all') }}" method="POST" style="display:contents;">
+                @csrf
+                @method('DELETE')
+                <button type="button" class="clear-all-btn" id="openClearAllBtn">Clear All</button>
+            </form>
         </div>
     </div>
 
@@ -1157,6 +1335,7 @@
             <span><span class="dot dot-bio"></span> Bio scanner</span>
             <span><span class="dot dot-qr"></span> QR self check-in</span>
             <span><span class="dot dot-manual"></span> Manual entry</span>
+            <span><strong style="color:#C98A1F;">IN</strong> Timed in, waiting for Time Out</span>
         </div>
 
         <table>
@@ -1164,8 +1343,8 @@
                 <tr>
                     <th>NO</th>
                     <th colspan="2" style="text-align:left;padding-left:14px;">Name of Employee</th>
-                    @for ($i = 1; $i <= 15; $i++)
-                        <th class="{{ $i == 5 || $i == 10 ? 'week-end' : '' }}">{{ $i }}</th>
+                    @for ($i = 1; $i <= $days; $i++)
+                        <th class="{{ $i % 5 == 0 && $i != $days ? 'week-end' : '' }}">{{ $i }}</th>
                     @endfor
                     <th>Days Worked</th>
                 </tr>
@@ -1182,7 +1361,7 @@
 
                     @foreach ($grouped as $category => $employees)
                         <tr class="category-row" data-cat-row="{{ strtolower($category) }}">
-                            <td colspan="19">{{ strtoupper($category) }}</td>
+                            <td colspan="{{ $days + 4 }}">{{ strtoupper($category) }}</td>
                         </tr>
 
                         @foreach ($employees as $item)
@@ -1190,7 +1369,7 @@
                                 $daysWorked = 0;
                                 $hasOvertime = false;
                                 $hasLate = false;
-                                for ($i = 1; $i <= 15; $i++) {
+                                for ($i = 1; $i <= $days; $i++) {
                                     $v = $item->{'day_' . $i} ?? '';
                                     if (isDayPresent($v)) {
                                         $daysWorked++;
@@ -1211,17 +1390,19 @@
                                 <td>{{ $no++ }}</td>
                                 <td colspan="2">{{ $item->name }}</td>
 
-                                @for ($i = 1; $i <= 15; $i++)
+                                @for ($i = 1; $i <= $days; $i++)
                                     @php
                                         $val = $item->{'day_' . $i} ?? '';
                                         $src = $item->{'source_' . $i} ?? null;
-                                        $weekEndClass = $i == 5 || $i == 10 ? 'week-end' : '';
+                                        $weekEndClass = $i % 5 == 0 && $i != $days ? 'week-end' : '';
                                         $srcClass = $src === 'qr' ? 'src-qr' : ($src === 'manual' ? 'src-manual' : '');
-                                        $srcTitle = $src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner');
+                                        $srcTitle = $val === 'IN' ? 'Timed in — waiting for Time Out' : ($src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner'));
                                     @endphp
 
                                     <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle }}" @endif>
-                                        @if ($val === 'P' || str_starts_with((string) $val, '+'))
+                                        @if ($val === 'IN')
+                                            <span class="cell-pending src-qr">IN</span>
+                                        @elseif ($val === 'P' || str_starts_with((string) $val, '+'))
                                             <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
                                         @elseif(str_starts_with((string) $val, '-'))
                                             <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
@@ -1238,18 +1419,18 @@
                     @endforeach
 
                     <tr id="noMatchRow" class="no-print" style="display:none;">
-                        <td colspan="19">No employees match your search or filters.</td>
+                        <td colspan="{{ $days + 4 }}">No employees match your search or filters.</td>
                     </tr>
 
                     <tr class="total-row">
-                        <td colspan="18" style="text-align:center;">
+                        <td colspan="{{ $days + 3 }}" style="text-align:center;">
                             TOTAL SALARY FOR {{ strtoupper($latestUpload->branch ?? 'DINO PLAY, THE OUTLET AT LIPA') }}
                         </td>
                         <td>{{ $totalDays }}.00</td>
                     </tr>
                 @else
                     <tr>
-                        <td colspan="19" style="padding:24px;color:var(--muted);">No attendance data found. Please import
+                        <td colspan="{{ $days + 4 }}" style="padding:24px;color:var(--muted);">No attendance data found. Please import
                             a BIO file.</td>
                     </tr>
                 @endif
@@ -1286,8 +1467,6 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="form-hint" style="margin-bottom:16px;">Gamitin ito kung walang kuryente ang bio device —
-                        i-encode base sa physical logbook.</p>
                     <div class="form-grid">
                         <div class="form-group full">
                             <label for="me_category">Category</label>
@@ -1300,12 +1479,28 @@
                         <div class="form-group full">
                             <label for="me_employee_name">Employee name</label>
                             <input type="text" name="employee_name" id="me_employee_name" required
-                                placeholder="Piliin sa listahan sa ibaba o mag-type">
-                            <div id="meEmployeeChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;"></div>
+                                autocomplete="off"
+                                placeholder="Enter employee name">
+                            <div id="meEmployeeChips" class="chip-page" style="margin-top:2px;"></div>
+                            <div id="meEmployeeChipsPagination" class="chip-pagination no-print"></div>
                         </div>
                         <div class="form-group">
-                            <label for="me_attendance_date">Date</label>
-                            <input type="date" name="attendance_date" id="me_attendance_date" required>
+                            <label for="me_attendance_date">Day</label>
+                            @php $meToday = now()->format('Y-m-d'); @endphp
+                            {{-- Pick a DAY of the period on screen instead of a calendar
+                                 date. The option value is still the real date
+                                 (Y-m-d), so the controller receives the same
+                                 `attendance_date` as before. --}}
+                            <select name="attendance_date" id="me_attendance_date" required>
+                                @for ($i = 1; $i <= $days; $i++)
+                                    @php
+                                        $meDate = $periodStart->copy()->addDays($i - 1);
+                                    @endphp
+                                    <option value="{{ $meDate->format('Y-m-d') }}" {{ $meDate->format('Y-m-d') === $meToday ? 'selected' : '' }}>
+                                        Day {{ $i }} ({{ $meDate->format('M j') }})
+                                    </option>
+                                @endfor
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="me_status">Status</label>
@@ -1349,11 +1544,64 @@
                 </button>
             </div>
             <div class="modal-body" style="text-align:center;">
+                <div class="form-group full" style="text-align:left;margin-bottom:14px;">
+                    <label for="qrForDate">This QR is for day</label>
+                    @php
+                        $qrDateValue = $qrDate ?? now()->format('Y-m-d');
+                    @endphp
+                    <select id="qrForDate" name="qr_for_day">
+                        @for ($i = 1; $i <= $days; $i++)
+                            @php
+                                $dayDate = $periodStart->copy()->addDays($i - 1)->format('Y-m-d');
+                                $dayLabel = $periodStart->copy()->addDays($i - 1)->format('M j');
+                            @endphp
+                            <option value="{{ $dayDate }}" {{ $qrDateValue === $dayDate ? 'selected' : '' }}>
+                                Day {{ $i }} ({{ $dayLabel }})
+                            </option>
+                        @endfor
+                    </select>
+                    <p class="form-hint">Every scan using this QR gets recorded under this day — change this
+                        before generating if you need to catch up on an earlier day.</p>
+                </div>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
-                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' }}">
+                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' . ($currentToken ? '?token=' . $currentToken : '') }}">
                     <button type="button" class="btn-ghost" id="copyQrLinkBtn"><i class="fa-solid fa-copy"></i></button>
                 </div>
+                <button type="button" class="btn-ghost" id="regenQrBtn" style="width:100%;margin-top:10px;">
+                    <i class="fa-solid fa-rotate"></i> Generate New QR
+                </button>
+                <p class="form-hint" style="margin-top:8px;">
+                    Gumagawa ito ng bagong QR code at awtomatikong mawawalan ng bisa ang lumang QR (kahit naka-print na ito).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLEAR ALL ATTENDANCE — custom confirm modal (not the native browser confirm()) -->
+    <div id="clearAllOverlay" class="no-print" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clearAllTitle" style="max-width:400px;">
+            <div class="modal-head">
+                <div>
+                    <div class="eyebrow" style="color:#C62828;">Dangerous Action</div>
+                    <h3 id="clearAllTitle">Delete All Attendance?</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeClearAllModal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
+                    This will delete <strong>all</strong> attendance records — every period, every source
+                    (bio, manual, and QR). The import history will be cleared as well. <strong>This cannot be
+                        undone.</strong>
+                </p>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-ghost" id="cancelClearAll">Cancel</button>
+                <button type="button" class="clear-all-btn" id="confirmClearAllBtn">
+                    <i class="fa-solid fa-trash"></i> Yes, delete everything
+                </button>
             </div>
         </div>
     </div>
@@ -1457,21 +1705,51 @@
         const meCategorySelect = document.getElementById('me_category');
         const meEmployeeInput = document.getElementById('me_employee_name');
         const meEmployeeChips = document.getElementById('meEmployeeChips');
+        const meEmployeeChipsPagination = document.getElementById('meEmployeeChipsPagination');
 
         const employeesByCategory = JSON.parse(
             document.getElementById('employeesByCategoryData')?.textContent || '{}'
         );
 
+        // ── Paged + live-searchable employee chip picker ──
+        // Typing in the Employee Name field filters the chip list by
+        // substring match (case-insensitive) — e.g. typing "s" shows only
+        // names that contain an "s". Whatever matches is then paginated in
+        // fixed-size pages, the same way the main Attendance table is
+        // paginated elsewhere in this app.
+        const CHIPS_PAGE_SIZE = 15;
+        let meChipPage = 1;
+
         function renderEmployeeChips() {
             const cat = (meCategorySelect.value || '').toUpperCase();
-            const names = employeesByCategory[cat] || [];
+            const allNames = employeesByCategory[cat] || [];
 
-            if (!names.length) {
-                meEmployeeChips.innerHTML = '<span class="chip-empty">Walang naka-record pang empleyado sa category na ito — mag-type na lang.</span>';
+            if (!allNames.length) {
+                meEmployeeChips.innerHTML = '<span class="chip-empty">No employees recorded yet for this category — just type the name manually.</span>';
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
                 return;
             }
 
-            meEmployeeChips.innerHTML = names.map(n =>
+            const query = (meEmployeeInput.value || '').trim().toLowerCase();
+            const names = query
+                ? allNames.filter(n => n.toLowerCase().includes(query))
+                : allNames;
+
+            if (!names.length) {
+                meEmployeeChips.innerHTML = '<span class="chip-empty">No matching name in the list — you can still type it in manually.</span>';
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.max(1, Math.ceil(names.length / CHIPS_PAGE_SIZE));
+            meChipPage = Math.min(Math.max(meChipPage, 1), totalPages);
+
+            const start = (meChipPage - 1) * CHIPS_PAGE_SIZE;
+            const pageNames = names.slice(start, start + CHIPS_PAGE_SIZE);
+
+            meEmployeeChips.innerHTML = pageNames.map(n =>
                 `<button type="button" class="chip-btn" data-name="${n}">${n}</button>`
             ).join('');
 
@@ -1485,17 +1763,51 @@
                     chipBtn.classList.add('active');
                 });
             });
+
+            renderChipPagination(totalPages);
+        }
+
+        function renderChipPagination(totalPages) {
+            if (totalPages <= 1) {
+                meEmployeeChipsPagination.classList.remove('active');
+                meEmployeeChipsPagination.innerHTML = '';
+                return;
+            }
+
+            meEmployeeChipsPagination.classList.add('active');
+
+            let html = `<span class="chip-pagination-info">Page ${meChipPage} of ${totalPages}</span>`;
+            html += `<button type="button" ${meChipPage === 1 ? 'disabled' : ''} data-chip-page="${meChipPage - 1}">&laquo;</button>`;
+            for (let p = 1; p <= totalPages; p++) {
+                html += `<button type="button" class="${p === meChipPage ? 'active' : ''}" data-chip-page="${p}">${p}</button>`;
+            }
+            html += `<button type="button" ${meChipPage === totalPages ? 'disabled' : ''} data-chip-page="${meChipPage + 1}">&raquo;</button>`;
+
+            meEmployeeChipsPagination.innerHTML = html;
+
+            meEmployeeChipsPagination.querySelectorAll('button[data-chip-page]').forEach(b => {
+                b.addEventListener('click', () => {
+                    meChipPage = parseInt(b.dataset.chipPage, 10);
+                    renderEmployeeChips();
+                });
+            });
         }
 
         meCategorySelect?.addEventListener('change', () => {
             meEmployeeInput.value = '';
+            meChipPage = 1;
+            renderEmployeeChips();
+        });
+
+        // Live filter: every keystroke re-renders the chip list, reset to
+        // page 1 so the person always sees the most relevant matches first.
+        meEmployeeInput?.addEventListener('input', () => {
+            meChipPage = 1;
             renderEmployeeChips();
         });
 
         function openManualEntry() {
-            if (meDateInput && !meDateInput.value) {
-                meDateInput.value = new Date().toISOString().slice(0, 10);
-            }
+            meChipPage = 1;
             renderEmployeeChips();
             manualEntryOverlay.classList.add('active');
             manualEntryOverlay.setAttribute('aria-hidden', 'false');
@@ -1522,22 +1834,24 @@
         const qrCodeBox = document.getElementById('qrCodeBox');
         const qrLinkInput = document.getElementById('qrLinkInput');
         const copyQrLinkBtn = document.getElementById('copyQrLinkBtn');
-        let qrRendered = false;
+        const regenQrBtn = document.getElementById('regenQrBtn');
+        let qrInstance = null;
+        let qrArmed = false;
+        let qrArmTimeout = null;
 
         function openQrModal() {
             qrOverlay.classList.add('active');
             qrOverlay.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
 
-            if (!qrRendered && window.QRCode) {
-                new QRCode(qrCodeBox, {
+            if (!qrInstance && window.QRCode) {
+                qrInstance = new QRCode(qrCodeBox, {
                     text: qrLinkInput.value,
                     width: 220,
                     height: 220,
                     colorDark: '#221A2B',
                     colorLight: '#ffffff',
                 });
-                qrRendered = true;
             }
         }
 
@@ -1559,14 +1873,125 @@
             showToast('Link copied!', 'success', { duration: 1800 });
         });
 
+        // "Generate New QR" — two-tap confirm before it fires, since this
+        // instantly invalidates any old printed QR the moment it succeeds.
+        regenQrBtn?.addEventListener('click', () => {
+            if (!qrArmed) {
+                qrArmed = true;
+                regenQrBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Click again to confirm';
+                clearTimeout(qrArmTimeout);
+                qrArmTimeout = setTimeout(() => {
+                    qrArmed = false;
+                    regenQrBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Generate New QR';
+                }, 4000);
+                return;
+            }
+
+            clearTimeout(qrArmTimeout);
+            qrArmed = false;
+            regenQrBtn.disabled = true;
+            regenQrBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating&hellip;';
+
+            fetch("{{ route('attendance.qr.regenerate') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        || document.querySelector('input[name="_token"]')?.value,
+                },
+                body: JSON.stringify({
+                    for_date: document.getElementById('qrForDate')?.value || null,
+                }),
+            })
+            .then(async (res) => {
+                // Try to read the response as JSON first. If the server
+                // crashed before returning JSON (a 500 error page, a 419
+                // CSRF page, etc.), fall back to reading it as raw text so
+                // the toast can still show something useful instead of a
+                // generic message — this is what actually tells us WHY it
+                // failed instead of just THAT it failed.
+                const raw = await res.text();
+                let data = {};
+                try { data = JSON.parse(raw); } catch (e) { /* not JSON */ }
+
+                if (!res.ok) {
+                    const detail = data.message
+                        || (raw ? raw.replace(/<[^>]*>/g, ' ').trim().slice(0, 160) : '');
+                    throw new Error(`(HTTP ${res.status}) ${detail || 'Failed to generate a new QR code.'}`);
+                }
+
+                qrLinkInput.value = data.url;
+
+                if (qrInstance && qrInstance.makeCode) {
+                    qrInstance.makeCode(data.url);
+                } else if (window.QRCode) {
+                    qrCodeBox.innerHTML = '';
+                    qrInstance = new QRCode(qrCodeBox, {
+                        text: data.url,
+                        width: 220,
+                        height: 220,
+                        colorDark: '#221A2B',
+                        colorLight: '#ffffff',
+                    });
+                }
+
+                showToast(`New QR code generated for ${data.for_date}. Any previously printed QR is now expired.`, 'success', { duration: 3200 });
+            })
+            .catch((err) => {
+                showToast(err.message || 'Something went wrong. Please try again.', 'error', { duration: 6000 });
+            })
+            .finally(() => {
+                regenQrBtn.disabled = false;
+                regenQrBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Generate New QR';
+            });
+        });
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (manualEntryOverlay.classList.contains('active')) closeManualEntry();
                 if (qrOverlay.classList.contains('active')) closeQrModal();
+                if (clearAllOverlay.classList.contains('active')) closeClearAllModal();
             }
         });
 
-        // ===== SEARCH, FILTER & PAGINATION =====
+        // ── Clear All Attendance — custom confirm modal ──
+        const clearAllOverlay = document.getElementById('clearAllOverlay');
+        const openClearAllBtn = document.getElementById('openClearAllBtn');
+        const closeClearAllModalBtn = document.getElementById('closeClearAllModal');
+        const cancelClearAllBtn = document.getElementById('cancelClearAll');
+        const confirmClearAllBtn = document.getElementById('confirmClearAllBtn');
+        const clearAllForm = document.getElementById('clearAllForm');
+
+        function openClearAllModal() {
+            clearAllOverlay.classList.add('active');
+            clearAllOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeClearAllModal() {
+            clearAllOverlay.classList.remove('active');
+            clearAllOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        openClearAllBtn?.addEventListener('click', openClearAllModal);
+        closeClearAllModalBtn?.addEventListener('click', closeClearAllModal);
+        cancelClearAllBtn?.addEventListener('click', closeClearAllModal);
+        clearAllOverlay?.addEventListener('click', (e) => {
+            if (e.target === clearAllOverlay) closeClearAllModal();
+        });
+
+        // Only this click actually submits the form — a plain click on
+        // "Clear All" in the toolbar just opens the modal above, it never
+        // submits by itself.
+        confirmClearAllBtn?.addEventListener('click', () => {
+            confirmClearAllBtn.disabled = true;
+            confirmClearAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting&hellip;';
+            clearAllForm.submit();
+        });
+
+        // ===== SEARCH, FILTER & PAGINATION (main Attendance table) =====
         (function() {
             const searchInput = document.getElementById('employeeSearch');
             const categoryFilter = document.getElementById('categoryFilter');
