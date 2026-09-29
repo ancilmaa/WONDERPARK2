@@ -25,3 +25,5 @@ Thumbs.db
 _ide_helper.php
 _ide_helper.php 
 .phpstorm.meta.php 
+laravel-app/.env
+.env
