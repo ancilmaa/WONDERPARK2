@@ -78,8 +78,14 @@
         body: JSON.stringify({ message: text, history: history }),
       });
 
-      const data = await res.json();
+      let data = null;
+      try { data = await res.json(); } catch (e) { data = null; }
       removeTyping();
+      if (!data || typeof data.reply !== 'string' || !data.reply.trim()) {
+        appendMessage("Sorry, I ran into a glitch. Please try again in a moment.", 'bot');
+        sending = false;
+        return;
+      }
       appendMessage(data.reply, 'bot');
 
       // Don't save failed replies (glitch / busy messages) as if the bot
@@ -90,7 +96,7 @@
       }
     } catch (err) {
       removeTyping();
-      appendMessage("Naku, di ako makaconnect sa server ngayon. Subukan ulit mamaya.", 'bot');
+      appendMessage("Sorry, I can't reach the server right now. Please try again in a moment.", 'bot');
       console.error('Wonder Park chat error:', err);
     } finally {
       sending = false;

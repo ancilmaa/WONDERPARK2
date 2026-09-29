@@ -106,8 +106,18 @@ FORMATTING RULES (important):
   starting price and the pax it starts at, for example "starts at 15,000
   PHP for 10 pax". If you don't have an exact figure for something, say
   so rather than leaving it vague.
-- Answer only the experience the guest asked about, using the latest
-  question — never answer about a different experience.
+- If the guest names an experience (Dino Adventure, RollerFever or Field
+  of Rides), answer only about that experience, using the latest question.
+- If the guest asks a general question that does not name an experience
+  (for example solo or individual passes, the cheapest option, options for
+  kids, or "what do you offer"), cover ALL THREE experiences: one short
+  line per relevant package with its exact price, grouped by experience
+  name. For solo or individual questions, list the per-guest passes of
+  Dino Adventure, RollerFever and Field of Rides, and mention that party
+  packages and group bundles also exist. Never claim something applies to
+  "all experiences" unless you have listed each one.
+- The guest may write in Tagalog, Taglish or another language. Understand
+  it, but always reply in simple English.
 
 Here is what you know about the REKS Amusement booking system:
 
@@ -167,7 +177,7 @@ PROMPT;
         $sessionId = $request->cookie('reks_chat_session') ?: (string) Str::uuid();
 
         $history = $request->input('history', []);
-        $history = array_slice($history, -10);
+        $history = array_slice($history, -6);
 
         $messages = array_merge(
             [['role' => 'system', 'content' => $this->systemPrompt()]],
@@ -180,40 +190,71 @@ PROMPT;
             foreach ($messages as $m) {
                 if (($m['role'] ?? null) === 'system') {
                     continue;
-                                $contents[] = [
+                }
+                $contents[] = [
                     'role' => ($m['role'] ?? 'user') === 'assistant' ? 'model' : 'user',
                     'parts' => [['text' => (string) ($m['content'] ?? '')]],
                 ];
             }
 
             $apiKey = config('services.gemini.key');
+            $model  = config('services.gemini.model', 'gemini-3.8-flash');
+            $fallbackModels = array_values(array_filter(array_map('trim', explode(',', (string) config('services.gemini.fallback_model', 'gemini-3.6-flash')))));
 
-            $geminiCall = function (int $maxTokens) use ($contents, $apiKey) {
+            $geminiCall = function (int $maxTokens, ?array $withContents = null, ?string $useModel = null) use ($contents, $apiKey, $model) {
                 return Http::timeout(45)
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={$apiKey}", [
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/".($useModel ?? $model).":generateContent?key=".$apiKey, [
                         'system_instruction' => [
                             'parts' => [['text' => $this->systemPrompt()]],
                         ],
-                        'contents' => $contents,
+                        'contents' => $withContents ?? $contents,
                         'generationConfig' => [
-                            'temperature' => 0.4,
                             'maxOutputTokens' => $maxTokens,
-                            // This is a short customer-support chatbot — it doesn't need
-                            // chain-of-thought, and thinking tokens were eating the whole
-                            // output budget and leaving the answer blank. Turn it off so
-                            // every token goes to the actual reply.
-                            'thinkingConfig' => ['thinkingBudget' => 0],
+                            // Short support chatbot: keep thinking at the lowest level Gemini 3.x
+                            // allows (MINIMAL/budget 0 is not supported) so tokens go to the reply.
+                            'thinkingConfig' => ['thinkingLevel' => 'low'],
                         ],
                     ]);
             };
 
-            $response = $geminiCall(1500);
+            $response = $geminiCall(2000);
 
-            // A temporary Gemini server error (5xx, e.g. "model overloaded")
-            // usually clears in a second — retry once before showing a glitch.
-            if ($response->serverError()) {
-                usleep(800000);
-                $response = $geminiCall(1500);
+            // Temporary Gemini server problems (5xx "overloaded") usually clear within
+            // a couple of seconds — retry up to 2 more times. 429 (quota) is NOT retried
+            // on the same model, since that only burns more of the limit.
+            for ($i = 1; $i <= 3 && $response->serverError(); $i++) {
+                Log::warning('Wonder Park chat retrying after temporary Gemini error', [
+                    'attempt' => $i,
+                    'status' => $response->status(),
+                ]);
+                usleep($i * 1500000);
+                $response = $geminiCall(2000);
+            }
+
+            // If Gemini rejects the request as malformed (400) while there is chat
+            // history, the history is the likely culprit — retry with only the
+            // latest question so the guest still gets an answer.
+            if ($response->status() === 400 && count($contents) > 1) {
+                Log::warning('Wonder Park chat 400 with history, retrying without history', [
+                    'body' => mb_substr($response->body(), 0, 500),
+                ]);
+                $response = $geminiCall(2000, [end($contents)]);
+            }
+
+            // Still failing because the main model is overloaded / rate-limited /
+            // unavailable? Try each fallback model once so the guest still gets an answer.
+            foreach ($fallbackModels as $fb) {
+                if (!($response->serverError() || in_array($response->status(), [404, 429], true))) {
+                    break;
+                }
+                if ($fb === $model) {
+                    continue;
+                }
+                Log::warning('Wonder Park chat switching to fallback model', [
+                    'to' => $fb,
+                    'status' => $response->status(),
+                ]);
+                $response = $geminiCall(2000, null, $fb);
             }
 
             if ($response->successful()) {
@@ -229,7 +270,7 @@ PROMPT;
                     Log::warning('Wonder Park chat reply hit MAX_TOKENS, retrying with a bigger budget', [
                         'partial_reply' => $response->json('candidates.0.content.parts.0.text'),
                     ]);
-                    $response = $geminiCall(2500);
+                    $response = $geminiCall(3500);
                 } elseif ($finishReason && $finishReason !== 'STOP') {
                     Log::warning('Wonder Park chat reply stopped for a non-STOP reason', [
                         'finish_reason' => $finishReason,
@@ -237,9 +278,6 @@ PROMPT;
                     ]);
                 }
             }
-            Log::info('Wonder Park chat DEBUG', ['status' => $response->status(), 'body' => mb_substr($response->body(), 0, 800)]);
-
-            if ($response->failed()) {
             if ($response->failed()) {
                 $status = $response->status();
                 $errorCode = $response->json('error.status');
@@ -251,14 +289,25 @@ PROMPT;
                 ]);
 
                 if ($status === 429 || $errorCode === 'RESOURCE_EXHAUSTED') {
+                    $busy = "Sorry, the Wonder Park chatbot is a bit busy right now (usage limit reached). Please try again in a bit.";
+                    if (config('app.debug')) {
+                        $busy .= " [debug: " . mb_substr((string) $response->json('error.message'), 0, 300) . "]";
+                    }
                     return response()->json([
-                        'reply' => "Sorry, the Wonder Park chatbot is a bit busy right now (usage limit reached). Please try again in a bit.",
+                        'reply' => $busy,
                         'error' => true,
                     ], 200)->cookie('reks_chat_session', $sessionId, 60 * 24 * 30);
                 }
 
+                $glitch = "Sorry, I ran into a glitch. Please try again in a moment.";
+                if (config('app.debug')) {
+                    // Local debugging only: show the real reason in the chat bubble.
+                    $glitch .= " [debug: HTTP {$status} {$errorCode} - "
+                        . mb_substr((string) $response->json('error.message'), 0, 200) . "]";
+                }
+
                 return response()->json([
-                    'reply' => "Sorry, I ran into a glitch. Please try again in a moment.",
+                    'reply' => $glitch,
                     'error' => true,
                 ], 200)->cookie('reks_chat_session', $sessionId, 60 * 24 * 30);
             }
