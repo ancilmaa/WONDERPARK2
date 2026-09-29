@@ -83,6 +83,12 @@ Route::prefix('app')
         Route::post('/account', [UserDashboardController::class, 'update'])->name('account.update');
         Route::post('/account/two-factor', [UserDashboardController::class, 'toggleTwoFactor'])->name('account.two-factor.toggle');
 
+        // Account password change (request -> email code -> confirm)
+        Route::match(['post', 'put', 'patch'], '/account/password/request', [UserDashboardController::class, 'requestPasswordChange'])->name('account.password.request');
+        Route::match(['post', 'put', 'patch'], '/account/password/resend', [UserDashboardController::class, 'resendPasswordChangeCode'])->name('account.password.resend');
+        Route::match(['post', 'put', 'patch'], '/account/password/confirm', [UserDashboardController::class, 'confirmPasswordChange'])->name('account.password.confirm');
+        Route::match(['post', 'put', 'patch', 'delete'], '/account/password/cancel', [UserDashboardController::class, 'cancelPasswordChange'])->name('account.password.cancel');
+
         Route::get('/waiver', [UserWaiverController::class, 'show'])->name('waiver');
         Route::post('/waiver', [UserWaiverController::class, 'store'])->name('waiver.store');
         Route::get('/bookings/{booking}/waiver', [UserWaiverController::class, 'show'])->name('bookings.waiver');
@@ -216,6 +222,8 @@ Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])-
 Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])->name('attendance.checkin.store');
 Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance'])->name('attendance.store');
 Route::post('/attendance/import', [AttendanceController::class, 'importAttendance'])->name('attendance.import');
+Route::match(['post', 'delete'], '/attendance/clear-all', [AttendanceController::class, 'clearAll'])->name('attendance.clear-all');
+Route::match(['post', 'put', 'patch'], '/attendance/qr/regenerate', [AttendanceController::class, 'regenerateQr'])->name('attendance.qr.regenerate');
 Route::post('/attendance/time-in', [AttendanceController::class, 'timeIn']);
 Route::post('/attendance/time-out', [AttendanceController::class, 'timeOut']);
 

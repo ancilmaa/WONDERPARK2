@@ -99,6 +99,7 @@
             border-radius: 10px;
             padding: 9px 14px;
             min-width: 220px;
+            margin: 0;
         }
 
         .notif-search i {
@@ -117,6 +118,18 @@
 
         .notif-search input::placeholder {
             color: var(--muted);
+        }
+
+        .notif-search-clear {
+            color: var(--muted);
+            font-size: .8rem;
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .notif-search-clear:hover {
+            color: var(--ink);
         }
 
         .notif-iconbtn {
@@ -725,8 +738,15 @@
 @section('content')
 
     @php
-        $hasFilter = $status !== 'all' || $type !== 'all';
+        $search    = $search ?? '';
+        $hasFilter = $status !== 'all' || $type !== 'all' || $search !== '';
         $readCount = max($stats['total'] - $stats['unread'], 0);
+
+        // Base query params preserved across every link (search term included).
+        $q = $search !== '' ? $search : null;
+
+        $statusParam = $status !== 'all' ? $status : null;
+        $typeParam   = $type !== 'all' ? $type : null;
     @endphp
 
     {{-- ===== Top summary strip ===== --}}
@@ -757,13 +777,28 @@
         </div>
 
         <div class="notif-head-right">
-            <div class="notif-search">
+            {{-- Working search: GET form, keeps status + type filters --}}
+            <form class="notif-search" method="GET" action="{{ route('notifications.index') }}" role="search">
+                @if ($statusParam)
+                    <input type="hidden" name="status" value="{{ $statusParam }}">
+                @endif
+                @if ($typeParam)
+                    <input type="hidden" name="type" value="{{ $typeParam }}">
+                @endif
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Search notifications, tickets, &amp; invoices" disabled>
-            </div>
-            <button type="button" class="notif-iconbtn" title="Export" aria-label="Export" disabled>
-                <i class="fa-solid fa-download"></i>
-            </button>
+                <input type="text"
+                       name="q"
+                       value="{{ $search }}"
+                       placeholder="Search notifications"
+                       autocomplete="off"
+                       aria-label="Search notifications">
+                @if ($search !== '')
+                    <a href="{{ route('notifications.index', array_filter(['status' => $statusParam, 'type' => $typeParam])) }}"
+                       class="notif-search-clear" title="Clear search" aria-label="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                @endif
+            </form>
             @if ($stats['unread'] > 0)
                 <form class="notif-markall-form" method="POST" action="{{ route('notifications.mark-all-read') }}">
                     @csrf
@@ -777,22 +812,22 @@
     <div class="notif-toolbar">
         <div class="notif-toolbar-left">
             <div class="notif-segment">
-                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'all'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['type' => $typeParam, 'status' => 'all', 'q' => $q])) }}"
                    class="{{ $status === 'all' ? 'active' : '' }}">All <span class="count">({{ $stats['total'] }})</span></a>
-                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'unread'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['type' => $typeParam, 'status' => 'unread', 'q' => $q])) }}"
                    class="{{ $status === 'unread' ? 'active' : '' }}">Unread <span class="count">{{ $stats['unread'] }}</span></a>
-                <a href="{{ route('notifications.index', array_filter(['type' => $type !== 'all' ? $type : null, 'status' => 'read'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['type' => $typeParam, 'status' => 'read', 'q' => $q])) }}"
                    class="{{ $status === 'read' ? 'active' : '' }}">Read</a>
             </div>
 
             <div class="notif-tabs">
-                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'all'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['status' => $statusParam, 'type' => 'all', 'q' => $q])) }}"
                    class="{{ $type === 'all' ? 'active' : '' }}">All categories</a>
-                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'booking'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['status' => $statusParam, 'type' => 'booking', 'q' => $q])) }}"
                    class="{{ $type === 'booking' ? 'active' : '' }}">Bookings</a>
-                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'inventory'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['status' => $statusParam, 'type' => 'inventory', 'q' => $q])) }}"
                    class="{{ $type === 'inventory' ? 'active' : '' }}">Inventory</a>
-                <a href="{{ route('notifications.index', array_filter(['status' => $status !== 'all' ? $status : null, 'type' => 'pos'])) }}"
+                <a href="{{ route('notifications.index', array_filter(['status' => $statusParam, 'type' => 'pos', 'q' => $q])) }}"
                    class="{{ $type === 'pos' ? 'active' : '' }}">POS</a>
             </div>
         </div>
@@ -843,7 +878,9 @@
             <div class="notif-empty">
                 <i class="fa-solid fa-bell-slash"></i>
                 <span class="notif-empty-text">
-                    @if ($hasFilter)
+                    @if ($search !== '')
+                        No results for "{{ $search }}".
+                    @elseif ($hasFilter)
                         No notifications match these filters.
                     @else
                         No notifications yet.

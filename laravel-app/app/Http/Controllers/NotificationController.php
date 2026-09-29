@@ -12,19 +12,14 @@ class NotificationController extends Controller
 {
     /**
      * Standalone notifications dashboard.
-     * Supports ?status=all|unread|read and ?type=all|booking|inventory|pos
-     *
-     * NOTE: the type values here were updated to match what the app
-     * actually creates now — BookingObserver writes 'booking',
-     * InventoryController writes 'inventory' (covers add/edit/delete/
-     * restock/low-stock/out-of-stock), and PosController writes 'pos'.
-     * The old 'reservation' / 'low_stock' values are no longer produced
-     * anywhere, which is why filtering by them silently matched nothing.
+     * Supports ?status=all|unread|read, ?type=all|booking|inventory|pos
+     * and ?q=search term (matches title or message).
      */
     public function index(Request $request): View
     {
         $status = $request->query('status', 'all');
         $type = $request->query('type', 'all');
+        $search = trim((string) $request->query('q', ''));
 
         $query = Notification::latestFirst();
 
@@ -38,6 +33,16 @@ class NotificationController extends Controller
             $query->where('type', $type);
         }
 
+        if ($search !== '') {
+            // Escape LIKE wildcards so "%" and "_" are searched literally.
+            $like = '%' . addcslashes($search, '\\%_') . '%';
+
+            $query->where(function ($q) use ($like) {
+                $q->where('title', 'like', $like)
+                  ->orWhere('message', 'like', $like);
+            });
+        }
+
         $notifications = $query->paginate(15)->withQueryString();
 
         $stats = [
@@ -48,13 +53,11 @@ class NotificationController extends Controller
             'pos'       => Notification::where('type', 'pos')->count(),
         ];
 
-        return view('notifications.index', compact('notifications', 'stats', 'status', 'type'));
+        return view('notifications.index', compact('notifications', 'stats', 'status', 'type', 'search'));
     }
 
     /**
-     * Mark a single notification as read. Called via fetch() when the
-     * user opens the notification's detail popup (view = read), and
-     * also reachable as a plain form/redirect fallback.
+     * Mark a single notification as read.
      */
     public function markRead(Notification $notification): JsonResponse|RedirectResponse
     {
@@ -68,8 +71,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Mark-all-read. Used by both the sidebar's fetch() call (JSON)
-     * and a plain form submit from the dashboard (redirect back).
+     * Mark-all-read (JSON for sidebar fetch, redirect for form submit).
      */
     public function markAllRead(Request $request): JsonResponse|RedirectResponse
     {
@@ -83,8 +85,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Delete a single notification. Used by the trash-icon button on
-     * the full Notifications page.
+     * Delete a single notification.
      */
     public function destroy(Notification $notification): JsonResponse|RedirectResponse
     {
@@ -98,8 +99,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Bulk mark-as-read for selected notifications from the checkboxes
-     * on the full Notifications page.
+     * Bulk mark-as-read for selected notifications.
      */
     public function bulkMarkRead(Request $request): JsonResponse|RedirectResponse
     {
@@ -118,8 +118,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Bulk-delete selected notifications from the checkboxes on the
-     * full Notifications page ("Select all" + "Delete selected" bar).
+     * Bulk-delete selected notifications.
      */
     public function bulkDestroy(Request $request): JsonResponse|RedirectResponse
     {
@@ -137,28 +136,31 @@ class NotificationController extends Controller
         return back()->with('status', $deleted . ' notification(s) deleted.');
     }
 
-public function poll(Request $request): JsonResponse
-{
-    $notifications = Notification::latestFirst()
-        ->limit(6)
-        ->get()
-        ->map(function (Notification $n) {
-            return [
-                'id'       => $n->id,
-                'title'    => $n->title,
-                'message'  => $n->message,
-                'type'     => $n->type,
-                'url'      => $n->url,
-                'is_read'  => (bool) $n->is_read,
-                'time'     => $n->created_at->diffForHumans(),
-                'read_url' => route('notifications.read', $n->id),
-            ];
-        });
+    /**
+     * Poll endpoint for the sidebar bell dropdown.
+     */
+    public function poll(Request $request): JsonResponse
+    {
+        $notifications = Notification::latestFirst()
+            ->limit(6)
+            ->get()
+            ->map(function (Notification $n) {
+                return [
+                    'id'       => $n->id,
+                    'title'    => $n->title,
+                    'message'  => $n->message,
+                    'type'     => $n->type,
+                    'url'      => $n->url,
+                    'is_read'  => (bool) $n->is_read,
+                    'time'     => $n->created_at->diffForHumans(),
+                    'read_url' => route('notifications.read', $n->id),
+                ];
+            });
 
-    return response()->json([
-        'unread_count' => Notification::unread()->count(),
-        'total_count'  => Notification::count(),
-        'notifications' => $notifications,
-    ]);
-}
+        return response()->json([
+            'unread_count'  => Notification::unread()->count(),
+            'total_count'   => Notification::count(),
+            'notifications' => $notifications,
+        ]);
+    }
 }
