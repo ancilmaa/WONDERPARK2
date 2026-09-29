@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChatLog;
+use App\Support\BookingCatalog;
+use App\Support\BookingPricingOverrides;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -10,13 +12,87 @@ use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
+    /**
+     * Builds the packages / prices / add-ons / inclusions part of the prompt
+     * from the SAME sources the Booking page uses (BookingCatalog + the
+     * prices admins edit in the CMS), so the bot can never quote a stale
+     * or made-up price.
+     */
+    private function catalogText(): string
+    {
+        $services   = BookingCatalog::services();
+        $packages   = BookingPricingOverrides::applyToPackages(BookingCatalog::basePackages());
+        $addons     = BookingPricingOverrides::applyToAddons(BookingCatalog::baseAddons());
+        $inclusions = BookingCatalog::inclusions();
+
+        $peso = fn ($n) => number_format((float) $n) . ' PHP';
+        $out  = [];
+
+        foreach ($services as $serviceKey => $service) {
+            $out[] = strtoupper($service['name']) . ' (' . $service['tagline'] . '):';
+
+            foreach ($packages[$serviceKey] ?? [] as $code => $pkg) {
+                $tiers = $pkg['tiers'] ?? [];
+                if (!$tiers) {
+                    continue;
+                }
+
+                $firstPax   = array_key_first($tiers);
+                $lastPax    = array_key_last($tiers);
+                $firstPrice = $tiers[$firstPax];
+
+                if (($pkg['category'] ?? '') === 'solo') {
+                    // Per-guest passes: 1 guest = X, 2 guests = 2X, ...
+                    $priceText = $peso($firstPrice) . ' per guest (bookable for 1 to ' . $lastPax . ' guests)';
+                } elseif (count($tiers) === 1) {
+                    $priceText = $peso($firstPrice) . ' total for ' . $firstPax . ' guests';
+                } else {
+                    $parts = [];
+                    foreach ($tiers as $pax => $price) {
+                        $parts[] = $pax . ' pax = ' . $peso($price);
+                    }
+                    $priceText = 'starts at ' . $peso($firstPrice) . ' for ' . $firstPax
+                        . ' pax, up to ' . $lastPax . ' pax. Full prices: ' . implode('; ', $parts);
+                }
+
+                $line = '- ' . $pkg['name'] . ' — ' . $pkg['desc'] . '. Price: ' . $priceText . '.';
+
+                $inc = $inclusions[$serviceKey][$code] ?? [];
+                if ($inc) {
+                    $line .= ' Includes: ' . implode('; ', $inc) . '.';
+                }
+
+                $out[] = $line;
+            }
+
+            if (!empty($addons[$serviceKey])) {
+                $parts = [];
+                foreach ($addons[$serviceKey] as $addon) {
+                    $parts[] = $addon['name'] . ' ' . $peso($addon['price']);
+                }
+                $out[] = '- Optional add-ons: ' . implode('; ', $parts) . '.';
+            }
+
+            $out[] = '';
+        }
+
+        return rtrim(implode("\n", $out));
+    }
     private function systemPrompt(): string
     {
+        $catalog = $this->catalogText();
+
         return <<<PROMPT
 You are the "Wonder Park" chatbot, the friendly AI assistant for REKS
 Amusement Park's online booking system. Always answer in clear, simple
 English only — regardless of what language the guest writes in — so every
-visitor can understand you. Keep answers brief (2-4 sentences) and warm.
+visitor can understand you. Keep answers warm and to the point. For general questions use 2-4 sentences.
+But when a guest asks about the price, cost, packages or inclusions of an
+experience (Dino Adventure, RollerFever or Field of Rides), cover EVERY
+package listed for it below — walk-in passes, group bundles and party
+packages alike — with its exact price. Write one short line per package
+(package name, then price), then one closing sentence pointing them to
+the Booking page. Never leave a package out to keep it short.
 
 FORMATTING RULES (important):
 - Never use markdown formatting — no asterisks for bold/italics, no bullet
@@ -24,11 +100,14 @@ FORMATTING RULES (important):
   markdown symbols would show up literally (e.g. the guest would see
   "**Dino Adventure**" with the asterisks still there). Write in plain,
   natural sentences only.
-- Whenever you mention a package, always include its starting price and
-  the pax (guest count) it starts at, the same way you would for any
-  other package — don't describe one package with numbers and another
-  without. If you don't have an exact figure for something, say so rather
-  than leaving it vague.
+- Whenever you mention a package, always include its exact price from the
+  list below. For per-guest passes and per-ride tickets say "per guest"
+  (or "per head") — do NOT say "for 1 pax". For party packages say the
+  starting price and the pax it starts at, for example "starts at 15,000
+  PHP for 10 pax". If you don't have an exact figure for something, say
+  so rather than leaving it vague.
+- Answer only the experience the guest asked about, using the latest
+  question — never answer about a different experience.
 
 Here is what you know about the REKS Amusement booking system:
 
@@ -50,44 +129,13 @@ HOW BOOKING WORKS (step by step, on the Booking page of the website):
 5. Guests can view, cancel, or reschedule their bookings under "My
    Bookings" in the side menu, and manage their profile under "Account".
 
-THE THREE EXPERIENCES AND THEIR PACKAGES:
+THE THREE EXPERIENCES, PACKAGES, PRICES, ADD-ONS AND INCLUSIONS
+(live from the booking system — always quote exactly these figures and
+never guess, round or invent a price, pax count or inclusion; if something
+is not listed here, say you don't have that detail and point the guest to
+the Booking page or the REKS staff):
 
-1. Dino Adventure (Kids Party & Softplay):
-   - Non-Exclusive - Shared Play Area: shared softplay + party area, 1-hr
-     Dino mascot appearance. Starts at 15,000 PHP (10 pax), up to 30 pax.
-   - Exclusive - Private Party (weekdays, Mon-Fri): private use of the
-     whole play area. Starts at 62,000 PHP (40 pax), up to 80 pax.
-   - Exclusive - Private Party (weekends & holidays): same as above but
-     for Sat/Sun/holidays. Starts at 67,000 PHP (40 pax), up to 80 pax.
-   - Walk-in Play Passes (no party, just softplay access per guest):
-     1 Hour from 299 PHP/guest, 2 Hours from 399 PHP/guest, All Day from
-     599 PHP/guest.
-
-2. RollerFever (Skate Rink Parties):
-   - Weekday Rates: skate rink party packages, starts at 11,994 PHP for
-     10 guests, up to 45 guests.
-   - Weekend Rates: same idea for Sat-Sun, starts at 15,600 PHP for 10
-     guests, up to 45 guests.
-   - Walk-in Skate Passes (per guest, no party): 1 Hour from 249 PHP,
-     2 Hours from 399 PHP, All Day from 599 PHP.
-   - Group Bundle (4+1 free, good for barkada/family groups): 1 Hour for
-     996 PHP total (5 guests, 1 free), 2 Hours for 1,596 PHP total.
-
-3. Field of Rides (Amusement Rides & Games) - individual carnival ride
-   tickets, priced per head:
-   - Try Every Ride - All Access Pass: one ride each on every attraction
-     (Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool,
-     Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane,
-     Vikings, Go-Kart) for 600 PHP per head - the best value option.
-   - Individual ride tickets are grouped by price: 60 PHP/head rides
-     (Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool,
-     Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy
-     Plane), 120 PHP/head rides (Vikings, Go-Kart), and 150 PHP/head
-     rides (Inflatable Playground, Mini Trampoline, Rev & Roll, Happy
-     Cars, Jurassic Adventure).
-   - Guests under 4ft must be accompanied by a paying guardian, and
-     riders should be free of motion sickness, heart conditions, or other
-     health restrictions listed at the ticket booth.
+{$catalog}
 
 WHAT YOU KNOW ABOUT AVAILABILITY:
 - You do not have live access to the booking calendar or database, so you
@@ -105,7 +153,7 @@ WHAT YOU CANNOT DO:
   about — let the guest know their concern would be best handled by the
   REKS staff on-site or through the park's official contact channels.
 
-Keep answers short and conversational — this is a chat widget, not an essay.
+Keep answers friendly and conversational — this is a chat widget, not an essay.
 PROMPT;
     }
 
@@ -130,20 +178,19 @@ PROMPT;
         try {
             $contents = [];
             foreach ($messages as $m) {
-                if ($m['role'] === 'system') {
+                if (($m['role'] ?? null) === 'system') {
                     continue;
-                }
-                $contents[] = [
-                    'role' => $m['role'] === 'assistant' ? 'model' : 'user',
-                    'parts' => [['text' => $m['content']]],
+                                $contents[] = [
+                    'role' => ($m['role'] ?? 'user') === 'assistant' ? 'model' : 'user',
+                    'parts' => [['text' => (string) ($m['content'] ?? '')]],
                 ];
             }
 
             $apiKey = config('services.gemini.key');
 
             $geminiCall = function (int $maxTokens) use ($contents, $apiKey) {
-                return Http::timeout(20)
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                return Http::timeout(45)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={$apiKey}", [
                         'system_instruction' => [
                             'parts' => [['text' => $this->systemPrompt()]],
                         ],
@@ -151,11 +198,23 @@ PROMPT;
                         'generationConfig' => [
                             'temperature' => 0.4,
                             'maxOutputTokens' => $maxTokens,
+                            // This is a short customer-support chatbot — it doesn't need
+                            // chain-of-thought, and thinking tokens were eating the whole
+                            // output budget and leaving the answer blank. Turn it off so
+                            // every token goes to the actual reply.
+                            'thinkingConfig' => ['thinkingBudget' => 0],
                         ],
                     ]);
             };
 
-            $response = $geminiCall(500);
+            $response = $geminiCall(1500);
+
+            // A temporary Gemini server error (5xx, e.g. "model overloaded")
+            // usually clears in a second — retry once before showing a glitch.
+            if ($response->serverError()) {
+                usleep(800000);
+                $response = $geminiCall(1500);
+            }
 
             if ($response->successful()) {
                 $finishReason = $response->json('candidates.0.finishReason');
@@ -170,7 +229,7 @@ PROMPT;
                     Log::warning('Wonder Park chat reply hit MAX_TOKENS, retrying with a bigger budget', [
                         'partial_reply' => $response->json('candidates.0.content.parts.0.text'),
                     ]);
-                    $response = $geminiCall(800);
+                    $response = $geminiCall(2500);
                 } elseif ($finishReason && $finishReason !== 'STOP') {
                     Log::warning('Wonder Park chat reply stopped for a non-STOP reason', [
                         'finish_reason' => $finishReason,
@@ -178,7 +237,9 @@ PROMPT;
                     ]);
                 }
             }
+            Log::info('Wonder Park chat DEBUG', ['status' => $response->status(), 'body' => mb_substr($response->body(), 0, 800)]);
 
+            if ($response->failed()) {
             if ($response->failed()) {
                 $status = $response->status();
                 $errorCode = $response->json('error.status');
@@ -202,7 +263,10 @@ PROMPT;
                 ], 200)->cookie('reks_chat_session', $sessionId, 60 * 24 * 30);
             }
 
-            $reply = $response->json('candidates.0.content.parts.0.text', "Sorry, I don't have an answer right now. Please try again?");
+            $replyText = $response->json('candidates.0.content.parts.0.text');
+            $reply = (is_string($replyText) && trim($replyText) !== '')
+                ? $replyText
+                : "Sorry, I don't have an answer right now. Please try again?";
 
             // Safety net: strip any markdown bold/italic symbols the model
             // might still slip in, since the chat bubble renders plain text
