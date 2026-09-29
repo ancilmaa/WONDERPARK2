@@ -353,6 +353,14 @@ class BookingController extends Controller
 
         abort_if(!$bookingModel, 404);
 
+        if (in_array($bookingModel->status, ['done', 'cancelled'])) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', $bookingModel->status === 'done'
+                    ? 'This voucher has already been used and can no longer be rescheduled.'
+                    : 'Cancelled bookings can no longer be rescheduled.');
+        }
+
         $packageLabel = $this->packages[$bookingModel->service][$bookingModel->package]['name'] ?? $bookingModel->package;
 
         return view('user.reschedule', ['booking' => $bookingModel, 'packageLabel' => $packageLabel]);
@@ -372,6 +380,14 @@ class BookingController extends Controller
         $bookingModel = Booking::where('user_id', session('user_id'))->find($booking);
 
         abort_if(!$bookingModel, 404);
+
+        if (in_array($bookingModel->status, ['done', 'cancelled'])) {
+            return redirect()
+                ->route('user.bookings')
+                ->with('error', $bookingModel->status === 'done'
+                    ? 'This voucher has already been used and can no longer be rescheduled.'
+                    : 'Cancelled bookings can no longer be rescheduled.');
+        }
 
         $validated = $request->validate([
             'visit_date' => ['required', 'date'],
