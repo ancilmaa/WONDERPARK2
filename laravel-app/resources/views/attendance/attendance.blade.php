@@ -59,9 +59,6 @@
             max-width: 210px;
         }
 
-        /* "Import into: 1st/2nd half" dropdown — tells the import which
-           half-month period the bio file belongs to. Defaults to the
-           period currently shown on the sheet. */
         .toolbar .period-select {
             font-size: 12px;
             font-family: 'Inter', sans-serif;
@@ -229,10 +226,6 @@
 
         .source-legend .dot-qr {
             background: #2F6FE0;
-        }
-
-        .source-legend .dot-manual {
-            background: #C98A1F;
         }
 
         .pagination {
@@ -435,6 +428,8 @@
             vertical-align: super;
         }
 
+        /* Mga lumang record na galing sa dating Manual Entry —
+           nananatili ang tuldok para makilala pa rin. */
         .cell-present.src-manual::after,
         .cell-deduction.src-manual::after {
             content: '';
@@ -490,11 +485,6 @@
             box-shadow: 0 0 0 3px var(--pink-light);
         }
 
-        /* Same shape/font/size as .print-btn — solid filled button,
-           parehong itsura — pero gamit ang isang totoong pula
-           (hindi var(--deduct), dahil pareho pala ito ng pink-deep na
-           ginagamit ng Print sa theme na ito) para talagang
-           makilalang naiiba at destructive ito. */
         .clear-all-btn {
             padding: 11px 20px;
             background: #C62828;
@@ -732,7 +722,6 @@
         }
 
         #uploadOverlay,
-        #manualEntryOverlay,
         #qrOverlay,
         #clearAllOverlay {
             display: none;
@@ -749,7 +738,6 @@
         }
 
         #uploadOverlay.active,
-        #manualEntryOverlay.active,
         #qrOverlay.active,
         #clearAllOverlay.active {
             display: flex;
@@ -824,7 +812,7 @@
             pointer-events: none;
         }
 
-        /* MANUAL ENTRY / QR MODALS */
+        /* QR / CONFIRM MODALS */
         .modal-card {
             background: #fff;
             border-radius: 18px;
@@ -834,8 +822,6 @@
             overflow-y: auto;
             box-shadow: var(--shadow-md);
             animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
-            /* Scrollable pa rin (scroll wheel, trackpad, swipe) — itinatago
-               lang ang visual na scrollbar mismo. */
             scrollbar-width: none;       /* Firefox */
             -ms-overflow-style: none;    /* Old Edge / IE */
         }
@@ -966,96 +952,6 @@
             font-size: 12px;
             color: var(--ink-soft);
             background: var(--bg);
-        }
-
-        .chip-btn {
-            padding: 5px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--line-strong);
-            background: var(--bg);
-            color: var(--ink-soft);
-            font-size: 11.5px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            transition: .15s;
-        }
-
-        .chip-btn:hover {
-            border-color: var(--pink);
-            background: var(--pink-pale);
-        }
-
-        .chip-btn.active {
-            background: var(--pink-deep);
-            border-color: var(--pink-deep);
-            color: #fff;
-        }
-
-        .chip-empty {
-            font-size: 11px;
-            color: var(--muted);
-            padding: 4px 2px;
-        }
-
-        /* Paged + searchable employee chip picker (Manual Entry modal).
-           Typing in the Employee Name field filters this list live, and
-           whatever matches is shown in fixed, compact pages instead of one
-           long scrolling column — same spirit as the table pagination used
-           elsewhere in this app. Kept deliberately compact (small chips,
-           small gaps) so the whole modal fits on screen without needing
-           its own scrollbar in most cases. */
-        .chip-page {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            min-height: 60px;
-            align-content: flex-start;
-        }
-
-        .chip-pagination {
-            display: none;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 4px;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid var(--line);
-        }
-
-        .chip-pagination.active {
-            display: flex;
-        }
-
-        .chip-pagination-info {
-            font-size: 10.5px;
-            color: var(--muted);
-            margin-right: 4px;
-        }
-
-        .chip-pagination button {
-            min-width: 24px;
-            padding: 4px 7px;
-            border: 1px solid var(--line-strong);
-            background: #fff;
-            color: var(--ink-soft);
-            border-radius: 6px;
-            font-size: 10.5px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .chip-pagination button.active {
-            background: var(--pink-deep);
-            border-color: var(--pink-deep);
-            color: #fff;
-        }
-
-        .chip-pagination button:disabled {
-            opacity: .4;
-            cursor: not-allowed;
         }
 
         @media(max-width:900px) {
@@ -1212,9 +1108,17 @@
         {
             $v = (string) $v;
             if ($v === 'P' || str_starts_with($v, '+')) return true;
-            if ($v === '-' || $v === '') return false;
-            if (str_starts_with($v, '-') && is_numeric(substr($v, 1))) return true;
+            if ($v === '-' || $v === '' || $v === 'IN') return false;
+            // "-15", "-20/+1" (late / late + OT)
+            if (preg_match('/^-\d/', $v)) return true;
+            // "7h", "6.5h", "0h" (short day, hours actually worked)
+            if (preg_match('/^\d+(\.\d+)?h$/i', $v)) return true;
             return false;
+        }
+
+        function isShortHours($v): bool
+        {
+            return (bool) preg_match('/^\d+(\.\d+)?h$/i', (string) $v);
         }
 
         $totalEmployees = isset($records) ? $records->count() : 0;
@@ -1246,8 +1150,8 @@
                 Showing: <strong>Days {{ $periodStart->day }}&ndash;{{ $periodEnd->day }}</strong>
                 ({{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }})
             </p>
-            {{-- View a specific half-month. The import dropdown below follows
-                 whichever period is on screen. --}}
+            {{-- View a specific half-month. The import follows whichever
+                 period is on screen. --}}
             <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
                 <span style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">View</span>
                 <select class="period-select" aria-label="View period"
@@ -1263,23 +1167,12 @@
             <form id="uploadForm" action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data"
                 style="display:contents;">
                 @csrf
-                {{-- Which half-month period this bio file belongs to. Defaults
-                     to the period currently on screen (where the QR/Manual
-                     entries live), so importing after the cutoff ends no
-                     longer targets the wrong period. --}}
-                <select name="period_start" class="period-select" title="Import into period" aria-label="Import into period">
-                    @foreach (($periodOptions ?? []) as $opt)
-                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>
-                            Import into: {{ $opt['label'] }}
-                        </option>
-                    @endforeach
-                </select>
+                {{-- The bio file is imported into whichever period is currently
+                     on screen (change it with the "View" dropdown on the left). --}}
+                <input type="hidden" name="period_start" value="{{ $periodStart->format('Y-m-d') }}">
                 <input type="file" name="import_file" required>
                 <button id="uploadBtn" type="submit">Import Bio File</button>
             </form>
-            <button type="button" class="btn-ghost" id="openManualEntryBtn">
-                <i class="fa-solid fa-pen"></i> Manual Entry
-            </button>
             <button type="button" class="btn-ghost" id="openQrBtn">
                 <i class="fa-solid fa-qrcode"></i> Show QR Code
             </button>
@@ -1322,8 +1215,16 @@
             <input type="text" id="employeeSearch" placeholder="Search employee name&hellip;">
             <select id="categoryFilter">
                 <option value="">All Categories</option>
-                @foreach ($grouped->keys() as $cat)
-                    <option value="{{ strtolower($cat) }}">{{ ucwords(strtolower($cat)) }}</option>
+                @php
+                    // Always list every category, even ones with no records yet.
+                    $filterCats = collect(['Manager', 'Team Leader', 'Staff'])
+                        ->merge($grouped->keys())
+                        ->map(fn($c) => ucwords(strtolower($c)))
+                        ->unique()
+                        ->values();
+                @endphp
+                @foreach ($filterCats as $cat)
+                    <option value="{{ strtolower($cat) }}">{{ $cat }}</option>
                 @endforeach
             </select>
             <button type="button" class="filter-toggle" data-type="late" id="filterLate">Late / Absent</button>
@@ -1334,8 +1235,8 @@
         <div class="source-legend no-print">
             <span><span class="dot dot-bio"></span> Bio scanner</span>
             <span><span class="dot dot-qr"></span> QR self check-in</span>
-            <span><span class="dot dot-manual"></span> Manual entry</span>
             <span><strong style="color:#C98A1F;">IN</strong> Timed in, waiting for Time Out</span>
+            <span>Hover a day to see the actual Time In / Time Out</span>
         </div>
 
         <table>
@@ -1377,7 +1278,7 @@
                                     if (str_starts_with((string) $v, '+')) {
                                         $hasOvertime = true;
                                     }
-                                    if (str_starts_with((string) $v, '-') && $v !== '') {
+                                    if ((str_starts_with((string) $v, '-') && $v !== '') || isShortHours($v)) {
                                         // Covers both a bare "-" (absent) and
                                         // "-15" (late) — both are worth
                                         // flagging under the Late/Absent filter.
@@ -1397,14 +1298,20 @@
                                         $weekEndClass = $i % 5 == 0 && $i != $days ? 'week-end' : '';
                                         $srcClass = $src === 'qr' ? 'src-qr' : ($src === 'manual' ? 'src-manual' : '');
                                         $srcTitle = $val === 'IN' ? 'Timed in — waiting for Time Out' : ($src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner'));
+
+                                        // Actual recorded Time In / Time Out (QR entries
+                                        // have these; bio rows usually don't).
+                                        $tin = $item->{'tin_' . $i} ?? null;
+                                        $tout = $item->{'tout_' . $i} ?? null;
+                                        $timeTxt = $tin ? ' | In: ' . $tin . ' · Out: ' . ($tout ?? '—') : '';
                                     @endphp
 
-                                    <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle }}" @endif>
+                                    <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle . $timeTxt }}" @endif>
                                         @if ($val === 'IN')
                                             <span class="cell-pending src-qr">IN</span>
                                         @elseif ($val === 'P' || str_starts_with((string) $val, '+'))
                                             <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
-                                        @elseif(str_starts_with((string) $val, '-'))
+                                        @elseif(str_starts_with((string) $val, '-') || isShortHours($val))
                                             <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
                                         @else
                                             <span class="cell-rest">&ndash;</span>
@@ -1452,85 +1359,6 @@
         </div>
     </div>
 
-    <!-- MANUAL ENTRY MODAL (for outages — encode from the paper logbook) -->
-    <div id="manualEntryOverlay" class="no-print" aria-hidden="true">
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="manualEntryTitle">
-            <form id="manualEntryForm" method="POST" action="{{ route('attendance.store') }}">
-                @csrf
-                <div class="modal-head">
-                    <div>
-                        <div class="eyebrow">Backup &middot; No Bio / No Signal</div>
-                        <h3 id="manualEntryTitle">Manual Attendance Entry</h3>
-                    </div>
-                    <button type="button" class="modal-close" id="closeManualEntry" aria-label="Close">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group full">
-                            <label for="me_category">Category</label>
-                            <select name="category" id="me_category" required>
-                                <option value="Manager">Manager</option>
-                                <option value="Team Leader">Team Leader</option>
-                                <option value="Staff">Staff</option>
-                            </select>
-                        </div>
-                        <div class="form-group full">
-                            <label for="me_employee_name">Employee name</label>
-                            <input type="text" name="employee_name" id="me_employee_name" required
-                                autocomplete="off"
-                                placeholder="Enter employee name">
-                            <div id="meEmployeeChips" class="chip-page" style="margin-top:2px;"></div>
-                            <div id="meEmployeeChipsPagination" class="chip-pagination no-print"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="me_attendance_date">Day</label>
-                            @php $meToday = now()->format('Y-m-d'); @endphp
-                            {{-- Pick a DAY of the period on screen instead of a calendar
-                                 date. The option value is still the real date
-                                 (Y-m-d), so the controller receives the same
-                                 `attendance_date` as before. --}}
-                            <select name="attendance_date" id="me_attendance_date" required>
-                                @for ($i = 1; $i <= $days; $i++)
-                                    @php
-                                        $meDate = $periodStart->copy()->addDays($i - 1);
-                                    @endphp
-                                    <option value="{{ $meDate->format('Y-m-d') }}" {{ $meDate->format('Y-m-d') === $meToday ? 'selected' : '' }}>
-                                        Day {{ $i }} ({{ $meDate->format('M j') }})
-                                    </option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="me_status">Status</label>
-                            <select name="status" id="me_status" required>
-                                <option value="present">Present</option>
-                                <option value="absent">Absent</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="me_remarks">Remarks (optional)</label>
-                            <input type="text" name="remarks" id="me_remarks" placeholder="e.g. +1.5 or -15">
-                        </div>
-                        <div class="form-group">
-                            <label for="me_time_in">Time In (optional)</label>
-                            <input type="time" name="time_in" id="me_time_in">
-                        </div>
-                        <div class="form-group">
-                            <label for="me_time_out">Time Out (optional)</label>
-                            <input type="time" name="time_out" id="me_time_out">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-foot">
-                    <button type="button" class="btn-ghost" id="cancelManualEntry">Cancel</button>
-                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Save Entry</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- QR CHECK-IN MODAL -->
     <div id="qrOverlay" class="no-print" aria-hidden="true">
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle" style="max-width:380px;">
@@ -1560,12 +1388,12 @@
                             </option>
                         @endfor
                     </select>
-                    <p class="form-hint">Every scan using this QR gets recorded under this day — change this
-                        before generating if you need to catch up on an earlier day.</p>
+                    <p class="form-hint">Normally scans are recorded under today's real date. Choose an earlier
+                        day only to catch up — it stays in effect for 2 hours after you generate the QR.</p>
                 </div>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
-                 <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' . ($currentToken ? '?token=' . $currentToken : '') }}">
+                    <input type="text" id="qrLinkInput" readonly value="{{ request()->getSchemeAndHttpHost() . '/attendance/checkin' . ($currentToken ? '?token=' . $currentToken : '') }}">
                     <button type="button" class="btn-ghost" id="copyQrLinkBtn"><i class="fa-solid fa-copy"></i></button>
                 </div>
                 <button type="button" class="btn-ghost" id="regenQrBtn" style="width:100%;margin-top:10px;">
@@ -1593,7 +1421,7 @@
             <div class="modal-body">
                 <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
                     This will delete <strong>all</strong> attendance records — every period, every source
-                    (bio, manual, and QR). The import history will be cleared as well. <strong>This cannot be
+                    (bio and QR). The import history will be cleared as well. <strong>This cannot be
                         undone.</strong>
                 </p>
             </div>
@@ -1613,8 +1441,6 @@
     @if (session('error'))
         <span id="flash-error" data-msg="{{ session('error') }}" style="display:none;"></span>
     @endif
-
-    <script id="employeesByCategoryData" type="application/json">{!! json_encode($employeesByCategory ?? []) !!}</script>
 
 @endsection
 
@@ -1696,137 +1522,6 @@
         if (successMsg) showToast(successMsg, "success");
         if (errorMsg) showToast(errorMsg, "error");
 
-        // ── Manual Entry modal ──
-        const manualEntryOverlay = document.getElementById('manualEntryOverlay');
-        const openManualEntryBtn = document.getElementById('openManualEntryBtn');
-        const closeManualEntryBtn = document.getElementById('closeManualEntry');
-        const cancelManualEntryBtn = document.getElementById('cancelManualEntry');
-        const meDateInput = document.getElementById('me_attendance_date');
-        const meCategorySelect = document.getElementById('me_category');
-        const meEmployeeInput = document.getElementById('me_employee_name');
-        const meEmployeeChips = document.getElementById('meEmployeeChips');
-        const meEmployeeChipsPagination = document.getElementById('meEmployeeChipsPagination');
-
-        const employeesByCategory = JSON.parse(
-            document.getElementById('employeesByCategoryData')?.textContent || '{}'
-        );
-
-        // ── Paged + live-searchable employee chip picker ──
-        // Typing in the Employee Name field filters the chip list by
-        // substring match (case-insensitive) — e.g. typing "s" shows only
-        // names that contain an "s". Whatever matches is then paginated in
-        // fixed-size pages, the same way the main Attendance table is
-        // paginated elsewhere in this app.
-        const CHIPS_PAGE_SIZE = 15;
-        let meChipPage = 1;
-
-        function renderEmployeeChips() {
-            const cat = (meCategorySelect.value || '').toUpperCase();
-            const allNames = employeesByCategory[cat] || [];
-
-            if (!allNames.length) {
-                meEmployeeChips.innerHTML = '<span class="chip-empty">No employees recorded yet for this category — just type the name manually.</span>';
-                meEmployeeChipsPagination.classList.remove('active');
-                meEmployeeChipsPagination.innerHTML = '';
-                return;
-            }
-
-            const query = (meEmployeeInput.value || '').trim().toLowerCase();
-            const names = query
-                ? allNames.filter(n => n.toLowerCase().includes(query))
-                : allNames;
-
-            if (!names.length) {
-                meEmployeeChips.innerHTML = '<span class="chip-empty">No matching name in the list — you can still type it in manually.</span>';
-                meEmployeeChipsPagination.classList.remove('active');
-                meEmployeeChipsPagination.innerHTML = '';
-                return;
-            }
-
-            const totalPages = Math.max(1, Math.ceil(names.length / CHIPS_PAGE_SIZE));
-            meChipPage = Math.min(Math.max(meChipPage, 1), totalPages);
-
-            const start = (meChipPage - 1) * CHIPS_PAGE_SIZE;
-            const pageNames = names.slice(start, start + CHIPS_PAGE_SIZE);
-
-            meEmployeeChips.innerHTML = pageNames.map(n =>
-                `<button type="button" class="chip-btn" data-name="${n}">${n}</button>`
-            ).join('');
-
-            meEmployeeChips.querySelectorAll('.chip-btn').forEach(chipBtn => {
-                if (chipBtn.dataset.name === meEmployeeInput.value) {
-                    chipBtn.classList.add('active');
-                }
-                chipBtn.addEventListener('click', () => {
-                    meEmployeeInput.value = chipBtn.dataset.name;
-                    meEmployeeChips.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
-                    chipBtn.classList.add('active');
-                });
-            });
-
-            renderChipPagination(totalPages);
-        }
-
-        function renderChipPagination(totalPages) {
-            if (totalPages <= 1) {
-                meEmployeeChipsPagination.classList.remove('active');
-                meEmployeeChipsPagination.innerHTML = '';
-                return;
-            }
-
-            meEmployeeChipsPagination.classList.add('active');
-
-            let html = `<span class="chip-pagination-info">Page ${meChipPage} of ${totalPages}</span>`;
-            html += `<button type="button" ${meChipPage === 1 ? 'disabled' : ''} data-chip-page="${meChipPage - 1}">&laquo;</button>`;
-            for (let p = 1; p <= totalPages; p++) {
-                html += `<button type="button" class="${p === meChipPage ? 'active' : ''}" data-chip-page="${p}">${p}</button>`;
-            }
-            html += `<button type="button" ${meChipPage === totalPages ? 'disabled' : ''} data-chip-page="${meChipPage + 1}">&raquo;</button>`;
-
-            meEmployeeChipsPagination.innerHTML = html;
-
-            meEmployeeChipsPagination.querySelectorAll('button[data-chip-page]').forEach(b => {
-                b.addEventListener('click', () => {
-                    meChipPage = parseInt(b.dataset.chipPage, 10);
-                    renderEmployeeChips();
-                });
-            });
-        }
-
-        meCategorySelect?.addEventListener('change', () => {
-            meEmployeeInput.value = '';
-            meChipPage = 1;
-            renderEmployeeChips();
-        });
-
-        // Live filter: every keystroke re-renders the chip list, reset to
-        // page 1 so the person always sees the most relevant matches first.
-        meEmployeeInput?.addEventListener('input', () => {
-            meChipPage = 1;
-            renderEmployeeChips();
-        });
-
-        function openManualEntry() {
-            meChipPage = 1;
-            renderEmployeeChips();
-            manualEntryOverlay.classList.add('active');
-            manualEntryOverlay.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeManualEntry() {
-            manualEntryOverlay.classList.remove('active');
-            manualEntryOverlay.setAttribute('aria-hidden', 'true');
-            document.body.style.overflow = '';
-        }
-
-        openManualEntryBtn?.addEventListener('click', openManualEntry);
-        closeManualEntryBtn?.addEventListener('click', closeManualEntry);
-        cancelManualEntryBtn?.addEventListener('click', closeManualEntry);
-        manualEntryOverlay?.addEventListener('click', (e) => {
-            if (e.target === manualEntryOverlay) closeManualEntry();
-        });
-
         // ── QR Code modal ──
         const qrOverlay = document.getElementById('qrOverlay');
         const openQrBtn = document.getElementById('openQrBtn');
@@ -1905,12 +1600,8 @@
                 }),
             })
             .then(async (res) => {
-                // Try to read the response as JSON first. If the server
-                // crashed before returning JSON (a 500 error page, a 419
-                // CSRF page, etc.), fall back to reading it as raw text so
-                // the toast can still show something useful instead of a
-                // generic message — this is what actually tells us WHY it
-                // failed instead of just THAT it failed.
+                // Read as text first, so a server crash (500 page, 419 CSRF
+                // page, etc.) still shows something useful in the toast.
                 const raw = await res.text();
                 let data = {};
                 try { data = JSON.parse(raw); } catch (e) { /* not JSON */ }
@@ -1949,7 +1640,6 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (manualEntryOverlay.classList.contains('active')) closeManualEntry();
                 if (qrOverlay.classList.contains('active')) closeQrModal();
                 if (clearAllOverlay.classList.contains('active')) closeClearAllModal();
             }
@@ -1983,8 +1673,7 @@
         });
 
         // Only this click actually submits the form — a plain click on
-        // "Clear All" in the toolbar just opens the modal above, it never
-        // submits by itself.
+        // "Clear All" in the toolbar just opens the modal above.
         confirmClearAllBtn?.addEventListener('click', () => {
             confirmClearAllBtn.disabled = true;
             confirmClearAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting&hellip;';
@@ -1998,27 +1687,37 @@
             const lateToggle = document.getElementById('filterLate');
             const otToggle = document.getElementById('filterOvertime');
             const clearBtn = document.getElementById('filterClear');
-            const noMatchRow = document.getElementById('noMatchRow');
+            let noMatchRow = document.getElementById('noMatchRow');
             const paginationEl = document.getElementById('pagination');
-            const tbody = document.querySelector('.table-box table tbody');
+            let tbody = document.querySelector('.table-box table tbody');
             if (!tbody) return;
 
             const PAGE_SIZE = 10;
             let currentPage = 1;
 
-            const groups = [];
-            let current = null;
-            Array.from(tbody.children).forEach(function(tr) {
-                if (tr.classList.contains('category-row')) {
-                    current = {
-                        catRow: tr,
-                        rows: []
-                    };
-                    groups.push(current);
-                } else if (current && tr.dataset.name !== undefined) {
-                    current.rows.push(tr);
-                }
-            });
+            let groups = [];
+
+            // Ginagawa ulit tuwing napapalitan ang table (live update).
+            function rebuildGroups() {
+                tbody = document.querySelector('.table-box table tbody');
+                noMatchRow = document.getElementById('noMatchRow');
+                groups = [];
+                if (!tbody) return;
+
+                let current = null;
+                Array.from(tbody.children).forEach(function(tr) {
+                    if (tr.classList.contains('category-row')) {
+                        current = {
+                            catRow: tr,
+                            rows: []
+                        };
+                        groups.push(current);
+                    } else if (current && tr.dataset.name !== undefined) {
+                        current.rows.push(tr);
+                    }
+                });
+            }
+            rebuildGroups();
 
             function getMatches() {
                 const q = (searchInput.value || '').trim().toLowerCase();
@@ -2104,7 +1803,92 @@
                 applyFilters();
             });
 
+            // Tinatawag ng live update pagkatapos mapalitan ang table.
+            // Nananatili ang search, filters at page number.
+            window.attendanceRefresh = function() {
+                rebuildGroups();
+                render();
+            };
+
             render();
+        })();
+
+        // ===== LIVE UPDATE: kusang nag-a-update ang sheet kapag may nag-Time In / Time Out =====
+        (function() {
+            const SIG_URL = "{{ route('attendance.live') }}?period={{ $periodStart->format('Y-m-d') }}";
+            const PAGE_URL = "{{ route('attendance') }}?period={{ $periodStart->format('Y-m-d') }}";
+            const POLL_MS = 5000;
+
+            let lastSig = null;
+            let busy = false;
+
+            async function refreshSheet() {
+                const res = await fetch(PAGE_URL, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    cache: 'no-store',
+                });
+                if (!res.ok) return false;
+
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                const newTable = doc.querySelector('.table-box table');
+                const oldTable = document.querySelector('.table-box table');
+                if (newTable && oldTable) {
+                    oldTable.parentNode.replaceChild(document.importNode(newTable, true), oldTable);
+                }
+
+                const newStats = doc.querySelector('.stats-row');
+                const oldStats = document.querySelector('.stats-row');
+                if (newStats && oldStats) {
+                    oldStats.innerHTML = newStats.innerHTML;
+                }
+
+                if (window.attendanceRefresh) window.attendanceRefresh();
+                return true;
+            }
+
+            async function check() {
+                if (document.hidden || busy) return;
+                busy = true;
+
+                try {
+                    const res = await fetch(SIG_URL, {
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-store',
+                    });
+                    if (!res.ok) return;
+
+                    const data = await res.json();
+
+                    // Unang tawag: itala lang ang kasalukuyang estado.
+                    if (lastSig === null) {
+                        lastSig = data.sig;
+                        return;
+                    }
+
+                    if (data.sig !== lastSig) {
+                        const ok = await refreshSheet();
+                        if (ok) {
+                            lastSig = data.sig;
+                            showToast('May bagong attendance. Na-update na ang sheet.', 'success', {
+                                title: 'Live update',
+                                duration: 2500
+                            });
+                        }
+                    }
+                } catch (e) {
+                    // Walang internet sandali o nag-restart ang server; subukan ulit sa susunod.
+                } finally {
+                    busy = false;
+                }
+            }
+
+            setInterval(check, POLL_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) check();
+            });
+            check();
         })();
     </script>
 @endpush

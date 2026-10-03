@@ -306,7 +306,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 900px;
+            min-width: 960px;
             font-variant-numeric: tabular-nums;
         }
 
@@ -786,6 +786,8 @@
                         <th>PhilHealth</th>
                         <th>Pag-IBIG</th>
                         <th>W/Tax</th>
+                        <th>Late</th>
+                        <th>Undertime</th>
                         <th>Deductions</th>
                         <th>Net Salary</th>
                         <th>Payslip</th>
@@ -795,7 +797,7 @@
                     @php $idx = 0; @endphp
                     @forelse($grouped as $category => $group)
                         <tr class="category-row">
-                            <td colspan="10">{{ $category }}</td>
+                            <td colspan="12">{{ $category }}</td>
                         </tr>
                         @foreach ($group as $item)
                             @php
@@ -803,8 +805,13 @@
                                 $daysWorked = $item->days_worked ?? 0;
                                 $dailyRate = $rates->get(strtolower(str_replace([' ', '-'], '_', $category)))?->daily_rate ?? 0;
                                 $basicPay = $sal ? $sal->basic_salary : $daysWorked * $dailyRate;
+                                // Deductions = everything that reduces net pay, including the
+                                // two attendance-related ones shown in their own columns below
+                                // (Late and Undertime — see AttendanceController for why these
+                                // are priced differently and no longer lumped into one number).
                                 $totalDeductions = $sal
                                     ? $sal->deduction +
+                                        ($sal->undertime_deduction ?? 0) +
                                         $sal->sss_deduction +
                                         $sal->philhealth_deduction +
                                         $sal->pagibig_deduction +
@@ -827,6 +834,14 @@
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
                                     {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
                                 </td>
+                                <td class="{{ $sal && $sal->deduction > 0 ? 'deduction' : 'muted' }}"
+                                    title="Naka-shift, dumating pagkatapos ng grace period">
+                                    {{ '₱' . number_format($sal?->deduction ?? 0, 2) }}
+                                </td>
+                                <td class="{{ $sal && ($sal->undertime_deduction ?? 0) > 0 ? 'deduction' : 'muted' }}"
+                                    title="Hindi kumpleto ang shift (hal. walang shift na naka-assign pa)">
+                                    {{ '₱' . number_format($sal?->undertime_deduction ?? 0, 2) }}
+                                </td>
                                 <td class="{{ $sal ? 'deduction' : 'muted' }}">
                                     {{ '₱' . number_format($totalDeductions, 2) }}
                                 </td>
@@ -847,7 +862,7 @@
                         @endforeach
                     @empty
                         <tr>
-                            <td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">
+                            <td colspan="12" style="text-align:center;padding:24px;color:var(--muted);">
                                 No records yet. Please import a Bio file first.
                             </td>
                         </tr>
@@ -868,6 +883,7 @@
                         $basicPay = $sal ? $sal->basic_salary : $daysWorked * $dailyRate;
                         $totalDeductions = $sal
                             ? $sal->deduction +
+                                ($sal->undertime_deduction ?? 0) +
                                 $sal->sss_deduction +
                                 $sal->philhealth_deduction +
                                 $sal->pagibig_deduction +
@@ -907,6 +923,18 @@
                                 <div class="scg-label">Withholding tax</div>
                                 <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
                                     {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="scg-label">Late</div>
+                                <div class="scg-val {{ $sal && $sal->deduction > 0 ? 'is-deduct' : 'is-muted' }}">
+                                    {{ '₱' . number_format($sal?->deduction ?? 0, 2) }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="scg-label">Undertime</div>
+                                <div class="scg-val {{ $sal && ($sal->undertime_deduction ?? 0) > 0 ? 'is-deduct' : 'is-muted' }}">
+                                    {{ '₱' . number_format($sal?->undertime_deduction ?? 0, 2) }}
                                 </div>
                             </div>
                             <div>

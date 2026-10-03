@@ -31,6 +31,15 @@
     use App\Http\Controllers\User\BookingController;
     use App\Http\Controllers\EmployeeController;
 
+Route::patch('/reservations/{reservation}/status', [ReservationController::class, 'updateStatus'])
+    ->name('reservations.status');
+Route::delete('/payroll-history/bulk-delete', [AttendanceController::class, 'bulkDeleteBatches'])
+    ->name('payroll-history.bulkDelete');
+
+Route::delete('/payroll-history/{batch}', [AttendanceController::class, 'deleteBatch'])
+    ->name('payroll-history.delete-batch');
+
+    Route::get('/attendance/live', [AttendanceController::class, 'liveSignature'])->name('attendance.live');
 Route::delete('/attendance/clear-all', [AttendanceController::class, 'clearAll'])->name('attendance.clear-all');
 
     Route::post('/attendance/qr/regenerate', [AttendanceController::class, 'regenerateQr'])

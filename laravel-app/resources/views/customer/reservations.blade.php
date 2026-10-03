@@ -177,7 +177,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 760px;
+            min-width: 860px;
             font-size: 13px;
         }
 
@@ -260,6 +260,15 @@
             color: var(--cancelled);
         }
 
+        /* "Done" = voucher already used at the cashier */
+        .badge-done {
+            background: var(--paid-soft);
+            color: var(--paid);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         /* STATUS DROPDOWN (inline-editable, styled like a badge) */
         .status-form {
             display: inline-block;
@@ -288,11 +297,17 @@
             box-shadow: 0 0 0 3px var(--pink-light);
         }
 
+        .status-select:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
         .status-select[data-status="pending"] {
             background-color: var(--pending-soft);
             color: var(--pending);
         }
 
+        .status-select[data-status="approved"],
         .status-select[data-status="confirmed"] {
             background-color: var(--confirmed-soft);
             color: var(--confirmed);
@@ -303,9 +318,19 @@
             color: var(--paid);
         }
 
+        .status-select[data-status="rejected"],
         .status-select[data-status="cancelled"] {
             background-color: var(--cancelled-soft);
             color: var(--cancelled);
+        }
+
+        .reject-reason {
+            margin-top: 5px;
+            font-size: 10.5px;
+            line-height: 1.35;
+            color: var(--cancelled);
+            max-width: 170px;
+            font-weight: 500;
         }
 
         .action-buttons {
@@ -476,6 +501,28 @@
             box-shadow: 0 0 0 3px var(--pink-light);
         }
 
+        .btn-danger {
+            padding: 11px 20px;
+            background: var(--cancelled);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: background .15s ease, box-shadow .15s ease;
+        }
+
+        .btn-danger:hover {
+            background: var(--pink-deep);
+            box-shadow: 0 0 0 3px var(--pink-light);
+        }
+
         .btn-ghost {
             padding: 11px 18px;
             background: #fff;
@@ -495,11 +542,12 @@
             border-color: var(--pink);
         }
 
-        /* ===== MODALS (New / Edit Reservation, Voucher, Receipt) ===== */
+        /* ===== MODALS (New / Edit Reservation, Voucher, Receipt, Reject) ===== */
         #reservationOverlay,
         #editReservationOverlay,
         #confirmOverlay,
         #receiptOverlay,
+        #rejectOverlay,
         #voucherOverlay {
             display: none;
             position: fixed;
@@ -518,6 +566,7 @@
         #editReservationOverlay.active,
         #confirmOverlay.active,
         #receiptOverlay.active,
+        #rejectOverlay.active,
         #voucherOverlay.active {
             display: flex;
         }
@@ -663,6 +712,87 @@
                 opacity: 1;
                 transform: scale(1) translateY(0);
             }
+        }
+
+        /* ===== REJECT REASON MODAL ===== */
+        .reason-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .reason-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            background: var(--bg);
+            font-size: 13px;
+            color: var(--ink);
+            font-weight: 500;
+            cursor: pointer;
+            transition: .15s;
+        }
+
+        .reason-option:hover {
+            border-color: var(--cancelled);
+            background: var(--cancelled-soft);
+        }
+
+        .reason-option input {
+            accent-color: var(--cancelled);
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .reason-option:has(input:checked) {
+            border-color: var(--cancelled);
+            background: var(--cancelled-soft);
+            color: var(--cancelled);
+            font-weight: 600;
+        }
+
+        #rejectNoteWrap {
+            display: none;
+            margin-top: 12px;
+        }
+
+        #rejectNoteWrap.show {
+            display: block;
+        }
+
+        #rejectNoteWrap textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        #rejectNoteWrap textarea:focus {
+            outline: none;
+            border-color: var(--pink);
+            background: #fff;
+        }
+
+        .reject-error {
+            display: none;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--cancelled);
+            font-weight: 600;
+        }
+
+        .reject-error.show {
+            display: block;
         }
 
         /* ===== VOUCHER MODAL ===== */
@@ -1014,7 +1144,7 @@
             }
 
             table {
-                min-width: 680px;
+                min-width: 760px;
                 font-size: 12px;
             }
 
@@ -1047,6 +1177,17 @@
             'rollerfever'    => 'RollerFever',
             'field_of_rides' => 'Field of Rides',
         ];
+
+        // Mga rason kung bakit nirereject ang isang reservation.
+        // Ito rin ang makikita ng customer sa side nila.
+        $rejectReasons = [
+            'Invalid or unclear payment receipt',
+            'Incorrect payment amount',
+            'Selected date/time is fully booked',
+            'Selected package is not available',
+            'Incomplete or incorrect booking details',
+            'Others',
+        ];
     @endphp
 
     <!-- TOOLBAR -->
@@ -1077,6 +1218,14 @@
             <option value="Field of Rides">Field of Rides</option>
         </select>
 
+        <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="done">Done</option>
+        </select>
+
         <button type="button" class="filter-clear" id="clearFiltersBtn">
             <i class="fa-solid fa-arrow-rotate-left"></i> Clear
         </button>
@@ -1103,6 +1252,7 @@
                     <th>Package</th>
                     <th>Pax</th>
                     <th>Payment</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -1118,12 +1268,30 @@
                             <td data-label="Package">{{ $row['package'] }}</td>
                             <td data-label="Pax">{{ $row['pax'] }}</td>
                             <td data-label="Payment">&mdash;</td>
+                            <td data-label="Status">&mdash;</td>
                             <td data-label="Actions">&mdash;</td>
                         </tr>
                     @endforeach
                 @else
                     @foreach ($bookings as $booking)
+                        @php
+                            // pending | approved | rejected  (galing sa admin)
+                            $approval = $booking->approval_status ?? 'pending';
+
+                            // DONE = nagamit na ang voucher sa cashier.
+                            // ⚠️ Palitan lang itong isang condition kung iba ang pangalan
+                            // ng column/relationship na ginagamit ng cashier mo
+                            // (hal. $booking->voucher?->used_at, $booking->is_used, etc.)
+                            $isDone = !empty($booking->voucher_used_at)
+                                || ($booking->voucher_status ?? null) === 'used';
+
+                            // ito ang ginagamit ng filter at ng auto-refresh
+                            $statusKey = $isDone ? 'done' : $approval;
+                        @endphp
                         <tr class="clickable-row"
+                            data-id="{{ $booking->id }}"
+                            data-status-key="{{ $statusKey }}"
+                            data-sig="{{ $booking->id }}-{{ $booking->updated_at?->timestamp }}-{{ $statusKey }}"
                             data-voucher="{{ $booking->voucher_code ?? '' }}"
                             data-customer="{{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}"
                             data-package="{{ $booking->package }}"
@@ -1146,6 +1314,30 @@
                                     <span class="badge" style="background:var(--pending-soft);color:var(--pending);">Cash</span>
                                 @else
                                     <span style="color:var(--muted);font-size:12px;">&mdash;</span>
+                                @endif
+                            </td>
+                            <td data-label="Status">
+                                @if ($isDone)
+                                    <span class="badge badge-done" title="Nagamit na ang voucher sa cashier">
+                                        <i class="fa-solid fa-check-double"></i> Done
+                                    </span>
+                                @else
+                                    <div>
+                                        <select class="status-select"
+                                            data-status="{{ $approval }}"
+                                            data-current="{{ $approval }}"
+                                            data-id="{{ $booking->id }}"
+                                            aria-label="Reservation status">
+                                            <option value="pending" disabled @selected($approval === 'pending')>Pending</option>
+                                            <option value="approved" @selected($approval === 'approved')>Approved</option>
+                                            <option value="rejected" @selected($approval === 'rejected')>Rejected</option>
+                                        </select>
+                                        @if ($approval === 'rejected' && ($booking->reject_reason ?? null))
+                                            <div class="reject-reason">
+                                                {{ $booking->reject_reason }}@if ($booking->reject_note): {{ $booking->reject_note }}@endif
+                                            </div>
+                                        @endif
+                                    </div>
                                 @endif
                             </td>
                             <td data-label="Actions">
@@ -1186,6 +1378,57 @@
         </table>
 
         <div class="pagination no-print" id="pagination"></div>
+    </div>
+
+    <!-- HIDDEN FORM: APPROVE (nagsa-submit kapag pinili ang "Approved") -->
+    <form id="approveForm" method="POST" style="display:none;">
+        @csrf
+        @method('PATCH')
+        <input type="hidden" name="status" value="approved">
+    </form>
+
+    <!-- REJECT REASON MODAL -->
+    <div id="rejectOverlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle"
+            style="max-width:460px;">
+            <form id="rejectForm" method="POST">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="status" value="rejected">
+                <div class="modal-head">
+                    <div>
+                        <div class="eyebrow">Reject Reservation</div>
+                        <h3 id="rejectModalTitle">Bakit nireject?</h3>
+                    </div>
+                    <button type="button" class="modal-close" id="closeRejectModal" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-hint" style="margin-bottom:12px;">
+                        Makikita ng customer ang rason na pipiliin mo.
+                    </div>
+                    <div class="reason-list">
+                        @foreach ($rejectReasons as $reason)
+                            <label class="reason-option">
+                                <input type="radio" name="reject_reason" value="{{ $reason }}">
+                                <span>{{ $reason }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <div id="rejectNoteWrap">
+                        <textarea name="reject_note" id="rejectNote" placeholder="I-type ang rason..."></textarea>
+                    </div>
+                    <div class="reject-error" id="rejectError">Pumili muna ng rason.</div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-ghost" id="cancelRejectModal">Cancel</button>
+                    <button type="submit" class="btn-danger" id="confirmRejectBtn">
+                        <i class="fa-solid fa-ban"></i> Reject Reservation
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- NEW RESERVATION MODAL -->
@@ -1448,6 +1691,8 @@
             @if (old('_method') === 'PUT')
                 // an edit was in flight — nothing to prefill without the original booking id,
                 // so just leave the page as-is; the flash error toast below still shows.
+            @elseif (old('_method') === 'PATCH')
+                // status update failed — the error toast below is enough.
             @else
                 openReservationModal();
             @endif
@@ -1475,6 +1720,99 @@
         closeReceiptModalBtn?.addEventListener('click', closeReceiptModal);
         receiptOverlay?.addEventListener('click', (e) => {
             if (e.target === receiptOverlay) closeReceiptModal();
+        });
+
+        // ── Status: Approve / Reject ──
+        const approveForm = document.getElementById('approveForm');
+        const rejectOverlay = document.getElementById('rejectOverlay');
+        const rejectForm = document.getElementById('rejectForm');
+        const rejectNoteWrap = document.getElementById('rejectNoteWrap');
+        const rejectNote = document.getElementById('rejectNote');
+        const rejectError = document.getElementById('rejectError');
+        let pendingStatusSelect = null; // ang <select> na kasalukuyang nire-reject
+
+        function statusUrl(id) {
+            return `/reservations/${id}/status`;
+        }
+
+        function revertSelect(sel) {
+            if (!sel) return;
+            sel.value = sel.dataset.current;
+            sel.dataset.status = sel.dataset.current;
+        }
+
+        function openRejectModal(sel) {
+            pendingStatusSelect = sel;
+            rejectForm.action = statusUrl(sel.dataset.id);
+            rejectForm.querySelectorAll('input[name="reject_reason"]').forEach(r => r.checked = false);
+            rejectNote.value = '';
+            rejectNoteWrap.classList.remove('show');
+            rejectError.classList.remove('show');
+
+            rejectOverlay.classList.add('active');
+            rejectOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRejectModal(revert = true) {
+            rejectOverlay.classList.remove('active');
+            rejectOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            if (revert) revertSelect(pendingStatusSelect);
+            pendingStatusSelect = null;
+        }
+
+        document.getElementById('closeRejectModal')?.addEventListener('click', () => closeRejectModal());
+        document.getElementById('cancelRejectModal')?.addEventListener('click', () => closeRejectModal());
+        rejectOverlay?.addEventListener('click', (e) => {
+            if (e.target === rejectOverlay) closeRejectModal();
+        });
+
+        // kapag "Others" ang pinili, lalabas ang textbox
+        rejectForm?.addEventListener('change', (e) => {
+            if (e.target.name !== 'reject_reason') return;
+            const isOthers = e.target.value === 'Others';
+            rejectNoteWrap.classList.toggle('show', isOthers);
+            rejectError.classList.remove('show');
+            if (isOthers) rejectNote.focus();
+        });
+
+        rejectForm?.addEventListener('submit', (e) => {
+            const chosen = rejectForm.querySelector('input[name="reject_reason"]:checked');
+            if (!chosen) {
+                e.preventDefault();
+                rejectError.textContent = 'Pumili muna ng rason.';
+                rejectError.classList.add('show');
+                return;
+            }
+            if (chosen.value === 'Others' && !rejectNote.value.trim()) {
+                e.preventDefault();
+                rejectError.textContent = 'I-type ang rason kapag "Others".';
+                rejectError.classList.add('show');
+                rejectNote.focus();
+                return;
+            }
+            const btn = document.getElementById('confirmRejectBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            window.__submittingForm = true;
+        });
+
+        // pagpili sa dropdown ng status (delegated, gumagana kahit hidden/grouped ang row)
+        document.querySelector('.table-box table tbody')?.addEventListener('change', (e) => {
+            const sel = e.target.closest('select.status-select');
+            if (!sel) return;
+
+            sel.dataset.status = sel.value; // para agad magbago ang kulay
+
+            if (sel.value === 'approved') {
+                sel.disabled = true;
+                approveForm.action = statusUrl(sel.dataset.id);
+                window.__submittingForm = true;
+                approveForm.submit();
+            } else if (sel.value === 'rejected') {
+                openRejectModal(sel);
+            }
         });
 
         // ── Custom delete confirmation modal ──
@@ -1512,6 +1850,7 @@
             if (pendingDeleteForm) {
                 confirmOkBtn.disabled = true;
                 confirmOkBtn.textContent = 'Deleting...';
+                window.__submittingForm = true;
                 pendingDeleteForm.submit();
             }
         });
@@ -1521,6 +1860,7 @@
                 if (editReservationOverlay.classList.contains('active')) closeEditModal();
                 if (reservationOverlay.classList.contains('active')) closeReservationModal();
                 if (receiptOverlay.classList.contains('active')) closeReceiptModal();
+                if (rejectOverlay.classList.contains('active')) closeRejectModal();
             }
         });
 
@@ -1568,8 +1908,8 @@
         }
 
         document.querySelector('.table-box table tbody')?.addEventListener('click', (e) => {
-            // huwag mag-open kapag buttons/forms (edit, receipt, delete) ang pinindot
-            if (e.target.closest('button, a, form, select, input')) return;
+            // huwag mag-open kapag buttons/forms (edit, receipt, delete, status) ang pinindot
+            if (e.target.closest('button, a, form, select, input, option')) return;
             const row = e.target.closest('tr.clickable-row');
             if (!row) return;
             openVoucherModal(row.dataset);
@@ -1636,6 +1976,74 @@
         if (successMsg) showToast(successMsg, "success");
         if (errorMsg) showToast(errorMsg, "error");
 
+        // ===== AUTO-REFRESH: kapag may bago / nagbago (bagong booking, approve,
+        // reject, o "Done" galing cashier), kusa nang mag-re-reload ang page. =====
+        // Paano: bawat 8 segundo, kinukuha nito ang kasalukuyang page sa background
+        // at kinukumpara ang "signature" ng bawat row (id + updated_at + status).
+        // Hindi nire-reload habang may bukas na modal o nagsa-submit para hindi
+        // maputol ang ginagawa mo. Naaalala rin ang search/filters pagkatapos mag-reload.
+        (function() {
+            const POLL_MS = 8000;
+            const STATE_KEY = 'reservations_filter_state';
+
+            function signatureOf(root) {
+                return Array.from(root.querySelectorAll('.table-box tbody tr[data-sig]'))
+                    .map(r => r.dataset.sig)
+                    .join('|');
+            }
+
+            const initialSig = signatureOf(document);
+            let reloading = false;
+
+            function anyModalOpen() {
+                return !!document.querySelector(
+                    '#reservationOverlay.active, #editReservationOverlay.active, #confirmOverlay.active, ' +
+                    '#receiptOverlay.active, #rejectOverlay.active, #voucherOverlay.active'
+                );
+            }
+
+            function saveFilterState() {
+                try {
+                    sessionStorage.setItem(STATE_KEY, JSON.stringify({
+                        search: document.getElementById('searchInput')?.value || '',
+                        category: document.getElementById('categoryFilter')?.value || '',
+                        status: document.getElementById('statusFilter')?.value || ''
+                    }));
+                } catch (e) { /* ok lang kung hindi available */ }
+            }
+
+            async function checkForUpdates() {
+                if (reloading || document.hidden || window.__submittingForm) return;
+                try {
+                    const res = await fetch(window.location.href, {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) return;
+                    const html = await res.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newSig = signatureOf(doc);
+
+                    if (newSig !== initialSig) {
+                        // may bago — hintayin munang maisara ang modal bago mag-reload
+                        if (anyModalOpen() || window.__submittingForm) return;
+                        reloading = true;
+                        saveFilterState();
+                        showToast('May bagong update. Nire-refresh...', 'success', { title: 'Updated', duration: 1200 });
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                } catch (err) {
+                    // network hiccup — subukan ulit sa susunod na poll
+                }
+            }
+
+            setInterval(checkForUpdates, POLL_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) checkForUpdates();
+            });
+        })();
+
         // ===== GROUP BY CUSTOMER + SEARCH + FILTER + CLIENT-SIDE PAGINATION =====
         // Rows are grouped purely in the DOM/JS (the Blade/PHP loop above is
         // untouched), so every edit/delete/receipt button still works exactly
@@ -1646,6 +2054,7 @@
             const table = document.querySelector('.table-box table');
             const searchInput = document.getElementById('searchInput');
             const categoryFilter = document.getElementById('categoryFilter');
+            const statusFilter = document.getElementById('statusFilter');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             const filterCount = document.getElementById('filterCount');
             if (!paginationEl || !tbody) return;
@@ -1654,12 +2063,29 @@
             let currentPage = 1;
 
             // column index reference (0-based, matches the <thead> order):
-            // 0 Customer | 1 Email | 2 Date | 3 Time | 4 Category | 5 Package | 6 Pax | 7 Payment | 8 Actions
-            const COL = { customer: 0, email: 1, date: 2, time: 3, category: 4, package: 5, pax: 6, payment: 7, actions: 8 };
-            const COL_COUNT = table.querySelectorAll('thead th').length || 9;
+            // 0 Customer | 1 Email | 2 Date | 3 Time | 4 Category | 5 Package | 6 Pax | 7 Payment | 8 Status | 9 Actions
+            const COL = { customer: 0, email: 1, date: 2, time: 3, category: 4, package: 5, pax: 6, payment: 7, status: 8, actions: 9 };
+            const COL_COUNT = table.querySelectorAll('thead th').length || 10;
 
             const originalRows = Array.from(tbody.querySelectorAll('tr'));
             if (!originalRows.length) return;
+
+            function escapeHtml(str) {
+                return String(str).replace(/[&<>"']/g, c => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[c]));
+            }
+
+            // ibalik ang search/filters pagkatapos ng auto-refresh
+            try {
+                const saved = JSON.parse(sessionStorage.getItem('reservations_filter_state') || 'null');
+                if (saved) {
+                    if (searchInput) searchInput.value = saved.search || '';
+                    if (categoryFilter) categoryFilter.value = saved.category || '';
+                    if (statusFilter) statusFilter.value = saved.status || '';
+                    sessionStorage.removeItem('reservations_filter_state');
+                }
+            } catch (e) { /* ignore */ }
 
             // ---- Group rows by customer (name + email) ----
             const groupsMap = new Map();
@@ -1695,8 +2121,8 @@
                 group.rows.forEach(row => {
                     const paxVal = parseInt(row.children[COL.pax]?.textContent.trim(), 10);
                     if (!isNaN(paxVal)) totalPax += paxVal;
-                    const paymentText = row.children[COL.payment]?.textContent.trim();
-                    if (!paymentText || paymentText === '\u2014') pendingCount++;
+                    // ilang booking ang naghihintay pa ng approve/reject
+                    if (row.dataset.statusKey === 'pending') pendingCount++;
                     row.classList.add('detail-row');
                     row.dataset.group = String(idx);
                     row.style.display = 'none';
@@ -1706,11 +2132,12 @@
                 header.className = 'group-header';
                 header.dataset.group = String(idx);
                 header.innerHTML = `
-                    <td data-label="Customer"><i class="fa-solid fa-chevron-right group-chevron"></i><strong>${group.name}</strong></td>
-                    <td data-label="Email" class="email-cell">${group.email}</td>
+                    <td data-label="Customer"><i class="fa-solid fa-chevron-right group-chevron"></i><strong>${escapeHtml(group.name)}</strong></td>
+                    <td data-label="Email" class="email-cell">${escapeHtml(group.email)}</td>
                     <td colspan="4" data-label="Bookings" class="group-summary-cell">${group.rows.length} bookings</td>
                     <td data-label="Pax">${totalPax}</td>
-                    <td data-label="Payment">${pendingCount > 0 ? `<span class="badge badge-pending-mini">${pendingCount} pending</span>` : ''}</td>
+                    <td data-label="Payment"></td>
+                    <td data-label="Status">${pendingCount > 0 ? `<span class="badge badge-pending-mini">${pendingCount} pending</span>` : ''}</td>
                     <td data-label="Actions" class="group-hint">Click to view all</td>
                 `;
                 header.addEventListener('click', () => {
@@ -1730,35 +2157,38 @@
             noMatchRow.innerHTML = `<td colspan="${COL_COUNT}"><i class="fa-solid fa-circle-info"></i> No reservations match your search or filters.</td>`;
             tbody.appendChild(noMatchRow);
 
-            function rowMatchesFilters(row, search, category) {
+            function rowMatchesFilters(row, search, category, status) {
                 const customer = row.children[COL.customer]?.textContent.toLowerCase() || '';
                 const email = row.children[COL.email]?.textContent.toLowerCase() || '';
                 const rowCategory = row.children[COL.category]?.textContent.trim() || '';
+                const rowStatus = row.dataset.statusKey || '';
 
                 const matchesSearch = !search || customer.includes(search) || email.includes(search);
                 const matchesCategory = !category || rowCategory === category;
+                const matchesStatus = !status || rowStatus === status;
 
-                return matchesSearch && matchesCategory;
+                return matchesSearch && matchesCategory && matchesStatus;
             }
 
             function getFilteredItems() {
                 const search = (searchInput?.value || '').toLowerCase().trim();
                 const category = categoryFilter?.value || '';
-                const hasActiveFilter = !!(search || category);
+                const status = statusFilter?.value || '';
+                const hasActiveFilter = !!(search || category || status);
 
                 const result = [];
                 let matchedRowCount = 0;
 
                 items.forEach(item => {
                     if (item.type === 'single') {
-                        if (rowMatchesFilters(item.row, search, category)) {
+                        if (rowMatchesFilters(item.row, search, category, status)) {
                             result.push(item);
                             matchedRowCount++;
                         }
                         return;
                     }
 
-                    const matchingRows = item.rows.filter(r => rowMatchesFilters(r, search, category));
+                    const matchingRows = item.rows.filter(r => rowMatchesFilters(r, search, category, status));
                     if (matchingRows.length > 0) {
                         result.push({ ...item, matchingRows });
                         matchedRowCount += matchingRows.length;
@@ -1863,7 +2293,7 @@
                 noMatchRow.style.display = filtered.length === 0 ? '' : 'none';
 
                 if (filterCount) {
-                    const hasFilterText = (searchInput?.value || '') || categoryFilter?.value;
+                    const hasFilterText = (searchInput?.value || '') || categoryFilter?.value || statusFilter?.value;
                     filterCount.textContent = hasFilterText
                         ? `${matchedRowCount} of ${originalRows.length} bookings shown`
                         : '';
@@ -1874,10 +2304,12 @@
 
             searchInput?.addEventListener('input', () => { currentPage = 1; render(); });
             categoryFilter?.addEventListener('change', () => { currentPage = 1; render(); });
+            statusFilter?.addEventListener('change', () => { currentPage = 1; render(); });
 
             clearFiltersBtn?.addEventListener('click', () => {
                 if (searchInput) searchInput.value = '';
                 if (categoryFilter) categoryFilter.value = '';
+                if (statusFilter) statusFilter.value = '';
                 currentPage = 1;
                 render();
             });

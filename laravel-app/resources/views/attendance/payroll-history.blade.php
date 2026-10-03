@@ -701,6 +701,43 @@
             }
         }
 
+        /* ---- Custom Payroll Period dropdown with checklist ---- */
+        .cdd { position: relative; }
+        .cdd-toggle {
+            width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 12px;
+            font-size: 13px; font-family: 'Inter', sans-serif; color: var(--ink-soft);
+            background: var(--bg); cursor: pointer; text-align: left;
+        }
+        .cdd-toggle:hover, .cdd.open .cdd-toggle { border-color: var(--pink); background: #fff; }
+        .cdd-toggle i { font-size: 11px; color: var(--muted); transition: transform .15s ease; }
+        .cdd.open .cdd-toggle i { transform: rotate(180deg); }
+        .cdd-menu {
+            display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 120;
+            min-width: 100%; width: max-content; max-width: min(620px, 92vw);
+            background: #fff; border: 1px solid var(--line-strong); border-radius: 12px;
+            box-shadow: var(--shadow-md);
+        }
+        .cdd.open .cdd-menu { display: block; }
+        .cdd-head { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+        .filters label.cdd-selectall { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700;
+            color: var(--ink); cursor: pointer; text-transform: none; letter-spacing: 0; margin: 0; }
+        .cdd-list { max-height: 300px; overflow-y: auto; padding: 4px 0; }
+        .cdd-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer;
+            font-size: 13px; color: var(--ink-soft); }
+        .cdd-item:hover { background: var(--pink-pale); }
+        .cdd-item.active .cdd-text { font-weight: 700; color: var(--pink-deep); }
+        .cdd-item:has(.cdd-cb:checked) { background: var(--danger-soft); }
+        .cdd-item input, .cdd-selectall input { width: 16px; height: 16px; accent-color: var(--danger); cursor: pointer; flex-shrink: 0; }
+        .cdd-text { flex: 1; }
+        .cdd-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            padding: 10px 14px; border-top: 1px solid var(--line); }
+        .cdd-count { font-size: 12px; color: var(--muted); }
+        .cdd-delete { background: var(--danger); color: #fff; border: none; padding: 8px 16px; border-radius: 8px;
+            font-size: 12.5px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; }
+        .cdd-delete:disabled { opacity: .45; cursor: not-allowed; }
+
         @media (max-width:1024px) {
             .stats-row {
                 grid-template-columns: repeat(2, 1fr);
@@ -784,6 +821,12 @@
         <h2>Payroll History</h2>
     </div>
 
+    @if (session('success'))
+        <div class="alert-box alert-success">
+            <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
+        </div>
+    @endif
+
     @if (session('error'))
         <div class="alert-box alert-error">
             <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
@@ -809,7 +852,7 @@
         </div>
     </div>
 
-    <div class="box">
+    <div class="box" style="overflow:visible;">
         <h3>
             Filter Records
             @if ($selectedBatch && $isLatestBatch)
@@ -821,7 +864,7 @@
             <div class="filters">
                 <div class="filter-group" style="min-width:280px;">
                     <label>Payroll Period</label>
-                    <select name="batch" id="batchSelect">
+                    <select name="batch" id="batchSelect" style="display:none;">
                         @forelse($batches as $b)
                             <option value="{{ $b->batch_id }}" {{ $selectedBatch === $b->batch_id ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::parse($b->pay_date)->format('M j, Y') }}
@@ -833,6 +876,52 @@
                             <option value="">No payroll batches yet</option>
                         @endforelse
                     </select>
+
+                    @php
+                        $batchLabel = fn($b, $isFirst) => \Carbon\Carbon::parse($b->pay_date)->format('M j, Y')
+                            . ' — ' . $b->cutoff_type . ' Cutoff · Generated '
+                            . \Carbon\Carbon::parse($b->generated_at)->format('M j, Y g:i A')
+                            . ($isFirst ? ' (Latest)' : '');
+                        $currentLabel = 'No payroll batches yet';
+                        foreach ($batches as $i => $b) {
+                            if ((string) $selectedBatch === (string) $b->batch_id) {
+                                $currentLabel = $batchLabel($b, $i === 0);
+                            }
+                        }
+                    @endphp
+
+                    <div class="cdd" id="batchDropdown">
+                        <button type="button" class="cdd-toggle" id="cddToggle">
+                            <span>{{ $currentLabel }}</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+
+                        @if ($batches->isNotEmpty())
+                            <div class="cdd-menu" id="cddMenu">
+                                <div class="cdd-head">
+                                    <label class="cdd-selectall">
+                                        <input type="checkbox" id="cddSelectAll"> Select All
+                                    </label>
+                                </div>
+                                <div class="cdd-list">
+                                    @foreach ($batches as $i => $b)
+                                        <div class="cdd-item {{ (string) $selectedBatch === (string) $b->batch_id ? 'active' : '' }}"
+                                            data-value="{{ $b->batch_id }}">
+                                            <input type="checkbox" class="cdd-cb" form="bulkDeleteForm" name="batches[]"
+                                                value="{{ \Carbon\Carbon::parse($b->batch_id)->format('Y-m-d H:i:s') }}">
+                                            <span class="cdd-text">{{ $batchLabel($b, $i === 0) }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <div class="cdd-foot">
+                                    <span class="cdd-count" id="cddCount">0 selected</span>
+                                    <button type="button" class="cdd-delete" id="cddDelete" disabled>
+                                        <i class="fa-regular fa-trash-can"></i> Delete Selected
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="divider-v"></div>
@@ -1045,10 +1134,98 @@
         </div>
     </div>
 
+    {{-- Bulk delete form (ang mga checkbox sa dropdown ay naka-link dito via form="bulkDeleteForm") --}}
+    <form id="bulkDeleteForm" method="POST" action="{{ route('payroll-history.bulkDelete') }}" style="display:none;">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    <div class="modal-overlay" id="bulkModalOverlay">
+        <div class="modal-box">
+            <div class="delete-modal-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3>Delete selected batches?</h3>
+            <p class="modal-sub" id="bulkModalSub">The selected batches will be permanently deleted.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelBulkModal">Cancel</button>
+                <button type="button" class="btn-confirm-danger" id="confirmBulkModal">
+                    <i class="fa-regular fa-trash-can"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
     <script>
+        /* ---- Payroll Period dropdown with checklist ---- */
+        (function() {
+            const dd = document.getElementById('batchDropdown');
+            if (!dd) return;
+            const toggle = document.getElementById('cddToggle');
+            const menu = document.getElementById('cddMenu');
+            const select = document.getElementById('batchSelect');
+            if (!menu) return;
+            const selectAll = document.getElementById('cddSelectAll');
+            const countEl = document.getElementById('cddCount');
+            const delBtn = document.getElementById('cddDelete');
+            const checks = () => Array.from(menu.querySelectorAll('.cdd-cb'));
+
+            function refresh() {
+                const n = checks().filter(c => c.checked).length;
+                countEl.textContent = n + ' selected';
+                delBtn.disabled = n === 0;
+                selectAll.checked = n > 0 && n === checks().length;
+            }
+
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dd.classList.toggle('open');
+            });
+            document.addEventListener('click', (e) => {
+                if (!dd.contains(e.target)) dd.classList.remove('open');
+            });
+
+            // Click sa checkbox = piliin para i-delete. Click sa text = buksan ang batch na yun.
+            menu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (e.target.classList.contains('cdd-cb')) { refresh(); return; }
+                const item = e.target.closest('.cdd-item');
+                if (!item) return;
+                select.value = item.dataset.value;
+                select.dispatchEvent(new Event('change'));
+                dd.classList.remove('open');
+            });
+
+            selectAll.addEventListener('change', () => {
+                checks().forEach(c => c.checked = selectAll.checked);
+                refresh();
+            });
+
+            const overlay = document.getElementById('bulkModalOverlay');
+            const sub = document.getElementById('bulkModalSub');
+            const cancel = document.getElementById('cancelBulkModal');
+            const confirmBtn = document.getElementById('confirmBulkModal');
+
+            delBtn.addEventListener('click', () => {
+                const n = checks().filter(c => c.checked).length;
+                if (!n) return;
+                sub.textContent = n + ' payroll batch(es) will be permanently deleted. This cannot be undone.';
+                dd.classList.remove('open');
+                overlay.classList.add('active');
+            });
+            cancel.addEventListener('click', () => overlay.classList.remove('active'));
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+            confirmBtn.addEventListener('click', () => {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML =
+                    '<span class="spinner-lg" style="width:14px;height:14px;border-width:2px;margin:0;"></span> Deleting...';
+                document.getElementById('bulkDeleteForm').submit();
+            });
+        })();
+
         function confirmDeleteBatch() {
             document.getElementById('deleteModalOverlay').classList.add('active');
         }
