@@ -121,7 +121,6 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 14px;
-            margin-bottom: 14px;
             padding-bottom: 20px;
             border-bottom: 1px solid var(--line);
         }
@@ -565,47 +564,6 @@
             box-shadow: 0 0 0 3px var(--pink-light);
         }
 
-        .btn-ghost {
-            padding: 11px 18px;
-            background: #fff;
-            color: var(--ink);
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        .btn-ghost:hover {
-            background: var(--bg);
-            border-color: var(--pink);
-        }
-
-        .btn-primary {
-            padding: 11px 20px;
-            background: var(--pink-deep);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-            transition: background .15s ease, box-shadow .15s ease;
-        }
-
-        .btn-primary:hover {
-            background: var(--pink-dark);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
-
         #toastStack {
             position: fixed;
             top: 22px;
@@ -640,8 +598,6 @@
             opacity: 0;
             transform: translateY(-16px) scale(.97);
             animation: toastIn .35s cubic-bezier(.34, 1.56, .64, 1) forwards;
-            position: relative;
-            overflow: hidden;
             position: relative;
             overflow: hidden;
         }
@@ -778,7 +734,6 @@
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             animation: overlayFade .2s ease;
-            padding: 20px;
             padding: 20px;
         }
 
@@ -1048,10 +1003,6 @@
             .form-grid {
                 grid-template-columns: 1fr;
             }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
         }
 
         @media(max-width:520px) {
@@ -1153,21 +1104,25 @@
         // means genuinely absent. "-15", "-30", etc. are late/undertime by
         // that many minutes, but the employee still showed up, so those
         // still count toward Days Worked.
-        function isDayPresent($v): bool
-        {
-            $v = (string) $v;
-            if ($v === 'P' || str_starts_with($v, '+')) return true;
-            if ($v === '-' || $v === '' || $v === 'IN') return false;
-            // "-15", "-20/+1" (late / late + OT)
-            if (preg_match('/^-\d/', $v)) return true;
-            // "7h", "6.5h", "0h" (short day, hours actually worked)
-            if (preg_match('/^\d+(\.\d+)?h$/i', $v)) return true;
-            return false;
+        if (!function_exists('isDayPresent')) {
+            function isDayPresent($v): bool
+            {
+                $v = (string) $v;
+                if ($v === 'P' || str_starts_with($v, '+')) return true;
+                if ($v === '-' || $v === '' || $v === 'IN') return false;
+                // "-15", "-20/+1" (late / late + OT)
+                if (preg_match('/^-\d/', $v)) return true;
+                // "7h", "6.5h", "0h" (short day, hours actually worked)
+                if (preg_match('/^\d+(\.\d+)?h$/i', $v)) return true;
+                return false;
+            }
         }
 
-        function isShortHours($v): bool
-        {
-            return (bool) preg_match('/^\d+(\.\d+)?h$/i', (string) $v);
+        if (!function_exists('isShortHours')) {
+            function isShortHours($v): bool
+            {
+                return (bool) preg_match('/^\d+(\.\d+)?h$/i', (string) $v);
+            }
         }
 
         $totalEmployees = isset($records) ? $records->count() : 0;
@@ -1182,7 +1137,6 @@
                 $d = 0;
                 for ($i = 1; $i <= $days; $i++) {
                     $v = $rec->{'day_' . $i} ?? '';
-                    if (isDayPresent($v)) {
                     if (isDayPresent($v)) {
                         $d++;
                     }
@@ -1322,7 +1276,6 @@
                                 $hasLate = false;
                                 for ($i = 1; $i <= $days; $i++) {
                                     $v = $item->{'day_' . $i} ?? '';
-                                    if (isDayPresent($v)) {
                                     if (isDayPresent($v)) {
                                         $daysWorked++;
                                     }
@@ -1496,7 +1449,6 @@
 @endsection
 
 @push('scripts')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const form = document.getElementById("uploadForm");

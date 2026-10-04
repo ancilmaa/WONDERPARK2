@@ -495,9 +495,6 @@
                                 <button class="qbtn green" onclick="openVoucher()" title="Online booking voucher (Alt+Shift+O)">
                                     <i class="ti ti-barcode"></i>Voucher
                                 </button>
-                                <button class="qbtn green" onclick="openVoucher()" title="Online booking voucher (Alt+Shift+O)">
-                                    <i class="ti ti-barcode"></i>Voucher
-                                </button>
                             </div>
                             <div class="rbox1-col">
                                 <div class="rbox1-head">Reports</div>
@@ -668,7 +665,7 @@
             <div class="buyer-row"><span class="blabel">Business Style :</span><span class="bval"></span></div>
         </div>
         <div class="receipt-machine-section">
-            <div class="machine-company">BSIT SM-3201</div>
+            <div class="machine-company">Syntax Squad</div>
             <div>Balintawak rd</div>
             <div>Lipa City, Batangas</div>
             <div>VAT Reg. TIN : 006-737-173-00000</div>
