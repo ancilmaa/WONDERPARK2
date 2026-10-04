@@ -51,6 +51,9 @@
                 @if (session('error'))
                     <div class="auth-error">{{ session('error') }}</div>
                 @endif
+                @if ($errors->has('terms'))
+                    <div class="auth-error">{{ $errors->first('terms') }}</div>
+                @endif
 
                 <form method="POST" action="{{ url('/register') }}">
                     @csrf
@@ -72,6 +75,7 @@
                         <input id="email" type="email" name="email" value="{{ old('email') }}" required
                             autocomplete="email">
                     </div>
+
                     <div class="field">
                         <label for="age">Age</label>
                         <input type="number" name="age" id="age" min="1" max="120"
@@ -89,6 +93,16 @@
                             autocomplete="new-password">
                     </div>
 
+                    <label class="auth-check" for="terms">
+                        <input type="checkbox" id="terms" name="terms" value="1" required
+                            {{ old('terms') ? 'checked' : '' }}>
+                        <span>
+                            I agree to the
+                            <a href="#" data-open="termsModal">Terms &amp; Conditions</a> and
+                            <a href="#" data-open="privacyModal">Privacy Notice</a>.
+                        </span>
+                    </label>
+
                     <button type="submit" class="btn btn-primary">Create Account</button>
                 </form>
 
@@ -97,10 +111,13 @@
         </div>
 
     </div>
+
+           @include('partials.legal-modals')
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.bg-slide').forEach(el => {
-                el.style.backgroundImage = `url('${el.dataset.bg}')`;
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.bg-slide').forEach(function (el) {
+                el.style.backgroundImage = "url('" + el.dataset.bg + "')";
             });
         });
     </script>

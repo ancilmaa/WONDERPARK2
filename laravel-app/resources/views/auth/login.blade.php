@@ -99,10 +99,18 @@
                     </a>
                 </div>
 
+                <p class="auth-legal">
+                    By signing in, you agree to our
+                    <a href="#" data-open="termsModal">Terms &amp; Conditions</a> and
+                    <a href="#" data-open="privacyModal">Privacy Notice</a>.
+                </p>
+
                 <p class="auth-signup">Don't have an account? <a href="{{ url('/register') }}">Create one</a></p>
             </div>
         </div>
     </div>
+
+    @include('partials.legal-modals')
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

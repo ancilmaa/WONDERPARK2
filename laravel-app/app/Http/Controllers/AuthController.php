@@ -171,63 +171,70 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function register(Request $request)
-{
-    $fullname = trim($request->input('fullname', ''));
-    $username = trim($request->input('username', ''));
-    $email    = trim($request->input('email', ''));
-    $age      = $request->input('age', '');
-    $password = $request->input('password', '');
-    $confirm  = $request->input('password_confirmation', '');
+        public function register(Request $request)
+    {
+        $fullname = trim($request->input('fullname', ''));
+        $username = trim($request->input('username', ''));
+        $email    = trim($request->input('email', ''));
+        $age      = $request->input('age', '');
+        $password = $request->input('password', '');
+        $confirm  = $request->input('password_confirmation', '');
 
-    if ($fullname === '' || $username === '' || $email === '' || $age === '' || $password === '') {
-        return back()->withInput()->with('error', 'Please fill in all fields.');
+        if ($fullname === '' || $username === '' || $email === '' || $age === '' || $password === '') {
+            return back()->withInput()->with('error', 'Please fill in all fields.');
+        }
+
+        if (!is_numeric($age) || $age < 1 || $age > 120) {
+            return back()->withInput()->with('error', 'Please enter a valid age.');
+        }
+
+        if ($password !== $confirm) {
+            return back()->withInput()->with('error', 'Passwords do not match.');
+        }
+
+        if (strlen($password) < 8) {
+            return back()->withInput()->with('error', 'Password must be at least 8 characters.');
+        }
+
+        // Terms & Privacy consent
+        if (!$request->boolean('terms')) {
+            return back()->withInput()->with('error', 'You must agree to the Terms & Conditions and Privacy Notice to create an account.');
+        }
+
+        if (DB::table('users')->where('username', $username)->exists()) {
+            return back()->withInput()->with('error', 'Username is already taken.');
+        }
+
+        if (DB::table('users')->where('email', $email)->exists()) {
+            return back()->withInput()->with('error', 'Email is already registered.');
+        }
+
+                $userId = DB::table('users')->insertGetId([
+            'name'              => $fullname,
+            'username'          => $username,
+            'fullname'          => $fullname,
+            'email'             => $email,
+            'age'               => (int) $age,
+            'status'            => 'active',
+            'role'              => 'customer',
+            'password'          => password_hash($password, PASSWORD_DEFAULT),
+            'terms_accepted_at' => now(),
+            'terms_version'     => '2026-10-04',
+            'created_at'        => now(),
+            'updated_at'        => now(),
+        ], 'user_id');
+
+        session()->regenerate();
+
+        session([
+            'user_id'  => $userId,
+            'fullname' => $fullname,
+            'email'    => $email,
+            'role'     => 'customer',
+        ]);
+
+        return redirect('/app/waiver');
     }
-
-    if (!is_numeric($age) || $age < 1 || $age > 120) {
-        return back()->withInput()->with('error', 'Please enter a valid age.');
-    }
-
-    if ($password !== $confirm) {
-        return back()->withInput()->with('error', 'Passwords do not match.');
-    }
-
-    if (strlen($password) < 8) {
-        return back()->withInput()->with('error', 'Password must be at least 8 characters.');
-    }
-
-    if (DB::table('users')->where('username', $username)->exists()) {
-        return back()->withInput()->with('error', 'Username is already taken.');
-    }
-
-    if (DB::table('users')->where('email', $email)->exists()) {
-        return back()->withInput()->with('error', 'Email is already registered.');
-    }
-
-    $userId = DB::table('users')->insertGetId([
-        'name'       => $fullname,
-        'username'   => $username,
-        'fullname'   => $fullname,
-        'email'      => $email,
-        'age'        => (int) $age,
-        'status'     => 'active',
-        'role'       => 'customer',
-        'password'   => password_hash($password, PASSWORD_DEFAULT),
-        'created_at' => now(),
-        'updated_at' => now(),
-    ], 'user_id');
-
-    session()->regenerate();
-
-    session([
-    'user_id'  => $userId,
-    'fullname' => $fullname,
-    'email'    => $email,
-    'role'     => 'customer',
-]);
-
-return redirect('/app/waiver');
-}
 
     public function showForgotPasswordForm()
     {
@@ -287,6 +294,7 @@ return redirect('/app/waiver');
             'code' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
         ]);
+
 
         $user = DB::table('users')->where('user_id', $pendingId)->first();
 

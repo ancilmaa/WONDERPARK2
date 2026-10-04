@@ -921,7 +921,6 @@
             <h3><i class="ti ti-barcode"></i> Online Booking Voucher</h3>
             <p style="font-size:12px;color:#888;margin-bottom:12px">
                 Enter the voucher code from the customer's booking receipt.
-                Prepaid na ito, kaya hindi na hihingi ng payment.
             </p>
             <div class="form-group">
                 <label>Voucher Code</label>
