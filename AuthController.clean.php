@@ -1,7 +1,12 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+
 class AuthController extends Controller
 {
     public function showLoginForm()
@@ -11,98 +16,73 @@ class AuthController extends Controller
         }
         return view('auth.login');
     }
-   public function login(Request $request)
-{
-    $username = trim($request->input('username', ''));
-    $password = $request->input('password', '');
 
-    if ($username === '' || $password === '') {
-        return back()->with('error', 'Please enter username and password.');
-    }
+    public function login(Request $request)
+    {
+        $username = trim($request->input('username', ''));
+        $password = $request->input('password', '');
 
-    $user = DB::table('users')
-              ->where('username', $username)
-              ->first();
-
-    if ($user && $user->status === 'active' && password_verify($password, $user->password)) {
-
-    if (!empty($user->two_factor_enabled)) {
-        $code = (string) random_int(100000, 999999);
-
-        DB::table('users')->where('user_id', $user->user_id)->update([
-            'two_factor_code'       => $code,
-            'two_factor_expires_at' => now()->addMinutes(10),
-        ]);
-
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes. If you didn't try to log in, you can ignore this email.",
-                function ($message) use ($user) {
-                    $message->to($user->email)
-                            ->subject('Your WonderPark verification code');
-                }
-            );
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('2FA email failed: ' . $e->getMessage());
+        if ($username === '' || $password === '') {
+            return back()->with('error', 'Please enter username and password.');
         }
 
-        session([
-            'twofa_pending_user_id' => $user->user_id,
-            'twofa_redirect' => $user->role === 'customer' ? '/app/waiver' : ($user->role === 'cashier' ? '/home' : '/ml-forecast'),
-        ]);
+        $user = DB::table('users')
+            ->where('username', $username)
+            ->first();
 
-        return redirect('/two-factor');
-    }
+        if ($user && $user->status === 'active' && password_verify($password, $user->password)) {
 
+            if (!empty($user->two_factor_enabled)) {
+                $code = (string) random_int(100000, 999999);
 
-    if (!empty($user->two_factor_enabled)) {
-        $code = (string) random_int(100000, 999999);
+                DB::table('users')->where('user_id', $user->user_id)->update([
+                    'two_factor_code'       => $code,
+                    'two_factor_expires_at' => now()->addMinutes(10),
+                ]);
 
-        DB::table('users')->where('user_id', $user->user_id)->update([
-            'two_factor_code'       => $code,
-            'two_factor_expires_at' => now()->addMinutes(10),
-        ]);
-
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes. If you didn't try to log in, you can ignore this email.",
-                function ($message) use ($user) {
-                    $message->to($user->email)
-                            ->subject('Your WonderPark verification code');
+                try {
+                    Mail::raw(
+                        "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes. If you didn't try to log in, you can ignore this email.",
+                        function ($message) use ($user) {
+                            $message->to($user->email)
+                                    ->subject('Your WonderPark verification code');
+                        }
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('2FA email failed: ' . $e->getMessage());
                 }
-            );
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('2FA email failed: ' . $e->getMessage());
+
+                session([
+                    'twofa_pending_user_id' => $user->user_id,
+                    'twofa_redirect' => $user->role === 'customer'
+                        ? '/app/waiver'
+                        : ($user->role === 'cashier' ? '/home' : '/ml-forecast'),
+                ]);
+
+                return redirect('/two-factor');
+            }
+
+            session()->regenerate();
+            session([
+                'user_id'  => $user->user_id,
+                'fullname' => $user->fullname,
+                'email'    => $user->email,
+                'role'     => $user->role,
+            ]);
+
+            if ($user->role === 'customer') {
+                return redirect('/app/waiver');
+            }
+
+            if ($user->role === 'cashier') {
+                return redirect('/home');
+            }
+
+            return redirect('/ml-forecast');
         }
 
-        session([
-            'twofa_pending_user_id' => $user->user_id,
-            'twofa_redirect' => $user->role === 'customer' ? '/app/waiver' : ($user->role === 'cashier' ? '/home' : '/ml-forecast'),
-        ]);
-
-        return redirect('/two-factor');
+        return back()->with('error', 'Invalid username or password.');
     }
-
-    session()->regenerate();
-    session([
-        'user_id' => $user->user_id,
-        'fullname' => $user->fullname,
-        'email' => $user->email,
-        'role' => $user->role,
-    ]);
-
-      if ($user->role === 'customer') {
-        return redirect('/app/waiver');
-    }
-
-    if ($user->role === 'cashier') {
-        return redirect('/home');
-    }
-
-    return redirect('/ml-forecast');
-}
-    return back()->with('error', 'Invalid username or password.');
-}
 
     public function showTwoFactorForm()
     {
@@ -145,10 +125,10 @@ class AuthController extends Controller
 
         session()->regenerate();
         session([
-            'user_id' => $user->user_id,
+            'user_id'  => $user->user_id,
             'fullname' => $user->fullname,
-            'email' => $user->email,
-            'role' => $user->role,
+            'email'    => $user->email,
+            'role'     => $user->role,
         ]);
 
         return redirect($redirect);
@@ -173,7 +153,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            \Illuminate\Support\Facades\Mail::raw(
+            Mail::raw(
                 "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes.",
                 function ($message) use ($user) {
                     $message->to($user->email)
@@ -181,13 +161,11 @@ class AuthController extends Controller
                 }
             );
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('2FA resend email failed: ' . $e->getMessage());
+            Log::error('2FA resend email failed: ' . $e->getMessage());
         }
 
         return back()->with('status', 'A new code has been sent to your email.');
     }
-
-
 
     public function logout()
     {
@@ -203,7 +181,7 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-        public function register(Request $request)
+    public function register(Request $request)
     {
         $fullname = trim($request->input('fullname', ''));
         $username = trim($request->input('username', ''));
@@ -241,7 +219,7 @@ class AuthController extends Controller
             return back()->withInput()->with('error', 'Email is already registered.');
         }
 
-                $userId = DB::table('users')->insertGetId([
+        $userId = DB::table('users')->insertGetId([
             'name'              => $fullname,
             'username'          => $username,
             'fullname'          => $fullname,
@@ -290,14 +268,14 @@ class AuthController extends Controller
             ]);
 
             try {
-                \Illuminate\Support\Facades\Mail::raw(
+                Mail::raw(
                     "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email.",
                     function ($message) use ($user) {
                         $message->to($user->email)->subject('Reset your WonderPark password');
                     }
                 );
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Password reset email failed: ' . $e->getMessage());
+                Log::error('Password reset email failed: ' . $e->getMessage());
             }
 
             session(['reset_pending_user_id' => $user->user_id]);
@@ -326,7 +304,6 @@ class AuthController extends Controller
             'code' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
         ]);
-
 
         $user = DB::table('users')->where('user_id', $pendingId)->first();
 
@@ -373,14 +350,14 @@ class AuthController extends Controller
         ]);
 
         try {
-            \Illuminate\Support\Facades\Mail::raw(
+            Mail::raw(
                 "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes.",
                 function ($message) use ($user) {
                     $message->to($user->email)->subject('Reset your WonderPark password');
                 }
             );
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Password reset resend email failed: ' . $e->getMessage());
+            Log::error('Password reset resend email failed: ' . $e->getMessage());
         }
 
         return back()->with('status', 'A new code has been sent to your email.');

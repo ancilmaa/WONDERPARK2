@@ -9,6 +9,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\MlForecastController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\FacebookController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
@@ -22,8 +23,8 @@ use App\Http\Controllers\ZoneForecastController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
-use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\BookingCmsController;
+use App\Http\Controllers\EmployeeController;
 
 
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
