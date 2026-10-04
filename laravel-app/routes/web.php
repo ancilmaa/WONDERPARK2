@@ -125,6 +125,8 @@ Route::get('/reservations', [ReservationController::class, 'index'])->name('rese
 Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
 Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
 Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
+Route::post('/reservations/{reservation}/approve-payment', [ReservationController::class, 'approvePayment'])->name('reservations.approve-payment');
+Route::post('/reservations/{reservation}/reject-payment', [ReservationController::class, 'rejectPayment'])->name('reservations.reject-payment');
 Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
 
 Route::resource('chatmessaging', ChatMessagingController::class);

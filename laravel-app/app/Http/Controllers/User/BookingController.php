@@ -10,6 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class BookingController extends Controller
 {
@@ -247,17 +249,25 @@ class BookingController extends Controller
                 'pax'            => $bookingModel->tier,
                 'price'          => '₱' . number_format((float) $bookingModel->price, 2),
                 'payment_method' => strtoupper($bookingModel->payment_method ?? ''),
-                'voucher_code'   => $bookingModel->voucher_code,
+                'status'         => $bookingModel->status,
+                'status_label'   => $this->statusMeta($bookingModel->status, $bookingModel->payment_rejection_reason)['label'],
+                // The voucher code is only shown once the admin has approved the payment.
+                'voucher_code'   => in_array($bookingModel->status, ['confirmed', 'done'], true)
+                    ? $bookingModel->voucher_code
+                    : null,
             ],
         ]);
     }
 
     /**
-     * Confirm the chosen payment method for a booking (QR Ph, GCash, or
-     * Maya — bookings require online payment upfront to guarantee the
-     * slot). Payment confirms the booking immediately — no admin/staff
-     * verification step. Booking flow: Booking -> Payment (confirmed
-     * right away) -> Waiver -> Receipt with voucher code.
+     * Submit the chosen payment method + proof of payment for a booking
+     * (QR Ph, GCash, or Maya). Submitting proof does NOT confirm the
+     * booking: it moves to "awaiting_verification" (shown to the customer
+     * as "Waiting for Approval") until an admin checks the proof and
+     * approves it (ReservationController@approvePayment -> 'confirmed')
+     * or rejects it (back to 'pending_payment' with a reason so the
+     * customer can upload a correct proof).
+     * Booking flow: Booking -> Payment -> Waiver -> Waiting for Approval.
      *
      * POST /user/bookings/{booking}/payment
      */
@@ -280,34 +290,79 @@ class BookingController extends Controller
 
         abort_if(!$bookingModel, 404);
 
-        // Only pending bookings can have payment submitted against them —
-        // stops someone from re-submitting proof against an already
-        // confirmed/cancelled/done booking.
+        // Proof can only be (re)submitted while the booking is still waiting
+        // for payment or for admin approval — never against an already
+        // approved/cancelled/done booking.
         if (!in_array($bookingModel->status, ['pending_payment', 'awaiting_verification'])) {
             return redirect()
                 ->route('user.bookings')
                 ->with('error', 'This booking is no longer awaiting payment.');
         }
 
-        // QR Ph payment confirms the booking right away — no more
-        // "awaiting_verification" hold. The uploaded screenshot is still
-        // kept on file for the cashier/admin's records, it just doesn't
-        // block confirmation anymore.
         $path = $request->file('receipt')->store('payment-proofs', 'public');
 
         $bookingModel->update([
-            'payment_method'       => $validated['payment_method'],
-            'receipt_path'         => $path,
-            'payment_proof_path'   => $path,
-            'payment_submitted_at' => now(),
-            'status'               => 'confirmed',
+            'payment_method'           => $validated['payment_method'],
+            'receipt_path'             => $path,
+            'payment_proof_path'       => $path,
+            'payment_submitted_at'     => now(),
+            'payment_verified_at'      => null,
+            'payment_rejection_reason' => null,
+            'status'                   => 'awaiting_verification',
         ]);
 
-        // Waiver is still the last step of the booking flow (Booking ->
-        // Payment -> Waiver); payment is already confirmed at this point.
+        $this->emailProofReceived($bookingModel, $validated['payment_method']);
+
         return redirect()
             ->route('user.waiver')
-            ->with('success', 'Payment confirmed! Please sign the waiver to finish your booking.');
+            ->with('success', 'Payment proof sent! Please sign the waiver. Your booking will be confirmed once our team approves your payment.');
+    }
+
+    /**
+     * Email the customer right after they send their proof of payment:
+     * "we got it, it is waiting for approval, you can still reschedule".
+     * Plain text through the app's configured mailer (same approach as the
+     * 2FA / password emails), wrapped in try/catch so a mail problem never
+     * blocks the booking flow.
+     */
+    private function emailProofReceived(Booking $booking, string $method): void
+    {
+        $user  = $booking->user;
+        $email = $user->email ?? null;
+
+        if (!$email) {
+            return;
+        }
+
+        $methodLabel = ['qrph' => 'QR Ph', 'gcash' => 'GCash', 'maya' => 'Maya'][$method] ?? strtoupper($method);
+        $serviceName = $this->services[$booking->service]['name'] ?? ucwords(str_replace('_', ' ', (string) $booking->service));
+        $packageName = $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package;
+        $when        = $booking->visit_date->format('F j, Y') . ($booking->visit_time ? ' at ' . $booking->visit_time : '');
+        $price       = '₱' . number_format((float) $booking->price, 2);
+        $name        = $user->fullname ?? 'there';
+        $myBookings  = route('user.bookings');
+
+        $body = "Hi {$name},\n\n"
+              . "We received your proof of payment. Our team will check it, and we will email you as soon as your booking is confirmed.\n\n"
+              . "Attraction: {$serviceName}\n"
+              . "Package: {$packageName}\n"
+              . "Date: {$when}\n"
+              . "Guests: {$booking->tier}\n"
+              . "Amount: {$price} via {$methodLabel}\n"
+              . "Status: Waiting for Approval\n\n"
+              . "While your booking is waiting for approval you can still reschedule or cancel it from My Bookings. "
+              . "Once it is approved, it can no longer be rescheduled.\n\n"
+              . "Your voucher code will be sent to you after approval.\n\n"
+              . "My Bookings: {$myBookings}\n\n"
+              . "Thank you,\nWonderPark";
+
+        try {
+            Mail::raw($body, function ($message) use ($email) {
+                $message->to($email)->subject('We received your WonderPark payment proof');
+            });
+        } catch (\Throwable $e) {
+            Log::error('Proof received email failed: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -353,12 +408,10 @@ class BookingController extends Controller
 
         abort_if(!$bookingModel, 404);
 
-        if (in_array($bookingModel->status, ['done', 'cancelled'])) {
+        if (!$this->canReschedule($bookingModel->status)) {
             return redirect()
                 ->route('user.bookings')
-                ->with('error', $bookingModel->status === 'done'
-                    ? 'This voucher has already been used and can no longer be rescheduled.'
-                    : 'Cancelled bookings can no longer be rescheduled.');
+                ->with('error', $this->rescheduleBlockedMessage($bookingModel->status));
         }
 
         $packageLabel = $this->packages[$bookingModel->service][$bookingModel->package]['name'] ?? $bookingModel->package;
@@ -381,12 +434,10 @@ class BookingController extends Controller
 
         abort_if(!$bookingModel, 404);
 
-        if (in_array($bookingModel->status, ['done', 'cancelled'])) {
+        if (!$this->canReschedule($bookingModel->status)) {
             return redirect()
                 ->route('user.bookings')
-                ->with('error', $bookingModel->status === 'done'
-                    ? 'This voucher has already been used and can no longer be rescheduled.'
-                    : 'Cancelled bookings can no longer be rescheduled.');
+                ->with('error', $this->rescheduleBlockedMessage($bookingModel->status));
         }
 
         $validated = $request->validate([
@@ -405,36 +456,66 @@ class BookingController extends Controller
     }
 
     /**
+     * Rescheduling is allowed only until the admin approves the payment:
+     * while the booking is still waiting for payment, or waiting for
+     * approval. Once it is confirmed (approved), done, or cancelled, the
+     * schedule is locked.
+     */
+    private function canReschedule(string $status): bool
+    {
+        return in_array($status, ['pending_payment', 'awaiting_verification'], true);
+    }
+
+    private function rescheduleBlockedMessage(string $status): string
+    {
+        return match ($status) {
+            'confirmed' => 'This booking has already been approved, so it can no longer be rescheduled.',
+            'done'      => 'This voucher has already been used and can no longer be rescheduled.',
+            'cancelled' => 'Cancelled bookings can no longer be rescheduled.',
+            default     => 'This booking can no longer be rescheduled.',
+        };
+    }
+
+    /**
      * Shape a Booking model into the display array expected by the booking
      * views: ['id','category','package','date','pax','status_label','status_class'].
      */
     private function formatBooking(Booking $booking): array
     {
-        $meta = $this->statusMeta($booking->status);
+        $meta = $this->statusMeta($booking->status, $booking->payment_rejection_reason);
 
         return [
-            'id'           => $booking->id,
-            'category'     => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
-            'package'      => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
-            'date'         => $booking->visit_date->format('M j, Y'),
-            'time'         => $booking->visit_time,
-            'pax'          => $booking->tier,
-            'price'        => '₱' . number_format((float) $booking->price, 2),
-            'status'       => $booking->status,
-            'status_label' => $meta['label'],
-            'status_class' => $meta['class'],
-            'voucher_code' => $booking->voucher_code,
+            'id'               => $booking->id,
+            'category'         => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
+            'package'          => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
+            'date'             => $booking->visit_date->format('M j, Y'),
+            'time'             => $booking->visit_time,
+            'pax'              => $booking->tier,
+            'price'            => '₱' . number_format((float) $booking->price, 2),
+            'status'           => $booking->status,
+            'status_label'     => $meta['label'],
+            'status_class'     => $meta['class'],
+            'voucher_code'     => $booking->voucher_code,
+            'can_reschedule'   => $this->canReschedule($booking->status),
+            'rejection_reason' => $booking->status === 'pending_payment' ? $booking->payment_rejection_reason : null,
         ];
     }
 
     /**
      * Map a booking status to its display label + tag color class.
+     * 'awaiting_verification' is what the customer sees as "Waiting for
+     * Approval"; a 'pending_payment' booking that has a rejection reason
+     * means the admin rejected the proof and the customer must re-upload.
      */
-    private function statusMeta(string $status): array
+    private function statusMeta(string $status, ?string $rejectionReason = null): array
     {
+        if ($status === 'pending_payment' && $rejectionReason) {
+            return ['label' => 'Payment rejected', 'class' => 'rose'];
+        }
+
         return match ($status) {
             'pending_payment'       => ['label' => 'Pending payment', 'class' => 'amber'],
-            'awaiting_verification' => ['label' => 'Awaiting verification', 'class' => 'amber'],
+            'awaiting_verification' => ['label' => 'Waiting for Approval', 'class' => 'amber'],
             'confirmed'              => ['label' => 'Confirmed', 'class' => 'green'],
             'done'                   => ['label' => 'Done', 'class' => 'green'],
             'cancelled'              => ['label' => 'Cancelled', 'class' => 'rose'],

@@ -340,6 +340,14 @@
             display: inline-block;
         }
 
+        /* payment proof approval (Waiting for Approval -> Approve / Reject) */
+        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
+        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
+        .btn-icon-reject  { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
+        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
+        .proof-form { display: inline-block; margin: 0; }
+        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
+
         .btn-icon-delete:hover {
             background: var(--cancelled-soft);
             border-color: var(--cancelled);
@@ -1140,12 +1148,20 @@
                             <td data-label="Package">{{ $booking->package }}</td>
                             <td data-label="Pax">{{ $booking->display_pax }}</td>
                             <td data-label="Payment">
-                                @if ($booking->payment_method === 'qrph')
-                                    <span class="badge" style="background:var(--paid-soft);color:var(--paid);">QR Ph</span>
-                                @elseif ($booking->payment_method === 'cash')
-                                    <span class="badge" style="background:var(--pending-soft);color:var(--pending);">Cash</span>
+                                @php
+                                    $methodLabels = ['qrph' => 'QR Ph', 'gcash' => 'GCash', 'maya' => 'Maya', 'cash' => 'Cash'];
+                                @endphp
+                                @if (isset($methodLabels[$booking->payment_method]))
+                                    <span class="badge" style="background:var(--paid-soft);color:var(--paid);">{{ $methodLabels[$booking->payment_method] }}</span>
                                 @else
                                     <span style="color:var(--muted);font-size:12px;">&mdash;</span>
+                                @endif
+                                @if ($booking->status === 'awaiting_verification')
+                                    <span class="proof-status" style="color:var(--pending);">Waiting for approval</span>
+                                @elseif ($booking->status === 'confirmed' && $booking->payment_verified_at)
+                                    <span class="proof-status" style="color:var(--confirmed);">Approved</span>
+                                @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
+                                    <span class="proof-status" style="color:var(--cancelled);" title="{{ $booking->payment_rejection_reason }}">Proof rejected</span>
                                 @endif
                             </td>
                             <td data-label="Actions">
@@ -1163,11 +1179,28 @@
                                         })">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    @if ($booking->payment_method === 'qrph' && $booking->receipt_path)
-                                        <button type="button" class="btn-icon-edit" title="View receipt"
+                                    @if ($booking->receipt_path)
+                                        <button type="button" class="btn-icon-edit" title="View proof of payment"
                                             onclick="openReceiptModal('{{ asset('storage/' . $booking->receipt_path) }}')">
                                             <i class="fa-solid fa-receipt"></i>
                                         </button>
+                                    @endif
+                                    @if ($booking->status === 'awaiting_verification')
+                                        <form action="{{ route('reservations.approve-payment', $booking) }}" method="POST"
+                                            class="proof-form" onsubmit="return confirm('Approve this payment and confirm the booking?');">
+                                            @csrf
+                                            <button type="submit" class="btn-icon-edit btn-icon-approve" title="Approve payment">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('reservations.reject-payment', $booking) }}" method="POST"
+                                            class="proof-form" onsubmit="return askRejectReason(this);">
+                                            @csrf
+                                            <input type="hidden" name="reason" value="">
+                                            <button type="submit" class="btn-icon-edit btn-icon-reject" title="Reject payment">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                     <form action="{{ route('reservations.destroy', $booking) }}" method="POST"
                                         class="delete-form">
@@ -1458,7 +1491,16 @@
         const receiptImage = document.getElementById('receiptImage');
         const closeReceiptModalBtn = document.getElementById('closeReceiptModal');
 
+        function askRejectReason(form) {
+            const reason = window.prompt('Why is the payment proof being rejected? (the customer will see this)');
+            if (reason === null) return false;            // cancelled
+            if (!reason.trim()) { alert('Please enter a reason.'); return false; }
+            form.querySelector('input[name="reason"]').value = reason.trim().slice(0, 255);
+            return true;
+        }
+
         function openReceiptModal(url) {
+            if (/\.pdf($|\?)/i.test(url)) { window.open(url, '_blank'); return; }   // PDFs open in a new tab
             receiptImage.src = url;
             receiptOverlay.classList.add('active');
             receiptOverlay.setAttribute('aria-hidden', 'false');
