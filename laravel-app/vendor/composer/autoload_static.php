@@ -784,6 +784,7 @@ class ComposerStaticInit1fefbbaec8093917018bd3361a44e78b
         'App\\Models\\Notification' => __DIR__ . '/../..' . '/app/Models/Notification.php',
         'App\\Models\\Payroll' => __DIR__ . '/../..' . '/app/Models/Payroll.php',
         'App\\Models\\PayrollSetting' => __DIR__ . '/../..' . '/app/Models/PayrollSetting.php',
+        'App\\Models\\PayrollSetting' => __DIR__ . '/../..' . '/app/Models/PayrollSetting.php',
         'App\\Models\\SalaryRate' => __DIR__ . '/../..' . '/app/Models/SalaryRate.php',
         'App\\Models\\SiteCard' => __DIR__ . '/../..' . '/app/Models/SiteCard.php',
         'App\\Models\\SiteContent' => __DIR__ . '/../..' . '/app/Models/SiteContent.php',

@@ -12,8 +12,15 @@ class Booking extends Model
         'customer_id', 'customer_name', 'customer_contact', 'pax', 'reservation_date', 'reservation_time',
         'package', 'notes', 'status', 'payment_method', 'receipt_path',
         'voucher_code', 'payment_proof_path', 'payment_submitted_at', 'payment_verified_at',
-        'payment_rejection_reason',
-    ];
+        'payment_rejection_reason', 'xendit_payment_request_id', 'xendit_reference_id',
+   
+    // ...mga existing mo,
+    'approval_status',
+    'reject_reason',
+    'reject_note',
+    'voucher_used_at',
+        ];
+
 
     protected $casts = [
         'visit_date' => 'date',
@@ -22,6 +29,7 @@ class Booking extends Model
         'payment_submitted_at' => 'datetime',
         'payment_verified_at' => 'datetime',
     ];
+    
 
     /**
      * Auto-generates a unique voucher_code for every new booking. Was

@@ -9,27 +9,65 @@
     @php
         use Carbon\Carbon;
 
-        $payDate = $sal->pay_date ? Carbon::parse($sal->pay_date) : Carbon::parse($sal->created_at);
-        $month = $payDate->format('F');
-        $year = $payDate->format('Y');
-
-        if (($sal->cutoff_type ?? '1st') === '2nd') {
-            $lastDay = $payDate->copy()->endOfMonth()->day;
-            $cutoffLabel = "{$month} 16-{$lastDay}, {$year}";
+        // ── Cut Off Date: galing sa mismong period ng payroll (hindi sa petsa
+        //    kung kailan ginawa), kaya laging tama ang 1-15 o 16-katapusan. ──
+        if (!empty($sal->payroll_period_start) && !empty($sal->payroll_period_end)) {
+            $pStart = Carbon::parse($sal->payroll_period_start);
+            $pEnd = Carbon::parse($sal->payroll_period_end);
+            $cutoffLabel = $pStart->format('F j') . '-' . $pEnd->format('j, Y');
         } else {
-            $cutoffLabel = "{$month} 1-15, {$year}";
+            $base = Carbon::parse($sal->created_at ?? now());
+            if (($sal->cutoff_type ?? '1st') === '2nd') {
+                $cutoffLabel = $base->format('F') . ' 16-' . $base->copy()->endOfMonth()->day . ', ' . $base->format('Y');
+            } else {
+                $cutoffLabel = $base->format('F') . ' 1-15, ' . $base->format('Y');
+            }
         }
 
-        $presentDays = $sal->present_days ?? 0;
-        $dailyRate = $sal->daily_rate ?? 0;
-        $grossPay = $sal->gross_pay ?? ($sal->basic_salary + ($sal->holiday_pay ?? 0) + ($sal->overtime_pay ?? 0) + ($sal->holiday_ot_pay ?? 0));
+        // ── Salary date ──
+        $payDate = Carbon::parse(
+            data_get($sal, 'pay_date') ?: (data_get($sal, 'generated_at') ?: (data_get($sal, 'created_at') ?: now()))
+        );
 
+        // ── Earnings ──
+        $presentDays = (int) ($sal->present_days ?? $sal->total_days ?? 0);
+        $dailyRate = (float) ($sal->daily_rate ?? 0);
+        $basicPay = (float) ($sal->basic_salary ?? ($presentDays * $dailyRate));
+        $holidayPay = (float) ($sal->holiday_pay ?? 0);
+        $overtimePay = (float) ($sal->overtime_pay ?? 0);
+        $holidayOtPay = (float) ($sal->holiday_ot_pay ?? 0);
+        $allowance = (float) data_get($sal, 'allowance', data_get($sal, 'allowances', 0));
+        $refund = (float) data_get($sal, 'refund', 0);
+
+        // Total Earnings = Basic + Holiday + Overtime + Holiday OT
+        $grossPay = (float) ($sal->gross_pay ?? ($basicPay + $holidayPay + $overtimePay + $holidayOtPay));
+
+        // ── Deductions ──
+        // "Late" (lampas sa grace period) at "Undertime" (kulang ang oras na
+        // nagawa) ay magkahiwalay na linya, para malinaw kung alin ang alin.
+        $lateAmt = (float) ($sal->deduction ?? 0);
+        $undertimeAmt = (float) ($sal->undertime_deduction ?? 0);
         $totalDeduction =
-            ($sal->deduction ?? 0) +
-            ($sal->sss_deduction ?? 0) +
-            ($sal->philhealth_deduction ?? 0) +
-            ($sal->pagibig_deduction ?? 0) +
-            ($sal->withholding_tax ?? 0);
+            $lateAmt +
+            $undertimeAmt +
+            (float) ($sal->sss_deduction ?? 0) +
+            (float) ($sal->philhealth_deduction ?? 0) +
+            (float) ($sal->pagibig_deduction ?? 0) +
+            (float) ($sal->withholding_tax ?? 0);
+
+        $netPay = (float) ($sal->net_salary ?? ($sal->net_pay ?? ($grossPay - $totalDeduction)));
+
+        // ── Detalye ng oras (galing sa controller) ──
+        $sum = $summary ?? [];
+        $otHours = (float) ($sum['ot_hours'] ?? 0);
+        $lateMin = (int) ($sum['late_minutes'] ?? 0);
+        $underMin = (int) ($sum['undertime_minutes'] ?? 0);
+
+        $fmtHrs = function ($v) {
+            $t = rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+            return $t === '' ? '0' : $t;
+        };
+        $dashIfZero = fn($v) => ((float) $v) > 0 ? number_format((float) $v, 2) : '-';
     @endphp
 
     <style>
@@ -218,6 +256,14 @@
             background: #F5F5F5;
         }
 
+        .note {
+            display: block;
+            font-weight: 400;
+            font-size: 10.5px;
+            color: #555;
+            margin-top: 1px;
+        }
+
         .col-amt {
             width: 120px;
         }
@@ -269,6 +315,11 @@
             .payslip-doc {
                 border-width: 1.5px;
             }
+
+            .pay-table .total-row td {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
 
         @media(max-width:600px) {
@@ -301,7 +352,7 @@
         <div class="payslip-doc">
 
             <div class="row company-row">
-                <div class="cell" style="flex:1;">REKS Amusement Com. Inc.</div>
+                <div class="cell" style="flex:1;">WONDERPARK</div>
             </div>
             <div class="row dept-row">
                 <div class="cell" style="flex:1;">Roller Fever</div>
@@ -342,8 +393,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="label">Gross Pay</td>
-                        <td class="amount">{{ number_format($grossPay, 2) }}</td>
+                        <td class="label">
+                            Basic Pay
+                            <span class="note">{{ $presentDays }} day(s) &times; {{ number_format($dailyRate, 2) }}</span>
+                        </td>
+                        <td class="amount">{{ number_format($basicPay, 2) }}</td>
                         <td class="label">SSS</td>
                         <td class="amount">{{ number_format($sal->sss_deduction ?? 0, 2) }}</td>
                     </tr>
@@ -351,43 +405,72 @@
                         <td class="label">Total working days</td>
                         <td class="amount">{{ $presentDays }}</td>
                         <td class="label">PhilHealth</td>
-                        <td class="amount">{{ number_format($sal->philhealth_deduction ??0, 2) }}</td>
+                        <td class="amount">{{ number_format($sal->philhealth_deduction ?? 0, 2) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Daily Rate</td>
                         <td class="amount">{{ number_format($dailyRate, 2) }}</td>
                         <td class="label">Pag-IBIG</td>
-                        <td class="amount">{{ number_format($sal->pagibig_deduction ?? 0,2) }}</td>
+                        <td class="amount">{{ number_format($sal->pagibig_deduction ?? 0, 2) }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Holiday</td>
-                        <td class="amount">{{ number_format($sal->holiday_pay ?? 0, 2) }}</td>
+                        <td class="label">
+                            Holiday
+                            @if ($holidayPay > 0)
+                        
+                            @endif
+                        </td>
+                        <td class="amount">{{ number_format($holidayPay, 2) }}</td>
                         <td class="label">Withholding Tax</td>
                         <td class="amount">{{ number_format($sal->withholding_tax ?? 0, 2) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Allowances</td>
-                        <td class="amount">{{ number_format($sal->allowance ?? 0, 2) }}</td>
+                        <td class="amount">{{ number_format($allowance, 2) }}</td>
                         <td class="label">Salary Loan</td>
-                        <td class="amount">-</td>
+                        <td class="amount">{{ $dashIfZero(data_get($sal, 'salary_loan', 0)) }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Overtime</td>
-                        <td class="amount">{{ number_format($sal->overtime_pay ?? 0, 2) }}</td>
+                        <td class="label">
+                            Overtime
+                            @if ($otHours > 0)
+                                <span class="note">{{ $fmtHrs($otHours) }} hr(s) OT</span>
+                            @endif
+                        </td>
+                        <td class="amount">{{ number_format($overtimePay, 2) }}</td>
                         <td class="label">Pag-IBIG Loan</td>
-                        <td class="amount">-</td>
+                        <td class="amount">{{ $dashIfZero(data_get($sal, 'pagibig_loan', 0)) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Holiday OT</td>
-                        <td class="amount">{{ number_format($sal->holiday_ot_pay ?? 0, 2) }}</td>
+                        <td class="amount">{{ number_format($holidayOtPay, 2) }}</td>
                         <td class="label">SSS Loan</td>
-                        <td class="amount">-</td>
+                        <td class="amount">{{ $dashIfZero(data_get($sal, 'sss_loan', 0)) }}</td>
                     </tr>
                     <tr>
                         <td class="label">Refund</td>
-                        <td class="amount">-</td>
-                        <td class="label">Late/Undertime</td>
-                        <td class="amount">{{ number_format($sal->deduction ?? 0, 2) }}</td>
+                        <td class="amount">{{ $dashIfZero($refund) }}</td>
+                        <td class="label">
+                            Late
+                            @if ($lateMin > 0)
+                                <span class="note">{{ $lateMin }} minute(s) late</span>
+                            @endif
+                        </td>
+                        <td class="amount">{{ number_format($lateAmt, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label"></td>
+                        <td class="amount"></td>
+                        <td class="label">
+                            Undertime
+                            @if ($undertimeAmt > 0)
+                                <span class="note">
+                                    @if ($underMin > 0){{ $underMin }} minute(s) kulang &middot; @endif
+                                    hindi kumpleto ang shift, hindi kasama sa Late
+                                </span>
+                            @endif
+                        </td>
+                        <td class="amount">{{ number_format($undertimeAmt, 2) }}</td>
                     </tr>
                     <tr class="total-row">
                         <td class="label"></td>
@@ -399,7 +482,7 @@
                         <td class="label">Total Earnings &nbsp;Php</td>
                         <td class="amount">{{ number_format($grossPay, 2) }}</td>
                         <td class="label">Net Pay &nbsp;Php</td>
-                        <td class="amount">{{ number_format($sal->net_salary, 2) }}</td>
+                        <td class="amount">{{ number_format($netPay, 2) }}</td>
                     </tr>
                 </tbody>
             </table>

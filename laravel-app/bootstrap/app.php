@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        // Public ang QR check-in at protektado na ito ng QR token at PIN,
+        // kaya hindi na kailangan ng CSRF dito (iwas "CSRF token mismatch"
+        // kapag nag-expire ang session sa phone).
+        $middleware->validateCsrfTokens(except: [
+            'attendance/checkin',
+        ]);
+
         $middleware->alias([
             'auth.session' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
         ]);

@@ -8,6 +8,18 @@ use Illuminate\Http\Request;
 class ReservationController extends Controller
 {
     /**
+     * Allowed rejection reasons (must match the options in the reject modal).
+     */
+    private const REJECT_REASONS = [
+        'Invalid or unclear payment receipt',
+        'Incorrect payment amount',
+        'Selected date/time is fully booked',
+        'Selected package is not available',
+        'Incomplete or incorrect booking details',
+        'Others',
+    ];
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -50,6 +62,7 @@ class ReservationController extends Controller
             'reservation_time' => $validated['reservation_time'],
             'notes'            => $validated['notes'] ?? null,
             'status'           => 'pending',
+            'approval_status'  => 'pending',
         ]);
 
         return redirect()
@@ -70,6 +83,9 @@ class ReservationController extends Controller
             'reservation_date' => optional($reservation->reservation_date)->format('M d, Y'),
             'reservation_time' => $reservation->reservation_time,
             'status'           => $reservation->status,
+            'approval_status'  => $reservation->approval_status,
+            'reject_reason'    => $reservation->reject_reason,
+            'reject_note'      => $reservation->reject_note,
         ]);
     }
 
@@ -109,6 +125,42 @@ class ReservationController extends Controller
         $reservation->update($validated);
 
         return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
+    }
+
+    /**
+     * Approve or reject a reservation (Status column on the admin table).
+     *
+     * - approved: the customer can now see their reservation/voucher.
+     * - rejected: a reason is required and is shown to the customer.
+     */
+    public function updateStatus(Request $request, Booking $reservation)
+    {
+        // Once the cashier has used the voucher, the status is final ("Done").
+        if (!empty($reservation->voucher_used_at)) {
+            return redirect()
+                ->route('reservations.index')
+                ->with('error', 'This reservation is already completed.');
+        }
+
+        $validated = $request->validate([
+            'status'        => ['required', 'in:approved,rejected'],
+            'reject_reason' => ['required_if:status,rejected', 'nullable', 'string', 'in:' . implode(',', self::REJECT_REASONS)],
+            'reject_note'   => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $rejected = $validated['status'] === 'rejected';
+
+        $reservation->update([
+            'approval_status' => $validated['status'],
+            'reject_reason'   => $rejected ? $validated['reject_reason'] : null,
+            'reject_note'     => $rejected && $validated['reject_reason'] === 'Others'
+                ? ($validated['reject_note'] ?? null)
+                : null,
+        ]);
+
+        return redirect()
+            ->route('reservations.index')
+            ->with('success', $rejected ? 'Reservation rejected.' : 'Reservation approved.');
     }
 
     /**

@@ -57,6 +57,7 @@ return array(
     'App\\Models\\Notification' => $baseDir . '/app/Models/Notification.php',
     'App\\Models\\Payroll' => $baseDir . '/app/Models/Payroll.php',
     'App\\Models\\PayrollSetting' => $baseDir . '/app/Models/PayrollSetting.php',
+    'App\\Models\\PayrollSetting' => $baseDir . '/app/Models/PayrollSetting.php',
     'App\\Models\\SalaryRate' => $baseDir . '/app/Models/SalaryRate.php',
     'App\\Models\\SiteCard' => $baseDir . '/app/Models/SiteCard.php',
     'App\\Models\\SiteContent' => $baseDir . '/app/Models/SiteContent.php',
