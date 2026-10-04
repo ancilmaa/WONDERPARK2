@@ -33,4 +33,4 @@
 </div>
 <button class="chat-fab" onclick="document.getElementById('chatWindow').classList.add('open')">&#128172;</button>
 
-<script src="{{ asset('js/reks-assist.js') }}"></script>
+<script src="{{ asset('js/reks-assist.js') }}?v={{ filemtime(public_path('js/reks-assist.js')) }}"></script>

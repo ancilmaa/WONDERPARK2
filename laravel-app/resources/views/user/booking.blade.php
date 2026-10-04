@@ -350,6 +350,76 @@
         top: auto;
     }
 }
+
+        /* ===== Mobile: calendar floats over the packages as a bottom sheet ===== */
+        .cal-sheet-head, .cal-sheet-done, .cal-sheet-backdrop, .cal-open-btn { display: none; }
+
+        @media (max-width: 768px) {
+            .booking-split .booking-col-cal {
+                position: fixed;
+                left: 0; right: 0; bottom: 0; top: auto;
+                z-index: 80;                      /* above bottom nav (20) and chat button (25-30) */
+                max-height: 88vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                background: #fff;
+                border-radius: 22px 22px 0 0;
+                box-shadow: 0 -18px 40px -12px rgba(26,21,35,.35);
+                padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
+                transform: translateY(105%);
+                visibility: hidden;
+                transition: transform .28s ease, visibility 0s linear .28s;
+            }
+            .booking-split .booking-col-cal.sheet-open {
+                transform: translateY(0);
+                visibility: visible;
+                transition: transform .28s ease, visibility 0s;
+            }
+            .booking-col-cal .cal-embed { box-shadow: none; border: 0; }
+            .booking-col-cal #calSelectedBar { margin-top: 8px; }
+
+            .cal-sheet-head {
+                display: flex; align-items: center; justify-content: space-between;
+                position: sticky; top: 0; z-index: 2; background: #fff;
+                padding: 14px 2px 8px;
+            }
+            .cal-sheet-head::before {
+                content: ""; position: absolute; top: 6px; left: 50%;
+                width: 40px; height: 4px; margin-left: -20px;
+                border-radius: 4px; background: var(--line, #e5e0ea);
+            }
+            .cal-sheet-title { font-weight: 800; font-size: 15px; color: var(--ink, #1a1523); }
+            .cal-sheet-close {
+                width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--line, #e5e0ea);
+                background: #fff; color: var(--ink-soft, #555); font-size: 18px; line-height: 1; cursor: pointer;
+            }
+            .cal-sheet-done {
+                display: block; width: 100%; margin-top: 10px; padding: 13px 16px;
+                border: 0; border-radius: 14px; cursor: pointer;
+                font-weight: 700; font-size: 14px; color: #fff;
+                background: linear-gradient(120deg, var(--pink-dark, #d63e63), var(--pink-deep, #b82850));
+            }
+            .cal-sheet-done:disabled { opacity: .45; cursor: not-allowed; }
+
+            .cal-sheet-backdrop {
+                display: block; position: fixed; inset: 0; z-index: 70;
+                background: rgba(26,21,35,.45);
+                opacity: 0; pointer-events: none; transition: opacity .25s ease;
+            }
+            .cal-sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+
+            /* shortcut button under "Selected: ..." to reopen the calendar */
+            .cal-open-btn {
+                display: flex; align-items: center; gap: 8px; width: 100%;
+                margin: 8px 0 0; padding: 11px 14px; border-radius: 14px; cursor: pointer;
+                border: 1.5px dashed var(--pink-deep, #b82850); background: #fff;
+                color: var(--pink-deep, #b82850); font-weight: 700; font-size: 13px; text-align: left;
+            }
+            .cal-open-btn[hidden] { display: none; }
+            .cal-open-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+            body.cal-sheet-lock { overflow: hidden; }
+        }
     </style>
 @endpush
 
@@ -384,6 +454,10 @@
                 <div id="pkgSummary" class="promo-selection-summary empty">
                     No package selected yet
                 </div>
+                <button type="button" class="cal-open-btn" id="calOpenBtn" hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path></svg>
+                    <span id="calOpenBtnText">Pick date &amp; time</span>
+                </button>
                 <input type="hidden" name="service" id="serviceInput" value="{{ array_key_first($services) }}" required>
                 <input type="hidden" name="package" id="packageInput" required>
                 <input type="hidden" name="tier" id="tierInput" required>
@@ -487,7 +561,11 @@
             </div>
 
             {{-- ================= RIGHT: big inline calendar ================= --}}
-            <div class="booking-col booking-col-cal">
+            <div class="booking-col booking-col-cal" id="calSheet">
+                <div class="cal-sheet-head">
+                    <span class="cal-sheet-title">Pick date &amp; time</span>
+                    <button type="button" class="cal-sheet-close" id="calSheetClose" aria-label="Close">&times;</button>
+                </div>
                 <div class="cal-embed" id="calEmbed">
                     <div class="cal-embed-inner">
                         <div class="cal-month">
@@ -527,10 +605,13 @@
                 </div>
                 <input type="hidden" name="visit_date" id="visitDateInput" required>
                 <input type="hidden" name="visit_time" id="visitTimeInput" required>
+                <button type="button" class="cal-sheet-done" id="calSheetDone" disabled>Done</button>
             </div>
 
         </div>
     </form>
+
+    <div class="cal-sheet-backdrop" id="calSheetBackdrop"></div>
 
     <!-- Booking Confirmation Modal -->
     <div class="booking-modal-overlay" id="bookingModalOverlay">
@@ -1032,6 +1113,7 @@
         bar.classList.remove('empty');
         var availTagOnCommit = document.getElementById('dateTimeAvailableTag');
         if (availTagOnCommit) availTagOnCommit.style.display = 'inline-block';
+        document.dispatchEvent(new CustomEvent('reks:slot-committed'));
     }
 
     document.getElementById('calPrev').addEventListener('click', function () {
@@ -1057,6 +1139,91 @@
     // render immediately — calendar is always visible now, no open/close popup
     renderCalendar();
     renderSlots();
+})();
+</script>
+<script>
+// ── Mobile: calendar as a bottom sheet that floats over the packages ──
+(function () {
+    var sheet    = document.getElementById('calSheet');
+    var backdrop = document.getElementById('calSheetBackdrop');
+    var closeBtn = document.getElementById('calSheetClose');
+    var doneBtn  = document.getElementById('calSheetDone');
+    var openBtn  = document.getElementById('calOpenBtn');
+    var openTxt  = document.getElementById('calOpenBtnText');
+    var timeIn   = document.getElementById('visitTimeInput');
+    var dateIn   = document.getElementById('visitDateInput');
+    var label    = document.getElementById('dateTimeLabel');
+    if (!sheet || !backdrop) return;
+
+    var mq = window.matchMedia('(max-width: 768px)');
+    var autoCloseTimer = null;
+
+    function isMobile() { return mq.matches; }
+
+    function openSheet() {
+        // no JS width check: the CSS only turns .sheet-open into a bottom sheet
+        // on mobile widths, so on desktop this class is harmless.
+        sheet.classList.add('sheet-open');
+        backdrop.classList.add('show');
+        document.body.classList.add('cal-sheet-lock');
+    }
+    function closeSheet() {
+        clearTimeout(autoCloseTimer);
+        sheet.classList.remove('sheet-open');
+        backdrop.classList.remove('show');
+        document.body.classList.remove('cal-sheet-lock');
+    }
+    function syncOpenBtn() {
+        if (!openBtn) return;
+        var hasPkg = !!document.getElementById('packageInput').value;
+        openBtn.hidden = !hasPkg;
+        if (dateIn.value && timeIn.value) {
+            openTxt.innerHTML = label.innerHTML.replace('Selected:', 'Change:');
+        } else {
+            openTxt.textContent = 'Pick date & time';
+        }
+        if (doneBtn) doneBtn.disabled = !(dateIn.value && timeIn.value);
+    }
+
+    // open the sheet as soon as a package/tier is chosen.
+    // Delegated on document so it still works if the package cards are
+    // re-rendered/moved by the category filter or pagination.
+    document.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || t.name !== 'tier_choice') return;
+        // let the main selection handler finish first (it sets packageInput)
+        setTimeout(function () {
+            syncOpenBtn();
+            // collapse the tier panel so the sheet isn't covering an open overlay
+            document.querySelectorAll('.promo-tiers').forEach(function (p) { p.setAttribute('hidden', ''); });
+            openSheet();
+        }, 0);
+    });
+
+    // switching service tab clears the package -> hide the shortcut + close
+    document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.service-tab')) {
+            closeSheet(); setTimeout(syncOpenBtn, 0);
+        }
+    });
+
+    // once a time slot is picked, update the shortcut and close the sheet shortly after
+    document.addEventListener('reks:slot-committed', function () {
+        syncOpenBtn();
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = setTimeout(closeSheet, 700);
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+    if (doneBtn)  doneBtn.addEventListener('click', closeSheet);
+    backdrop.addEventListener('click', closeSheet);
+    if (openBtn)  openBtn.addEventListener('click', openSheet);
+
+    // leaving mobile width: make sure nothing stays locked
+    var onChange = function () { if (!isMobile()) closeSheet(); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
+
+    syncOpenBtn();
 })();
 </script>
 <script>

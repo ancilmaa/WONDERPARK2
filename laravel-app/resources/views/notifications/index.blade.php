@@ -37,13 +37,48 @@
             color: var(--muted);
         }
 
+        /* ===== Top summary strip ===== */
+        .notif-topstrip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .78rem;
+            color: var(--ink-soft);
+            margin-bottom: 14px;
+        }
+
+        .notif-topstrip-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--pink-pale);
+            color: var(--pink-dark);
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+
+        .notif-topstrip-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--pink);
+            flex-shrink: 0;
+        }
+
+        .notif-topstrip-sep {
+            color: var(--muted);
+        }
+
         /* ===== Header ===== */
         .notif-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            gap: 16px;
             flex-wrap: wrap;
+            margin-bottom: 18px;
             margin-bottom: 18px;
         }
 
@@ -57,16 +92,21 @@
             width: 42px;
             height: 42px;
             border-radius: 12px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             background: var(--pink-light);
             color: var(--pink-deep);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.1rem;
+            font-size: 1.1rem;
             flex-shrink: 0;
         }
 
         .notif-head h1 {
+            font-size: 1.35rem;
             font-size: 1.35rem;
             font-weight: 800;
             color: var(--ink);
@@ -160,11 +200,13 @@
             color: #fff;
             border: none;
             padding: 10px 18px;
+            padding: 10px 18px;
             border-radius: 10px;
             font-size: .82rem;
             font-weight: 700;
             cursor: pointer;
             transition: background .12s;
+            white-space: nowrap;
             white-space: nowrap;
         }
 
@@ -173,10 +215,12 @@
         }
 
         /* ===== Toolbar ===== */
+        /* ===== Toolbar ===== */
         .notif-toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             gap: 12px;
             flex-wrap: wrap;
             margin-bottom: 16px;
@@ -194,8 +238,38 @@
             display: inline-flex;
             align-items: center;
             gap: 2px;
+            margin-bottom: 16px;
+        }
+
+        .notif-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        /* Status segmented control */
+        .notif-segment {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
             background: var(--card);
             box-shadow: var(--shadow-sm);
+            border-radius: 10px;
+            padding: 4px;
+        }
+
+        .notif-segment a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            white-space: nowrap;
+            transition: background .12s, color .12s;
             border-radius: 10px;
             padding: 4px;
         }
@@ -233,24 +307,51 @@
 
         /* Category tabs */
         .notif-tabs {
+        .notif-segment a:hover {
+            color: var(--ink);
+        }
+
+        .notif-segment a.active {
+            background: var(--ink);
+            color: #fff;
+        }
+
+        .notif-segment a .count {
+            font-weight: 800;
+            opacity: .75;
+        }
+
+        .notif-segment a.active .count {
+            opacity: .9;
+        }
+
+        /* Category tabs */
+        .notif-tabs {
             display: flex;
+            align-items: center;
+            gap: 4px;
             align-items: center;
             gap: 4px;
         }
 
         .notif-tabs a {
+        .notif-tabs a {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 8px 12px;
+            padding: 8px 12px;
             border-radius: 8px;
+            font-size: .8rem;
             font-size: .8rem;
             font-weight: 600;
             color: var(--ink-soft);
             white-space: nowrap;
             transition: background .12s, color .12s;
+            transition: background .12s, color .12s;
         }
 
+        .notif-tabs a:hover {
         .notif-tabs a:hover {
             background: var(--pink-pale);
             color: var(--ink);
@@ -259,8 +360,15 @@
         .notif-tabs a.active {
             background: var(--pink-pale);
             color: var(--pink-dark);
+        .notif-tabs a.active {
+            background: var(--pink-pale);
+            color: var(--pink-dark);
         }
 
+        .notif-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
         .notif-toolbar-right {
             display: flex;
             align-items: center;
@@ -271,6 +379,7 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
+            font-size: .8rem;
             font-size: .8rem;
             font-weight: 600;
             color: var(--ink-soft);
@@ -285,6 +394,25 @@
             cursor: pointer;
         }
 
+        .notif-markread-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            cursor: pointer;
+            padding: 6px 4px;
+            transition: color .12s;
+        }
+
+        .notif-markread-btn:hover {
+            color: var(--pink-dark);
+        }
+
+        /* ===== Bulk bar (shown once a row is checked) ===== */
         .notif-markread-btn {
             display: inline-flex;
             align-items: center;
@@ -410,6 +538,7 @@
         }
 
         /* ===== List panel ===== */
+        /* ===== List panel ===== */
         .notif-list-panel {
             background: var(--card);
             border-radius: 14px;
@@ -419,6 +548,9 @@
 
         .notif-row {
             display: flex;
+            align-items: flex-start;
+            gap: 13px;
+            padding: 15px 18px;
             align-items: flex-start;
             gap: 13px;
             padding: 15px 18px;
@@ -434,6 +566,7 @@
         .notif-row:hover,
         .notif-row:focus-visible {
             background: var(--bg);
+            background: var(--bg);
             outline: none;
         }
 
@@ -446,14 +579,22 @@
             background: var(--pink-light);
         }
 
+        .notif-row.unread:hover,
+        .notif-row.unread:focus-visible {
+            background: var(--pink-light);
+        }
+
         .notif-row-checkbox-wrap {
             display: flex;
             align-items: center;
+            height: 22px;
             height: 22px;
             flex-shrink: 0;
         }
 
         .notif-row-checkbox {
+            width: 15px;
+            height: 15px;
             width: 15px;
             height: 15px;
             accent-color: var(--pink);
@@ -462,13 +603,23 @@
 
         .notif-row-dot-wrap {
             width: 8px;
+        .notif-row-dot-wrap {
+            width: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 22px;
             flex-shrink: 0;
+            align-items: center;
+            height: 22px;
+            flex-shrink: 0;
         }
 
+        .notif-row-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--pink);
         .notif-row-dot {
             width: 7px;
             height: 7px;
@@ -484,8 +635,16 @@
         .notif-row-top {
             display: flex;
             align-items: center;
+            align-items: center;
             justify-content: space-between;
             gap: 10px;
+        }
+
+        .notif-row-title-group {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
         }
 
         .notif-row-title-group {
@@ -498,6 +657,7 @@
         .notif-row-title {
             font-weight: 700;
             font-size: .9rem;
+            font-size: .9rem;
             color: var(--ink);
             white-space: nowrap;
             overflow: hidden;
@@ -506,13 +666,21 @@
 
         .notif-badge {
             flex-shrink: 0;
+        .notif-badge {
+            flex-shrink: 0;
             font-size: .68rem;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 999px;
             font-weight: 700;
             padding: 2px 9px;
             border-radius: 999px;
             white-space: nowrap;
         }
 
+        .notif-badge.type-booking {
+            background: var(--pink-light);
+            color: var(--pink-deep);
         .notif-badge.type-booking {
             background: var(--pink-light);
             color: var(--pink-deep);
@@ -527,16 +695,31 @@
         .notif-badge.type-pos {
             background: #E3F0FF;
             color: #2563EB;
+        .notif-badge.type-low_stock,
+        .notif-badge.type-inventory {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .notif-badge.type-pos {
+            background: #E3F0FF;
+            color: #2563EB;
         }
 
         .notif-badge.type-default {
+        .notif-badge.type-default {
             background: var(--line);
+            color: var(--ink-soft);
             color: var(--ink-soft);
         }
 
         .notif-row-time {
             font-size: .72rem;
+        .notif-row-time {
+            font-size: .72rem;
             color: var(--muted);
+            white-space: nowrap;
+            flex-shrink: 0;
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -546,10 +729,20 @@
             color: var(--ink-soft);
             margin-top: 4px;
             line-height: 1.45;
+        .notif-row-msg {
+            font-size: .8rem;
+            color: var(--ink-soft);
+            margin-top: 4px;
+            line-height: 1.45;
         }
 
         .notif-row-meta {
+        .notif-row-meta {
             display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: .76rem;
             align-items: center;
             gap: 8px;
             margin-top: 6px;
@@ -560,18 +753,29 @@
             color: var(--pink-dark);
             font-weight: 700;
             display: inline-flex;
+        .notif-row-meta a {
+            color: var(--pink-dark);
+            font-weight: 700;
+            display: inline-flex;
             align-items: center;
+            gap: 5px;
             gap: 5px;
         }
 
+        .notif-row-meta a:hover {
+            text-decoration: underline;
         .notif-row-meta a:hover {
             text-decoration: underline;
         }
 
         .notif-row-meta-dot {
             color: var(--muted);
+        .notif-row-meta-dot {
+            color: var(--muted);
         }
 
+        .notif-row-meta-extra {
+            color: var(--muted);
         .notif-row-meta-extra {
             color: var(--muted);
         }
@@ -581,9 +785,20 @@
             width: 30px;
             height: 30px;
             display: inline-flex;
+        .notif-row-delete {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            justify-content: center;
             border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: .78rem;
+            background: transparent;
+            color: var(--muted);
             border: none;
             cursor: pointer;
             font-size: .78rem;
@@ -592,6 +807,9 @@
             transition: background .12s, color .12s;
         }
 
+        .notif-row-delete:hover {
+            background: #FEE2E2;
+            color: #DC2626;
         .notif-row-delete:hover {
             background: #FEE2E2;
             color: #DC2626;
@@ -634,7 +852,24 @@
             justify-content: space-between;
             gap: 12px;
             flex-wrap: wrap;
+        /* ---- Footer: pagination + status strip ---- */
+        .notif-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-top: 16px;
+        }
+
+        .notif-footer-count {
+            font-size: .8rem;
+            color: var(--ink-soft);
+        }
+
+        .notif-footer-count strong {
+            color: var(--ink);
+            font-weight: 700;
         }
 
         .notif-footer-count {
@@ -706,6 +941,33 @@
             flex-shrink: 0;
         }
 
+        .notif-statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+            font-size: .72rem;
+            color: var(--muted);
+        }
+
+        .notif-statusbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notif-statusbar-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #22C55E;
+            flex-shrink: 0;
+        }
+
         a:focus-visible,
         button:focus-visible {
             outline: 2px solid var(--pink);
@@ -719,8 +981,18 @@
 
             .notif-search {
                 flex: 1;
+        @media (max-width: 900px) {
+            .notif-head-right {
+                width: 100%;
             }
 
+            .notif-search {
+                flex: 1;
+            }
+
+            .notif-toolbar-right {
+                width: 100%;
+                justify-content: space-between;
             .notif-toolbar-right {
                 width: 100%;
                 justify-content: space-between;
@@ -728,6 +1000,8 @@
         }
 
         @media (max-width: 560px) {
+            .notif-row-top {
+                flex-wrap: wrap;
             .notif-row-top {
                 flex-wrap: wrap;
             }
@@ -749,6 +1023,17 @@
         $typeParam   = $type !== 'all' ? $type : null;
     @endphp
 
+    {{-- ===== Top summary strip ===== --}}
+    <div class="notif-topstrip">
+        <span class="notif-topstrip-pill">
+            <span class="dot"></span>
+            {{ $stats['unread'] }} unread alert{{ $stats['unread'] === 1 ? '' : 's' }} needing attention
+        </span>
+        <span class="notif-topstrip-sep">&middot;</span>
+        <span>{{ $readCount }} resolved</span>
+    </div>
+
+    {{-- ===== Header ===== --}}
     {{-- ===== Top summary strip ===== --}}
     <div class="notif-topstrip">
         <span class="notif-topstrip-pill">
@@ -808,6 +1093,7 @@
         </div>
     </div>
 
+    {{-- ===== Toolbar ===== --}}
     {{-- ===== Toolbar ===== --}}
     <div class="notif-toolbar">
         <div class="notif-toolbar-left">
@@ -931,7 +1217,31 @@
                             <div class="notif-row-meta">
                                 <a href="{{ $n->url }}" onclick="event.stopPropagation()">
                                     View details <i class="fa-solid fa-chevron-right"></i>
+                                <span class="notif-badge {{ $badgeClass }}">{{ ucfirst(str_replace('_', ' ', $n->type)) }}</span>
+                            </div>
+                            <span class="notif-row-time">{{ $n->time }}</span>
+                        </div>
+                        <div class="notif-row-msg">{{ $n->message }}</div>
+                        @if ($n->url)
+                            <div class="notif-row-meta">
+                                <a href="{{ $n->url }}" onclick="event.stopPropagation()">
+                                    View details <i class="fa-solid fa-chevron-right"></i>
                                 </a>
+                            </div>
+                        @endif
+                    </div>
+                    <form method="POST" action="{{ route('notifications.destroy', $n->id) }}"
+                          onsubmit="return confirm('Delete this notification? This cannot be undone.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="notif-row-delete" title="Delete" aria-label="Delete" onclick="event.stopPropagation()">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </form>
+                </div>
+            @endforeach
+        @endif
+    </div>
                             </div>
                         @endif
                     </div>
@@ -973,6 +1283,31 @@
         </div>
         <div>&copy; {{ date('Y') }} WonderPark Corporation. All rights reserved.</div>
     </div>
+    {{-- ===== Footer: pagination ===== --}}
+    @if ($notifications->count() > 0)
+        <div class="notif-footer">
+            <div class="notif-footer-count">
+                Showing <strong>{{ $notifications->firstItem() }}</strong> to <strong>{{ $notifications->lastItem() }}</strong>
+                of <strong>{{ $notifications->total() }}</strong> results
+            </div>
+            <div class="notif-pagination">
+                {{ $notifications->onEachSide(1)->links() }}
+            </div>
+        </div>
+    @endif
+
+    {{-- ===== Bottom status strip ===== --}}
+    <div class="notif-statusbar">
+        <div class="notif-statusbar-left">
+            <span>WonderParkCoreOS</span>
+            <span>&middot;</span>
+            <span>Lipa Branch Operations</span>
+            <span>&middot;</span>
+            <span class="notif-statusbar-dot"></span>
+            <span>Synced</span>
+        </div>
+        <div>&copy; {{ date('Y') }} WonderPark Corporation. All rights reserved.</div>
+    </div>
 
     <script>
     (function () {
@@ -982,6 +1317,7 @@
     const bulkCountEl = document.getElementById('notifBulkCount');
     const clearBtn = document.getElementById('notifBulkClear');
 
+    const toolbarReadBtn = document.getElementById('notifToolbarReadBtn');
     const toolbarReadBtn = document.getElementById('notifToolbarReadBtn');
     const readBtn = document.getElementById('notifBulkReadBtn');
     const readForm = document.getElementById('notifBulkReadForm');
@@ -1030,6 +1366,14 @@
         readForm.submit();
     }
 
+    function submitRead() {
+        const ids = getCheckedIds();
+        if (ids.length === 0) return;
+
+        fillHiddenIds(readIdsContainer, ids);
+        readForm.submit();
+    }
+
     getCheckboxes().forEach(cb => cb.addEventListener('change', updateBulkBar));
 
     if (selectAllBtn) {
@@ -1050,7 +1394,12 @@
         toolbarReadBtn.addEventListener('click', submitRead);
     }
 
+    if (toolbarReadBtn) {
+        toolbarReadBtn.addEventListener('click', submitRead);
+    }
+
     if (readBtn) {
+        readBtn.addEventListener('click', submitRead);
         readBtn.addEventListener('click', submitRead);
     }
 

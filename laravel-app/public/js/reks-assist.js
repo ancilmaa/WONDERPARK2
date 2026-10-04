@@ -26,6 +26,7 @@
     const bubble = document.createElement('div');
     bubble.className = 'bubble ' + (sender === 'user' ? 'user' : 'bot');
     bubble.textContent = text;
+    bubble.style.whiteSpace = 'pre-line';
     row.appendChild(bubble);
 
     messagesEl.appendChild(row);
@@ -56,8 +57,11 @@
     if (el) el.remove();
   }
 
+  let sending = false;
+
   async function sendMessage(text) {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim() || sending) return;
+    sending = true;
 
     appendMessage(text, 'user');
     inputEl.value = '';
@@ -74,16 +78,28 @@
         body: JSON.stringify({ message: text, history: history }),
       });
 
-      const data = await res.json();
+      let data = null;
+      try { data = await res.json(); } catch (e) { data = null; }
       removeTyping();
+      if (!data || typeof data.reply !== 'string' || !data.reply.trim()) {
+        appendMessage("Sorry, I ran into a glitch. Please try again in a moment.", 'bot');
+        sending = false;
+        return;
+      }
       appendMessage(data.reply, 'bot');
 
-      history.push({ role: 'user', content: text });
-      history.push({ role: 'assistant', content: data.reply });
+      // Don't save failed replies (glitch / busy messages) as if the bot
+      // had said them — they'd confuse the next answer.
+      if (!data.error) {
+        history.push({ role: 'user', content: text });
+        history.push({ role: 'assistant', content: data.reply });
+      }
     } catch (err) {
       removeTyping();
-      appendMessage("Naku, di ako makaconnect sa server ngayon. Subukan ulit mamaya.", 'bot');
+      appendMessage("Sorry, I can't reach the server right now. Please try again in a moment.", 'bot');
       console.error('Wonder Park chat error:', err);
+    } finally {
+      sending = false;
     }
   }
 

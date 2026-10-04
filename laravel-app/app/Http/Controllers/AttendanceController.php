@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -12,11 +13,17 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\SalaryRate;
 use App\Models\PayrollSetting;
+use App\Models\PayrollSetting;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class AttendanceController extends Controller
 {
+    public function index(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
     public function index(Request $request)
     {
         if (!session()->has('user_id')) {
@@ -51,6 +58,10 @@ class AttendanceController extends Controller
         // month's 2nd cutoff is no longer silently dropped.
         $periodDays = $periodStart->diffInDays($periodEnd) + 1;
 
+        $attendance = Attendance::whereBetween('attendance_date', [
+            $periodStart->format('Y-m-d'),
+            $periodEnd->format('Y-m-d'),
+        ])->get();
         $attendance = Attendance::whereBetween('attendance_date', [
             $periodStart->format('Y-m-d'),
             $periodEnd->format('Y-m-d'),
@@ -97,6 +108,8 @@ class AttendanceController extends Controller
                 }
             }
 
+            return $obj;
+        })->values();
             return $obj;
         })->values();
 
@@ -249,10 +262,19 @@ class AttendanceController extends Controller
         if ($cutoffType) {
             $isFirst = $cutoffType === '1st';
 
+        if ($cutoffType) {
+            $isFirst = $cutoffType === '1st';
+
+            $start = $isFirst
+                ? $today->copy()->startOfMonth()
+                : $today->copy()->startOfMonth()->addDays(15);
             $start = $isFirst
                 ? $today->copy()->startOfMonth()
                 : $today->copy()->startOfMonth()->addDays(15);
 
+            $end = $isFirst
+                ? $today->copy()->startOfMonth()->addDays(14)
+                : $today->copy()->endOfMonth();
             $end = $isFirst
                 ? $today->copy()->startOfMonth()->addDays(14)
                 : $today->copy()->endOfMonth();
@@ -435,6 +457,28 @@ class AttendanceController extends Controller
         return redirect()->route('salary')->with('success', 'Overtime & deduction settings updated successfully.');
     }
 
+    // ─── UPDATE OVERTIME / LATE / HOLIDAY-OT SETTINGS ───────────
+    public function updatePayrollSettings(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $request->validate([
+            'ot_multiplier' => 'required|numeric|min:1',
+            'holiday_ot_multiplier' => 'required|numeric|min:1',
+            'minutes_per_day' => 'required|integer|min:1',
+            'late_rate_multiplier' => 'required|numeric|min:0',
+        ]);
+
+        $settings = PayrollSetting::current();
+        $settings->update($request->only([
+            'ot_multiplier', 'holiday_ot_multiplier', 'minutes_per_day', 'late_rate_multiplier',
+        ]));
+
+        return redirect()->route('salary')->with('success', 'Overtime & deduction settings updated successfully.');
+    }
+
     // ─── GENERATE PAYROLL ───────────────────────────
     public function storePayroll(Request $request)
     {
@@ -452,6 +496,9 @@ class AttendanceController extends Controller
         [$periodStart, $periodEnd] = $this->latestCutoffRangeFor($cutoffType);
 
         $rates = SalaryRate::all()->keyBy('position');
+        $settings = PayrollSetting::current();
+        $hoursPerDay = $settings->minutes_per_day > 0 ? $settings->minutes_per_day / 60 : 8;
+
         $settings = PayrollSetting::current();
         $hoursPerDay = $settings->minutes_per_day > 0 ? $settings->minutes_per_day / 60 : 8;
 
@@ -479,8 +526,13 @@ class AttendanceController extends Controller
             $positionKey = $categoryToPosition[strtolower($category)] ?? 'staff';
             $dailyRate = floatval($rates->get($positionKey)?->daily_rate ?? 0);
             $hourlyRate = $hoursPerDay > 0 ? $dailyRate / $hoursPerDay : 0;
+            $hourlyRate = $hoursPerDay > 0 ? $dailyRate / $hoursPerDay : 0;
 
             $basicPay = 0;
+            $holidayPay = 0;
+            $overtimePay = 0;
+            $holidayOtPay = 0;
+            $lateDeduction = 0;
             $holidayPay = 0;
             $overtimePay = 0;
             $holidayOtPay = 0;
@@ -532,10 +584,15 @@ class AttendanceController extends Controller
             if ($applyGovt) {
                 $sss = round($grossPay * 0.045, 2);
                 $philhealth = round($grossPay * 0.02, 2);
+                $sss = round($grossPay * 0.045, 2);
+                $philhealth = round($grossPay * 0.02, 2);
                 $pagibig = 100.00;
+                $withholding = round(max(0, $grossPay - 20833) * 0.15, 2);
                 $withholding = round(max(0, $grossPay - 20833) * 0.15, 2);
             }
 
+            $totalDeductions = $sss + $philhealth + $pagibig + $withholding + $lateDeduction;
+            $netSalary = $grossPay - $totalDeductions;
             $totalDeductions = $sss + $philhealth + $pagibig + $withholding + $lateDeduction;
             $netSalary = $grossPay - $totalDeductions;
 
@@ -549,8 +606,13 @@ class AttendanceController extends Controller
                 'total_days' => $totalDays,
                 'present_days' => $totalDays,
                 'daily_rate' => $dailyRate,
+                'present_days' => $totalDays,
+                'daily_rate' => $dailyRate,
                 'total_hours' => $recs->sum('total_hours'),
                 'basic_salary' => $basicPay,
+                'holiday_pay' => round($holidayPay, 2),
+                'overtime_pay' => round($overtimePay, 2),
+                'holiday_ot_pay' => round($holidayOtPay, 2),
                 'holiday_pay' => round($holidayPay, 2),
                 'overtime_pay' => round($overtimePay, 2),
                 'holiday_ot_pay' => round($holidayOtPay, 2),
@@ -558,6 +620,11 @@ class AttendanceController extends Controller
                 'philhealth_deduction' => $philhealth,
                 'pagibig_deduction' => $pagibig,
                 'withholding_tax' => $withholding,
+                'deduction' => round($lateDeduction, 2), // late/undertime deduction
+                'gross_pay' => round($grossPay, 2),
+                'total_deductions' => round($totalDeductions, 2),
+                'net_pay' => round($netSalary, 2),
+                'net_salary' => round($netSalary, 2),
                 'deduction' => round($lateDeduction, 2), // late/undertime deduction
                 'gross_pay' => round($grossPay, 2),
                 'total_deductions' => round($totalDeductions, 2),
@@ -626,12 +693,21 @@ class AttendanceController extends Controller
         if (!session()->has('user_id')) {
             return redirect('/login');
         }
+    public function payslip($id)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
 
+        $sal = Payroll::findOrFail($id);
         $sal = Payroll::findOrFail($id);
 
         return view('attendance.payslip', compact('sal'));
     }
+        return view('attendance.payslip', compact('sal'));
+    }
 
+    // ─── MANUAL ENCODE ATTENDANCE (HR, e.g. from a paper logbook) ──
     // ─── MANUAL ENCODE ATTENDANCE (HR, e.g. from a paper logbook) ──
     public function storeAttendance(Request $request)
     {
@@ -921,7 +997,16 @@ class AttendanceController extends Controller
         if (!session()->has('user_id')) {
             return redirect('/login');
         }
+    // ─── BIO FILE IMPORT (CSV or Excel) ─────────────
+    public function importAttendance(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
 
+        if (!$request->hasFile('import_file')) {
+            return redirect()->route('attendance')->with('error', 'No file uploaded.');
+        }
         if (!$request->hasFile('import_file')) {
             return redirect()->route('attendance')->with('error', 'No file uploaded.');
         }
@@ -992,7 +1077,19 @@ class AttendanceController extends Controller
                 if (!$handle) {
                     return redirect()->route('attendance')->with('error', 'Unable to read the uploaded file.');
                 }
+        try {
+            if ($ext === 'csv') {
+                $handle = fopen($file->getRealPath(), 'r');
+                if (!$handle) {
+                    return redirect()->route('attendance')->with('error', 'Unable to read the uploaded file.');
+                }
 
+                $header = fgetcsv($handle);
+                if (!$header) {
+                    fclose($handle);
+                    return redirect()->route('attendance')->with('error', 'The uploaded CSV file is empty or invalid.');
+                }
+                $header = array_map(fn($h) => strtolower(trim($h)), $header);
                 $header = fgetcsv($handle);
                 if (!$header) {
                     fclose($handle);
@@ -1017,7 +1114,11 @@ class AttendanceController extends Controller
                 if (empty($rows)) {
                     return redirect()->route('attendance')->with('error', 'The uploaded file is empty or invalid.');
                 }
+                if (empty($rows)) {
+                    return redirect()->route('attendance')->with('error', 'The uploaded file is empty or invalid.');
+                }
 
+                $header = array_map(fn($h) => strtolower(trim($h ?? '')), $rows[0]);
                 $header = array_map(fn($h) => strtolower(trim($h ?? '')), $rows[0]);
 
                 for ($i = 1; $i < count($rows); $i++) {
@@ -1108,6 +1209,15 @@ class AttendanceController extends Controller
                 );
                 $imported += count($chunk);
             }
+            $imported = 0;
+            foreach (array_chunk($allRows, 200) as $chunk) {
+                Attendance::upsert(
+                    $chunk,
+                    ['employee_name', 'attendance_date'],           // unique key to match on
+                    ['category', 'status', 'remarks', 'source']       // columns to update if match found
+                );
+                $imported += count($chunk);
+            }
 
             // Record when this period was last imported. Used by the
             // Salary page to know if a generated payroll is stale.
@@ -1140,6 +1250,10 @@ class AttendanceController extends Controller
             // so this newly imported CSV is what shows up immediately.
             return redirect()->route('attendance', ['period' => $periodStart->format('Y-m-d')])->with('success', $successMessage);
 
+        } catch (\Throwable $e) {
+            return redirect()->route('attendance')->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
         } catch (\Throwable $e) {
             return redirect()->route('attendance')->with('error', 'Import failed: ' . $e->getMessage());
         }
@@ -1208,6 +1322,8 @@ class AttendanceController extends Controller
 
         $category = $rowData['category'] ?? 'Staff';
         $rows = [];
+        $category = $rowData['category'] ?? 'Staff';
+        $rows = [];
 
         for ($day = 1; $day <= $periodDays; $day++) {
             // Suporta sa dalawang posibleng header format ng bio export:
@@ -1218,6 +1334,20 @@ class AttendanceController extends Controller
             $val = trim((string)($rowData["day{$day}"] ?? $rowData[(string)$day] ?? ''));
             if ($val === '') continue;
 
+            $status = null;
+            if ($val === 'P' || str_starts_with($val, '+')) {
+                $status = 'present';
+            } elseif ($val === '-') {
+                // A bare dash with no number = genuinely absent that day.
+                $status = 'absent';
+            } elseif (str_starts_with($val, '-') && is_numeric(substr($val, 1))) {
+                // "-15", "-30", etc. = late / undertime by that many minutes
+                // — the employee still showed up and worked, so this still
+                // counts as present for Days Worked and payroll purposes.
+                $status = 'present';
+            } else {
+                continue;
+            }
             $status = null;
             if ($val === 'P' || str_starts_with($val, '+')) {
                 $status = 'present';
@@ -1243,6 +1373,8 @@ class AttendanceController extends Controller
             ];
         }
 
+        return $rows;
+    }
         return $rows;
     }
 }

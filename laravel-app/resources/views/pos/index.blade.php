@@ -495,6 +495,9 @@
                                 <button class="qbtn green" onclick="openVoucher()" title="Online booking voucher (Alt+Shift+O)">
                                     <i class="ti ti-barcode"></i>Voucher
                                 </button>
+                                <button class="qbtn green" onclick="openVoucher()" title="Online booking voucher (Alt+Shift+O)">
+                                    <i class="ti ti-barcode"></i>Voucher
+                                </button>
                             </div>
                             <div class="rbox1-col">
                                 <div class="rbox1-head">Reports</div>

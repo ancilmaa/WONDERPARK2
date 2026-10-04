@@ -124,6 +124,7 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 14px;
+            margin-bottom: 14px;
             padding-bottom: 20px;
             border-bottom: 1px solid var(--line);
         }
@@ -197,6 +198,42 @@
             text-decoration: underline;
             font-family: 'Inter', sans-serif;
             padding: 9px 4px;
+        }
+
+        .source-legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .source-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .source-legend .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .source-legend .dot-bio {
+            background: var(--muted);
+            opacity: .5;
+        }
+
+        .source-legend .dot-qr {
+            background: #2F6FE0;
+        }
+
+        .source-legend .dot-manual {
+            background: #C98A1F;
         }
 
         .source-legend {
@@ -574,6 +611,47 @@
             box-shadow: 0 0 0 3px var(--pink-light);
         }
 
+        .btn-ghost {
+            padding: 11px 18px;
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line-strong);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: background .15s ease, border-color .15s ease;
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg);
+            border-color: var(--pink);
+        }
+
+        .btn-primary {
+            padding: 11px 20px;
+            background: var(--pink-deep);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: background .15s ease, box-shadow .15s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--pink-dark);
+            box-shadow: 0 0 0 3px var(--pink-light);
+        }
+
         #toastStack {
             position: fixed;
             top: 22px;
@@ -608,6 +686,8 @@
             opacity: 0;
             transform: translateY(-16px) scale(.97);
             animation: toastIn .35s cubic-bezier(.34, 1.56, .64, 1) forwards;
+            position: relative;
+            overflow: hidden;
             position: relative;
             overflow: hidden;
         }
@@ -745,6 +825,7 @@
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             animation: overlayFade .2s ease;
+            padding: 20px;
             padding: 20px;
         }
 
@@ -1107,6 +1188,10 @@
             .form-grid {
                 grid-template-columns: 1fr;
             }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media(max-width:520px) {
@@ -1217,6 +1302,19 @@
             return false;
         }
 
+        // A day counts as "present" (worked) unless it's a bare dash — that
+        // means genuinely absent. "-15", "-30", etc. are late/undertime by
+        // that many minutes, but the employee still showed up, so those
+        // still count toward Days Worked.
+        function isDayPresent($v): bool
+        {
+            $v = (string) $v;
+            if ($v === 'P' || str_starts_with($v, '+')) return true;
+            if ($v === '-' || $v === '') return false;
+            if (str_starts_with($v, '-') && is_numeric(substr($v, 1))) return true;
+            return false;
+        }
+
         $totalEmployees = isset($records) ? $records->count() : 0;
         $grouped = isset($records) ? $records->groupBy('category') : collect();
         $totalCategories = $grouped->count();
@@ -1229,6 +1327,7 @@
                 $d = 0;
                 for ($i = 1; $i <= $days; $i++) {
                     $v = $rec->{'day_' . $i} ?? '';
+                    if (isDayPresent($v)) {
                     if (isDayPresent($v)) {
                         $d++;
                     }
@@ -1277,6 +1376,12 @@
                 <input type="file" name="import_file" required>
                 <button id="uploadBtn" type="submit">Import Bio File</button>
             </form>
+            <button type="button" class="btn-ghost" id="openManualEntryBtn">
+                <i class="fa-solid fa-pen"></i> Manual Entry
+            </button>
+            <button type="button" class="btn-ghost" id="openQrBtn">
+                <i class="fa-solid fa-qrcode"></i> Show QR Code
+            </button>
             <button type="button" class="btn-ghost" id="openManualEntryBtn">
                 <i class="fa-solid fa-pen"></i> Manual Entry
             </button>
@@ -1372,11 +1477,16 @@
                                 for ($i = 1; $i <= $days; $i++) {
                                     $v = $item->{'day_' . $i} ?? '';
                                     if (isDayPresent($v)) {
+                                    if (isDayPresent($v)) {
                                         $daysWorked++;
                                     }
                                     if (str_starts_with((string) $v, '+')) {
                                         $hasOvertime = true;
                                     }
+                                    if (str_starts_with((string) $v, '-') && $v !== '') {
+                                        // Covers both a bare "-" (absent) and
+                                        // "-15" (late) — both are worth
+                                        // flagging under the Late/Absent filter.
                                     if (str_starts_with((string) $v, '-') && $v !== '') {
                                         // Covers both a bare "-" (absent) and
                                         // "-15" (late) — both are worth
@@ -1405,6 +1515,7 @@
                                         @elseif ($val === 'P' || str_starts_with((string) $val, '+'))
                                             <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
                                         @elseif(str_starts_with((string) $val, '-'))
+                                            <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
                                             <span class="cell-deduction {{ $srcClass }}">{{ $val }}</span>
                                         @else
                                             <span class="cell-rest">&ndash;</span>
@@ -1616,9 +1727,12 @@
 
     <script id="employeesByCategoryData" type="application/json">{!! json_encode($employeesByCategory ?? []) !!}</script>
 
+    <script id="employeesByCategoryData" type="application/json">{!! json_encode($employeesByCategory ?? []) !!}</script>
+
 @endsection
 
 @push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const form = document.getElementById("uploadForm");
