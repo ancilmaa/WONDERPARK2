@@ -306,6 +306,3 @@ Route::post('/employees', [\App\Http\Controllers\EmployeeController::class, 'sto
 Route::put('/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update'])->name('employees.update');
 Route::post('/employees/{employee}/deactivate', [\App\Http\Controllers\EmployeeController::class, 'deactivate'])->name('employees.deactivate');
 Route::post('/employees/{employee}/activate', [\App\Http\Controllers\EmployeeController::class, 'activate'])->name('employees.activate');
-
-Route::patch('/reservations/{reservation}/status', [\App\Http\Controllers\ReservationController::class, 'updateStatus'])->name('reservations.status');
-Route::delete('/payroll-history/bulk-delete', [\App\Http\Controllers\AttendanceController::class, 'bulkDeleteBatches'])->name('payroll-history.bulkDelete');

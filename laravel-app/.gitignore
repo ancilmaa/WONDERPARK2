@@ -27,3 +27,4 @@ _ide_helper.php
 .phpstorm.meta.php 
 laravel-app/.env
 .env
+bootstrap/cache/*.php
