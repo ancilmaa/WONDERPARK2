@@ -35,7 +35,7 @@
         <p>We may update these Terms from time to time. Continued use of the system means you accept the updated Terms.</p>
 
         <h4>10. Contact</h4>
-        <p>For questions, contact the Lipa Branch administrator at <strong>your-email@example.com</strong>.</p>
+        <p>For questions, contact the Lipa Branch administrator at <strong>amusementwonderpark@gmail.com</strong>.</p>
     </div>
     <div class="legal-foot">
         <label class="legal-agree">
@@ -78,7 +78,7 @@
         <p>We use essential cookies to keep you signed in and to protect your session. We do not use them for advertising.</p>
 
         <h4>8. Contact Our Data Protection Officer</h4>
-        <p>To exercise your rights or ask questions, contact us at <strong>wonderparkamusement@example.com</strong>.</p>
+        <p>To exercise your rights or ask questions, contact us at <strong>amusementwonderpark@gmail.com</strong>.</p>
     </div>
     <div class="legal-foot">
         <label class="legal-agree">

@@ -1018,7 +1018,7 @@ footer > .wrap > p { max-width: 52ch; line-height: 1.6; font-size: 14.5px; }
 }
 .legal-foot .btn {
     width: auto;
-    padding: 10px 24px;
+    padding: 5px 18px;
     flex-shrink: 0;
 }
 .legal-foot .btn:disabled {
