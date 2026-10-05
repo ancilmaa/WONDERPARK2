@@ -8,6 +8,7 @@ use App\Support\BookingPricingOverrides;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class ReservationController extends Controller
 {
@@ -129,6 +130,60 @@ class ReservationController extends Controller
         $reservation->update($validated);
 
         return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
+    }
+
+    /**
+     * Status update from the reject modal (and any other status form that
+     * posts to the "reservations.status" route).
+     *
+     * PATCH /reservations/{reservation}/status
+     * Body: status, reject_reason (required when rejected), reject_note
+     *       (required when reject_reason is "Others").
+     */
+    public function updateStatus(Request $request, Booking $reservation)
+    {
+        $validated = $request->validate([
+            'status'        => ['required', Rule::in(['pending', 'confirmed', 'paid', 'cancelled', 'rejected'])],
+            'reject_reason' => [
+                'required_if:status,rejected',
+                'nullable',
+                'string',
+                Rule::in(self::REJECT_REASONS),
+            ],
+            'reject_note'   => [
+                'required_if:reject_reason,Others',
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+        ], [
+            'reject_reason.required_if' => 'Please select a reason for rejecting this reservation.',
+            'reject_note.required_if'   => 'Please add a note when the reason is "Others".',
+        ]);
+
+        if ($validated['status'] === 'rejected') {
+            $reservation->update([
+                'status'          => 'rejected',
+                'approval_status' => 'rejected',
+                'reject_reason'   => $validated['reject_reason'],
+                'reject_note'     => $validated['reject_note'] ?? null,
+            ]);
+
+            return redirect()
+                ->route('reservations.index')
+                ->with('success', 'Reservation rejected.');
+        }
+
+        // Any other status: update it and clear old rejection details
+        $reservation->update([
+            'status'        => $validated['status'],
+            'reject_reason' => null,
+            'reject_note'   => null,
+        ]);
+
+        return redirect()
+            ->route('reservations.index')
+            ->with('success', 'Reservation status updated.');
     }
 
     /**
