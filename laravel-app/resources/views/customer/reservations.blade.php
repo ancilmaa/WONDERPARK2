@@ -189,6 +189,9 @@
         .badge-paid { background: var(--paid-soft); color: var(--paid); }
         .badge-done { background: var(--paid-soft); color: var(--paid); gap: 6px; }
 
+        /* Done badge shown in the Status column (replaces the dropdown once voucher is punched) */
+        .badge-done-status { height: 30px; padding: 0 14px; font-size: 12px; }
+
         /* ===== STATUS DROPDOWN ===== */
         .status-select {
             appearance: none;
@@ -871,47 +874,51 @@
 
                             <td data-label="Pax">{{ $booking->display_pax }}</td>
 
+                            {{-- PAYMENT: always shows the payment method used (GCash, Maya, QR Ph, Cash). --}}
                             <td data-label="Payment">
-                                @if ($isDone)
-                                    <span class="badge badge-done" title="Voucher already punched by the cashier">
-                                        <i class="fa-solid fa-check-double"></i> Done
-                                    </span>
-                                    <div class="cell-sub">Voucher used</div>
-                                @else
+                                <div>
                                     @if (isset($methodLabels[$booking->payment_method]))
                                         <span class="badge badge-paid">{{ $methodLabels[$booking->payment_method] }}</span>
                                     @else
                                         <span class="dash">&mdash;</span>
                                     @endif
 
-                                    @if ($booking->status === 'awaiting_verification')
-                                        <div class="cell-sub sub-wait">Waiting for approval</div>
-                                    @elseif ($isApproved)
-                                        <div class="cell-sub sub-ok">Ready for cashier</div>
-                                    @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
-                                        <div class="cell-sub sub-bad" title="{{ $booking->payment_rejection_reason }}">Proof rejected</div>
+                                    @if (!$isDone)
+                                        @if ($booking->status === 'awaiting_verification')
+                                            <div class="cell-sub sub-wait">Waiting for approval</div>
+                                        @elseif ($isApproved)
+                                            <div class="cell-sub sub-ok">Ready for cashier</div>
+                                        @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
+                                            <div class="cell-sub sub-bad" title="{{ $booking->payment_rejection_reason }}">Proof rejected</div>
+                                        @endif
                                     @endif
-                                @endif
+                                </div>
                             </td>
 
+                            {{-- STATUS: shows "Done" once the voucher is punched, otherwise the Approve/Reject dropdown. --}}
                             <td data-label="Status">
                                 <div>
-                                    <select class="status-select"
-                                        data-status="{{ $approval }}"
-                                        data-current="{{ $approval }}"
-                                        data-id="{{ $booking->id }}"
-                                        aria-label="Reservation status"
-                                        @if ($isDone) title="Done — status is locked" @endif
-                                        @disabled($isDone)>
-                                        <option value="pending" disabled @selected($approval === 'pending')>Pending</option>
-                                        <option value="approved" @selected($approval === 'approved')>Approved</option>
-                                        <option value="rejected" @selected($approval === 'rejected')>Rejected</option>
-                                    </select>
-                                    @if ($approval === 'rejected' && ($booking->reject_reason ?? null))
-                                        @php
-                                            $fullReason = $booking->reject_reason . ($booking->reject_note ? ': ' . $booking->reject_note : '');
-                                        @endphp
-                                        <div class="cell-sub reject-reason" title="{{ $fullReason }}">{{ $fullReason }}</div>
+                                    @if ($isDone)
+                                        <span class="badge badge-done badge-done-status" title="Voucher already punched by the cashier">
+                                            <i class="fa-solid fa-check-double"></i> Done
+                                        </span>
+                                        <div class="cell-sub">Voucher used</div>
+                                    @else
+                                        <select class="status-select"
+                                            data-status="{{ $approval }}"
+                                            data-current="{{ $approval }}"
+                                            data-id="{{ $booking->id }}"
+                                            aria-label="Reservation status">
+                                            <option value="pending" disabled @selected($approval === 'pending')>Pending</option>
+                                            <option value="approved" @selected($approval === 'approved')>Approved</option>
+                                            <option value="rejected" @selected($approval === 'rejected')>Rejected</option>
+                                        </select>
+                                        @if ($approval === 'rejected' && ($booking->reject_reason ?? null))
+                                            @php
+                                                $fullReason = $booking->reject_reason . ($booking->reject_note ? ': ' . $booking->reject_note : '');
+                                            @endphp
+                                            <div class="cell-sub reject-reason" title="{{ $fullReason }}">{{ $fullReason }}</div>
+                                        @endif
                                     @endif
                                 </div>
                             </td>
