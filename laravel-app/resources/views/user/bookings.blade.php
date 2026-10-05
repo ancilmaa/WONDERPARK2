@@ -106,20 +106,54 @@
                 </div>
 
                 <div class="mb-actions" style="min-width:150px;">
-                    @if ($booking['status'] === 'confirmed')
-                        {{-- Already paid & confirmed: no more "pending payment" actions, just let them reschedule --}}
-                        <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}"
-                           class="u-btn ghost"
-                           style="width:100%;padding:10px;font-size:12px;font-weight:600;text-align:center;">
-                            Reschedule
-                        </a>
-                    @elseif ($booking['status_class'] === 'amber')
+                    @if (in_array($booking['status'], ['confirmed', 'done'], true))
+                        {{-- Approved by the admin: schedule is locked, no more reschedule/cancel --}}
+                        <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--muted);text-align:center;">
+                            @if ($booking['status'] === 'confirmed')
+                                Approved &middot; rescheduling is no longer available
+                            @else
+                                Voucher already used
+                            @endif
+                        </p>
+                    @elseif ($booking['status'] === 'awaiting_verification')
+                        {{-- Proof sent: waiting for the admin. Can still reschedule or cancel until approved. --}}
                         <div style="display:flex;flex-direction:column;gap:8px;">
+                            <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--muted);">
+                                We're checking your payment. You can still reschedule until it's approved.
+                            </p>
+                            <div style="display:flex;gap:8px;">
+                                <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}"
+                                   class="u-btn ghost"
+                                   style="flex:1;padding:8px 6px;font-size:11px;font-weight:600;text-align:center;">
+                                    Reschedule
+                                </a>
+
+                                <form method="POST"
+                                      action="{{ route('user.bookings.cancel', $booking['id']) }}"
+                                      style="flex:1;"
+                                      onsubmit="return confirm('Cancel this booking?');">
+                                    @csrf
+                                    <button type="submit"
+                                            class="u-btn ghost"
+                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#e24b4a;border-color:#e24b4a;">
+                                        Cancel
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @elseif ($booking['status'] === 'pending_payment')
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+
+                            @if (!empty($booking['rejection_reason']))
+                                <p style="margin:0;font-size:11.5px;line-height:1.5;color:#e24b4a;">
+                                    Your payment proof was not accepted: {{ $booking['rejection_reason'] }}. Please upload a new proof.
+                                </p>
+                            @endif
 
                             <a href="{{ route('user.bookings.review', $booking['id']) }}"
                                class="u-btn"
                                style="width:100%;padding:10px;font-size:12px;font-weight:600;text-align:center;">
-                                Review Booking
+                                {{ !empty($booking['rejection_reason']) ? 'Upload New Proof' : 'Review Booking' }}
                             </a>
 
                             <div style="display:flex;gap:8px;">

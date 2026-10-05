@@ -95,11 +95,11 @@ class WaiverController extends Controller
         if ($bookingId) {
             return redirect()
                 ->route('user.bookings.receipt', $bookingId)
-                ->with('success', 'Waiver signed. Your booking is now confirmed!');
+                ->with('success', 'Waiver signed. Your booking is waiting for approval — we\'ll confirm it once your payment is verified.');
         }
 
         return redirect()
             ->route('user.bookings')
-            ->with('success', 'Waiver signed. Your booking is now confirmed!');
+            ->with('success', 'Waiver signed. Your booking is waiting for approval — we\'ll confirm it once your payment is verified.');
     }
 }

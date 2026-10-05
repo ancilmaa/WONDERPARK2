@@ -3,21 +3,21 @@
     Route: GET /user/bookings/{booking}/receipt -> user.bookings.receipt
     Controller: App\Http\Controllers\User\BookingController@receipt
 
-    Shown right after the customer signs the waiver. Payment already
-    confirmed the booking (no admin verification step), so this is the
-    final receipt with the voucher code the cashier will look up at the
-    counter (see PosController@lookupBooking / the "Booking Code" button
-    in the cashier POS).
+    Shown right after the customer signs the waiver. The booking is
+    "Waiting for Approval" until an admin verifies the proof of payment;
+    the voucher code the cashier looks up at the counter (see
+    PosController@lookupBooking) is only shown once the booking is
+    confirmed.
 
     Expects from the controller:
       $booking -> ['id','service_name','package_name','date','time','pax',
-                   'price','payment_method','voucher_code']
+                   'price','payment_method','status','status_label','voucher_code']
 --}}
 @extends('layouts.user')
 
 @section('title', 'Booking Receipt')
 @section('page-title', 'Booking Receipt')
-@section('page-subtitle', 'Payment received — your booking is confirmed')
+@section('page-subtitle', in_array($booking['status'], ['confirmed', 'done'], true) ? 'Payment verified — your booking is confirmed' : 'Payment received — waiting for approval')
 @section('body-class', 'page-uniform')
 
 @section('content')
@@ -32,7 +32,11 @@
             <b>{{ $booking['date'] }}{{ $booking['time'] ? ' · ' . $booking['time'] : '' }}</b>
             <span>{{ $booking['pax'] }} pax</span>
         </div>
-        <span class="tag green">PAID</span>
+        @if (in_array($booking['status'], ['confirmed', 'done'], true))
+            <span class="tag green">CONFIRMED</span>
+        @else
+            <span class="tag amber">WAITING FOR APPROVAL</span>
+        @endif
     </div>
 
     <div class="u-card" style="margin-top:14px;">
@@ -43,16 +47,26 @@
         @endif
     </div>
 
-    <div class="u-card" style="margin-top:14px;text-align:center;background:#f6f6f8;">
-        <span style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">Voucher Code</span>
-        <div style="font-family:monospace;font-size:30px;font-weight:700;letter-spacing:3px;margin:8px 0;">{{ $booking['voucher_code'] }}</div>
-        <p style="font-size:12px;color:var(--muted);margin:0;">Show this code to the cashier at the counter to claim your booking.</p>
-    </div>
+    @if (!empty($booking['voucher_code']))
+        <div class="u-card" style="margin-top:14px;text-align:center;background:#f6f6f8;">
+            <span style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">Voucher Code</span>
+            <div style="font-family:monospace;font-size:30px;font-weight:700;letter-spacing:3px;margin:8px 0;">{{ $booking['voucher_code'] }}</div>
+            <p style="font-size:12px;color:var(--muted);margin:0;">Show this code to the cashier at the counter to claim your booking.</p>
+        </div>
+    @else
+        <div class="u-card" style="margin-top:14px;text-align:center;background:#fff8e6;">
+            <span style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">Waiting for Approval</span>
+            <p style="font-size:13px;margin:8px 0 0;line-height:1.6;">
+                Our team is checking your proof of payment. Your voucher code will appear in
+                <b>My Bookings</b> once it's approved. Until then you can still reschedule.
+            </p>
+        </div>
+    @endif
 
     <div class="u-card" style="margin-top:14px;">
         <ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.7;">
             <li>Valid for your booked date: {{ $booking['date'] }}</li>
-            <li>Present this code at the counter upon arrival</li>
+            <li>Present your voucher code at the counter upon arrival (available after approval)</li>
             <li>One redemption per booking</li>
         </ul>
     </div>

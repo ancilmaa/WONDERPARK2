@@ -28,7 +28,7 @@
             <div style="flex:1;min-width:200px;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <h4 style="margin:0;">{{ $booking['package'] }}</h4>
-                    <span class="rb-badge rb-badge-teal">Instant Confirmation</span>
+                    <span class="rb-badge rb-badge-teal">Confirmed after payment check</span>
                     <span class="rb-badge rb-badge-neutral">{{ $booking['category'] }}</span>
                 </div>
                 <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">
@@ -90,7 +90,7 @@
                     <div class="rb-method-icon rb-method-icon-blue">GCash</div>
                     <div>
                         <b>GCash Express Merchant</b>
-                        <span>Send direct payment to our verified GCash merchant number</span>
+                        <span>Scan our QR with your GCash app</span>
                     </div>
                 </div>
                 <div class="price">
@@ -108,7 +108,7 @@
                     </div>
                     <div>
                         <b>Maya</b>
-                        <span>Send payment to our Maya number</span>
+                        <span>Scan our QR with your Maya app</span>
                     </div>
                 </div>
                 <div class="price">
@@ -158,7 +158,7 @@
                         <span>NATIONAL STANDARD</span>
                         <span class="rb-scan-qr-verified">QR Ph Verified</span>
                     </div>
-                    <img src="{{ asset('images/qrph.png') }}" alt="QR Ph code" style="width:320px;height:320px;object-fit:contain;border-radius:10px;">
+                    <img src="{{ asset('images/instapay-qr.png') }}" alt="QR Ph code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
                     <div style="text-align:center;margin-top:10px;">
                         <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
                         <span style="font-size:10px;color:var(--muted);">Scan via Any Banking App</span>
@@ -189,12 +189,50 @@
 
         {{-- GCash instructions --}}
         <div id="gcashPanel" class="u-card" style="margin-top:14px;display:none;">
-            <h4>Send via GCash</h4>
-            <p>Send your payment to:</p>
+            <div class="rb-scan-layout">
+                <div class="rb-scan-info">
+                    <div class="rb-live-chip"><span class="rb-live-dot"></span> Live Gateway Terminal</div>
+                    <h4 style="margin:10px 0 4px;">Scan to pay with GCash</h4>
+                    <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;">
+                        Open your <b>GCash</b> app, choose <span style="color:var(--pink-deep);font-weight:700;">Scan QR</span>, and point your camera at this QR code. You can also scan it with <b>Maya</b> or any banking app that supports InstaPay.
+                    </p>
 
-            <div style="text-align:center;margin:14px 0;">
-                <b style="font-size:1.15rem;letter-spacing:.03em;">0917 000 0000</b><br>
-                <span style="font-size:.85rem;color:var(--muted);">WonderPark Amusement Com Inc. &ndash; Lipa</span>
+                    <div class="rb-merchant-box">
+                        <div class="rb-merchant-row">
+                            <span>Merchant Name:</span>
+                            <b>WONDER PARK AMUSEMENT INC.</b>
+                        </div>
+                        <div class="rb-merchant-row">
+                            <span>Booking Reference:</span>
+                            <code class="rb-ref-code">#WP-{{ $booking['id'] }}</code>
+                        </div>
+                        <div class="rb-merchant-row">
+                            <span>Exact Amount:</span>
+                            <b style="font-size:14px;">{{ $booking['price'] }}</b>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                        <span class="rb-timer-chip">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Please complete payment within <b id="gcashCountdown">15:00</b>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="rb-scan-qr-frame">
+                    <div class="rb-scan-qr-header">
+                        <span>INSTAPAY</span>
+                        <span class="rb-scan-qr-verified">GCash Payment</span>
+                    </div>
+                    <img src="{{ asset('images/instapay-qr.png') }}" alt="GCash / InstaPay QR code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
+                    <div style="text-align:center;margin-top:10px;">
+                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
+                        <span style="font-size:10px;color:var(--muted);">Scan via GCash or Any Banking App</span>
+                    </div>
+                </div>
             </div>
 
             <div class="rb-upload-zone" data-dropzone="gcash">
@@ -220,12 +258,50 @@
 
         {{-- Maya instructions --}}
         <div id="mayaPanel" class="u-card" style="margin-top:14px;display:none;">
-            <h4>Send via Maya</h4>
-            <p>Send your payment to:</p>
+            <div class="rb-scan-layout">
+                <div class="rb-scan-info">
+                    <div class="rb-live-chip"><span class="rb-live-dot"></span> Live Gateway Terminal</div>
+                    <h4 style="margin:10px 0 4px;">Scan to pay with Maya</h4>
+                    <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;">
+                        Open your <b>Maya</b> app, choose <span style="color:var(--pink-deep);font-weight:700;">Scan QR</span>, and point your camera at this QR code. You can also scan it with <b>GCash</b> or any banking app that supports InstaPay.
+                    </p>
 
-            <div style="text-align:center;margin:14px 0;">
-                <b style="font-size:1.15rem;letter-spacing:.03em;">0918 000 0000</b><br>
-                <span style="font-size:.85rem;color:var(--muted);">WonderPark Amusement Com Inc. &ndash; Lipa</span>
+                    <div class="rb-merchant-box">
+                        <div class="rb-merchant-row">
+                            <span>Merchant Name:</span>
+                            <b>WONDER PARK AMUSEMENT INC.</b>
+                        </div>
+                        <div class="rb-merchant-row">
+                            <span>Booking Reference:</span>
+                            <code class="rb-ref-code">#WP-{{ $booking['id'] }}</code>
+                        </div>
+                        <div class="rb-merchant-row">
+                            <span>Exact Amount:</span>
+                            <b style="font-size:14px;">{{ $booking['price'] }}</b>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                        <span class="rb-timer-chip">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Please complete payment within <b id="mayaCountdown">15:00</b>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="rb-scan-qr-frame">
+                    <div class="rb-scan-qr-header">
+                        <span>INSTAPAY</span>
+                        <span class="rb-scan-qr-verified">Maya Payment</span>
+                    </div>
+                    <img src="{{ asset('images/instapay-qr.png') }}" alt="Maya / InstaPay QR code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
+                    <div style="text-align:center;margin-top:10px;">
+                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
+                        <span style="font-size:10px;color:var(--muted);">Scan via Maya or Any Banking App</span>
+                    </div>
+                </div>
             </div>
 
             <div class="rb-upload-zone" data-dropzone="maya">
@@ -507,15 +583,19 @@
 
         // Cosmetic reminder countdown on the QR Ph panel — not an enforced
         // session expiry, just a soft nudge to pay promptly.
-        var countdownEl = document.getElementById('qrCountdown');
-        if (countdownEl) {
+        var countdownEls = ['qrCountdown', 'gcashCountdown', 'mayaCountdown']
+            .map(function (id) { return document.getElementById(id); })
+            .filter(Boolean);
+        if (countdownEls.length) {
             var seconds = 15 * 60;
             setInterval(function () {
                 if (seconds <= 0) return;
                 seconds--;
                 var m = Math.floor(seconds / 60);
                 var s = seconds % 60;
-                countdownEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+                countdownEls.forEach(function (el) {
+                    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+                });
             }, 1000);
         }
     });

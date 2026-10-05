@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Support\BookingCatalog;
+use App\Support\BookingPricingOverrides;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ReservationController extends Controller
 {
@@ -128,39 +132,131 @@ class ReservationController extends Controller
     }
 
     /**
-     * Approve or reject a reservation (Status column on the admin table).
+     * Approve a customer's proof of payment: the booking becomes
+     * 'confirmed' (customer can no longer reschedule, and the voucher can
+     * now be redeemed at the POS).
      *
-     * - approved: the customer can now see their reservation/voucher.
-     * - rejected: a reason is required and is shown to the customer.
+     * POST /reservations/{reservation}/approve-payment
      */
-    public function updateStatus(Request $request, Booking $reservation)
+    public function approvePayment(Booking $reservation)
     {
-        // Once the cashier has used the voucher, the status is final ("Done").
-        if (!empty($reservation->voucher_used_at)) {
-            return redirect()
-                ->route('reservations.index')
-                ->with('error', 'This reservation is already completed.');
+        if ($reservation->status !== 'awaiting_verification') {
+            return redirect()->route('reservations.index')
+                ->with('error', 'Only bookings waiting for approval can be approved.');
         }
 
-        $validated = $request->validate([
-            'status'        => ['required', 'in:approved,rejected'],
-            'reject_reason' => ['required_if:status,rejected', 'nullable', 'string', 'in:' . implode(',', self::REJECT_REASONS)],
-            'reject_note'   => ['nullable', 'string', 'max:500'],
+        $reservation->update([
+            'status'                   => 'confirmed',
+            'payment_verified_at'      => now(),
+            'payment_rejection_reason' => null,
         ]);
 
-        $rejected = $validated['status'] === 'rejected';
+        $emailed = $this->emailPaymentResult($reservation, true);
+
+        return redirect()->route('reservations.index')->with(
+            'success',
+            'Payment approved. Booking confirmed.' . ($emailed ? ' The customer was notified by email.' : '')
+        );
+    }
+
+    /**
+     * Reject a customer's proof of payment. The booking goes back to
+     * 'pending_payment' with the reason, so the customer sees why and can
+     * upload a correct proof (or reschedule / cancel).
+     *
+     * POST /reservations/{reservation}/reject-payment
+     */
+    public function rejectPayment(Request $request, Booking $reservation)
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($reservation->status !== 'awaiting_verification') {
+            return redirect()->route('reservations.index')
+                ->with('error', 'Only bookings waiting for approval can be rejected.');
+        }
 
         $reservation->update([
-            'approval_status' => $validated['status'],
-            'reject_reason'   => $rejected ? $validated['reject_reason'] : null,
-            'reject_note'     => $rejected && $validated['reject_reason'] === 'Others'
-                ? ($validated['reject_note'] ?? null)
-                : null,
+            'status'                   => 'pending_payment',
+            'payment_rejection_reason' => $validated['reason'],
+            'payment_verified_at'      => null,
         ]);
 
-        return redirect()
-            ->route('reservations.index')
-            ->with('success', $rejected ? 'Reservation rejected.' : 'Reservation approved.');
+        $emailed = $this->emailPaymentResult($reservation, false);
+
+        return redirect()->route('reservations.index')->with(
+            'success',
+            'Payment rejected. The customer was asked to upload a new proof.' . ($emailed ? ' They were notified by email.' : '')
+        );
+    }
+
+    /**
+     * Email the customer the result of the payment check (approved or
+     * rejected). Same approach as the 2FA / password emails: plain text via
+     * the app's configured mailer, wrapped in try/catch so a mail problem
+     * never blocks the admin's approve/reject action. Returns true when the
+     * email was handed to the mailer, false if there was no email address or
+     * sending failed.
+     */
+    private function emailPaymentResult(Booking $booking, bool $approved): bool
+    {
+        $customer = $booking->display_customer;
+        $email    = $customer->email ?? null;
+
+        if (!$email) {
+            return false; // walk-in / guest reservation without an email
+        }
+
+        $services = BookingCatalog::services();
+        $packages = BookingPricingOverrides::applyToPackages(BookingCatalog::basePackages());
+
+        $name        = $customer->fullname ?? 'there';
+        $serviceName = $services[$booking->service]['name'] ?? ucwords(str_replace('_', ' ', (string) $booking->service));
+        $packageName = $packages[$booking->service][$booking->package]['name'] ?? $booking->package;
+        $date        = optional($booking->display_date)->format('F j, Y');
+        $time        = $booking->display_time;
+        $pax         = $booking->display_pax;
+        $myBookings  = route('user.bookings');
+
+        $details = "Attraction: {$serviceName}\n"
+                 . "Package: {$packageName}\n"
+                 . "Date: {$date}" . ($time ? " at {$time}" : '') . "\n"
+                 . "Guests: {$pax}\n";
+
+        if ($approved) {
+            $subject = 'Your WonderPark booking is confirmed';
+            $body = "Hi {$name},\n\n"
+                  . "Good news! We checked your proof of payment and your booking is now confirmed.\n\n"
+                  . $details
+                  . "Voucher code: {$booking->voucher_code}\n\n"
+                  . "Show this voucher code to the cashier when you arrive.\n"
+                  . "Please note that confirmed bookings can no longer be rescheduled.\n\n"
+                  . "You can view your booking here: {$myBookings}\n\n"
+                  . "See you at WonderPark!";
+        } else {
+            $subject = 'Action needed: your WonderPark payment proof was not accepted';
+            $body = "Hi {$name},\n\n"
+                  . "We could not accept the proof of payment you sent for this booking.\n\n"
+                  . $details
+                  . "Reason: {$booking->payment_rejection_reason}\n\n"
+                  . "Please open My Bookings, tap \"Upload New Proof\", and send a clear screenshot or photo of your payment. "
+                  . "You can still reschedule or cancel this booking while it is not yet approved.\n\n"
+                  . "My Bookings: {$myBookings}\n\n"
+                  . "Thank you,\nWonderPark";
+        }
+
+        try {
+            Mail::raw($body, function ($message) use ($email, $subject) {
+                $message->to($email)->subject($subject);
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('Payment result email failed: ' . $e->getMessage());
+
+            return false;
+        }
     }
 
     /**
