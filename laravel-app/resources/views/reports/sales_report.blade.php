@@ -125,7 +125,48 @@
       @endforelse
     </tbody>
   </table>
+  @isset($voucherSummary)
+  <h2 class="section">Online Booking Vouchers (Redeemed)</h2>
+  <table>
+    <tr class="kpi-row">
+      <td style="width:50%"><div class="kpi-label">Vouchers Redeemed</div><div class="kpi-value">{{ number_format($voucherSummary['total_vouchers']) }}</div></td>
+      <td style="width:50%"><div class="kpi-label">Voucher Amount</div><div class="kpi-value">&#8369;{{ number_format($voucherSummary['total_amount'], 2) }}</div></td>
+    </tr>
+  </table>
 
+  <table>
+    <thead><tr><th>#</th><th>Package</th><th>Vouchers</th><th>Amount</th></tr></thead>
+    <tbody>
+      @forelse($voucherSummary['by_item'] as $i => $r)
+      <tr>
+        <td>{{ $i+1 }}</td>
+        <td>{{ $r['name'] }}</td>
+        <td>{{ number_format($r['vouchers']) }}</td>
+        <td>&#8369;{{ number_format($r['total_amount'], 2) }}</td>
+      </tr>
+      @empty
+      <tr><td colspan="4">No voucher redemptions for this period.</td></tr>
+      @endforelse
+    </tbody>
+  </table>
+
+  <h2 class="section">Upcoming Voucher Visits (Not Yet Redeemed)</h2>
+  <table>
+    <thead><tr><th>Visit Date</th><th>Vouchers</th><th>Amount</th></tr></thead>
+    <tbody>
+      @forelse($voucherSummary['upcoming'] as $r)
+      <tr>
+        <td>{{ $r->visit_date }}</td>
+        <td>{{ number_format($r->vouchers) }}</td>
+        <td>&#8369;{{ number_format($r->total_amount, 2) }}</td>
+      </tr>
+      @empty
+      <tr><td colspan="3">No upcoming unredeemed vouchers.</td></tr>
+      @endforelse
+    </tbody>
+  </table>
+  @endisset
+  
   <div class="footer">Generated {{ $generatedAt }}</div>
 
 </body>

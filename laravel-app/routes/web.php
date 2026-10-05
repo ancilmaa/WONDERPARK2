@@ -308,3 +308,6 @@ Route::post('/employees', [\App\Http\Controllers\EmployeeController::class, 'sto
 Route::put('/employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update'])->name('employees.update');
 Route::post('/employees/{employee}/deactivate', [\App\Http\Controllers\EmployeeController::class, 'deactivate'])->name('employees.deactivate');
 Route::post('/employees/{employee}/activate', [\App\Http\Controllers\EmployeeController::class, 'activate'])->name('employees.activate');
+
+Route::get('/api/ml/voucher_summary', [MlForecastController::class, 'voucherSummary']);
+Route::get('/api/zone-forecast/{zone}/voucher_summary', [ZoneForecastController::class, 'voucherSummary']);

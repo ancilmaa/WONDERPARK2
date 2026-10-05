@@ -283,7 +283,31 @@
     <button class="tab-btn" data-tab="monthly"><i class="fas fa-chart-line"></i> Monthly Trend</button>
     <button class="tab-btn" data-tab="payment"><i class="fas fa-credit-card"></i> Payment</button>
     <button class="tab-btn" data-tab="category"><i class="fas fa-boxes-stacked"></i> Categories</button>
+    <button class="tab-btn" data-tab="voucher"><i class="fas fa-ticket"></i> Vouchers</button>
   </div>
+{{-- TAB: VOUCHERS --}}
+<div id="tab-voucher" class="tab-pane">
+  <div class="info-note">
+    <span><strong>How this works:</strong> Online booking vouchers that have been redeemed through the POS (completed only; voided vouchers are excluded). This follows the date filter selected above. 
+      “Upcoming” refers to confirmed vouchers that have not yet been redeemed.</span>
+  </div>
+  <div class="kpi-strip" style="grid-template-columns:repeat(2,1fr)">
+    <div class="kpi-card"><div class="kpi-body"><div class="kpi-label">Vouchers Redeemed</div><div class="kpi-value" id="vCount">—</div></div></div>
+    <div class="kpi-card is-revenue"><div class="kpi-body"><div class="kpi-label">Voucher Amount</div><div class="kpi-value" id="vAmount">—</div></div></div>
+  </div>
+  <div class="fc-grid-2">
+    <div>
+      <h3 class="pane-title">Redemptions per Day</h3>
+      <div class="chart-wrap"><canvas id="chartVoucherDay"></canvas></div>
+    </div>
+    <div>
+      <h3 class="pane-title">Upcoming Visits (Not Yet Redeemed)</h3>
+      <div id="voucherUpcoming" class="loading"><i class="fas fa-spinner"></i></div>
+    </div>
+  </div>
+  <h3 class="pane-title" style="margin-top:14px">Availed Packages</h3>
+  <div id="voucherTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
+</div>
 
   <div class="content-panel">
 
@@ -826,12 +850,53 @@
       }
   }
 
+  /* ── VOUCHERS ───────────────────────────────────────────────── */
+async function loadVouchers() {
+    const tbl = document.getElementById('voucherTable');
+    const up  = document.getElementById('voucherUpcoming');
+    try {
+        const d = await apiFetch('/voucher_summary', true);
+        document.getElementById('vCount').textContent  = Number(d.total_vouchers || 0).toLocaleString();
+        document.getElementById('vAmount').textContent = peso(d.total_amount);
+
+        const days = d.by_day || [];
+        makeChart('chartVoucherDay', 'bar',
+            days.map(r => r.day),
+            [{ label: 'Vouchers', data: days.map(r => Number(r.vouchers)), backgroundColor: '#A8B8F0', borderRadius: 6 }],
+            { legend: false }
+        );
+
+        const upcoming = d.upcoming || [];
+        up.innerHTML = upcoming.length ? `
+          <div class="table-scroll"><table class="ml-table">
+            <thead><tr><th>Visit Date</th><th>Vouchers</th><th>Amount</th></tr></thead>
+            <tbody>${upcoming.map(r => `
+              <tr><td>${r.visit_date}</td><td>${Number(r.vouchers).toLocaleString()}</td><td>${peso(r.total_amount)}</td></tr>`).join('')}
+            </tbody></table></div>`
+          : '<p style="color:#5B5D72;font-size:.78rem">There is no upcoming unredeemed vouchers.</p>';
+
+        const items = d.by_item || [];
+        tbl.innerHTML = items.length ? `
+          <div class="table-scroll"><table class="ml-table">
+            <thead><tr><th>#</th><th>Package</th><th>Vouchers</th><th>Amount</th></tr></thead>
+            <tbody>${items.map((r,i) => `
+              <tr><td>${i+1}</td><td><strong>${r.name}</strong></td>
+              <td>${Number(r.vouchers).toLocaleString()}</td><td>${peso(r.total_amount)}</td></tr>`).join('')}
+            </tbody></table></div>`
+          : '<div class="error-msg">No voucher redemptions in this period.</div>';
+    } catch(e) {
+        tbl.innerHTML = '<div class="error-msg">Could not load voucher data.</div>';
+        up.innerHTML  = '';
+    }
+}
+
   /* ── FILTER CONTROLS ────────────────────────────────────────── */
   function reloadFilteredData() {
       loadSummary();
       loadTopProducts();
       loadPaymentBreakdown();
       loadCategoryBreakdown();
+      loadVouchers();
   }
 
   document.getElementById('applyFilters').addEventListener('click', reloadFilteredData);
@@ -854,5 +919,6 @@
   loadMonthly();
   loadPaymentBreakdown();
   loadCategoryBreakdown();
+  loadVouchers(); 
 </script>
 @endpush
