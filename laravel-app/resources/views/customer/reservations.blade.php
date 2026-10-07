@@ -314,12 +314,28 @@
 
         .delete-form { display: inline-block; margin: 0; }
 
+<<<<<<< ours
         .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
         .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
         .btn-icon-reject { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
         .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
         .proof-form { display: inline-block; margin: 0; }
         .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
+=======
+        /* payment proof approval (Waiting for Approval -> Approve / Reject) */
+        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
+        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
+        .btn-icon-reject  { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
+        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
+        .proof-form { display: inline-block; margin: 0; }
+        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
+
+        .btn-icon-delete:hover {
+            background: var(--cancelled-soft);
+            border-color: var(--cancelled);
+            color: var(--cancelled);
+        }
+>>>>>>> theirs
 
         /* ===== PAGINATION ===== */
         .pagination {
@@ -1035,6 +1051,7 @@
                                 @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
                                     <span class="proof-status" style="color:var(--cancelled);" title="{{ $booking->payment_rejection_reason }}">Proof rejected</span>
                                 @endif
+<<<<<<< ours
                             </td>
                             <td data-label="Status">
                                 @if ($isDone)
@@ -1059,6 +1076,8 @@
                                         @endif
                                     </div>
                                 @endif
+=======
+>>>>>>> theirs
                             </td>
                             <td data-label="Actions">
                                 <div class="action-buttons">
@@ -1080,6 +1099,23 @@
                                             onclick="openReceiptModal('{{ asset('storage/' . $booking->receipt_path) }}')">
                                             <i class="fa-solid fa-receipt"></i>
                                         </button>
+                                    @endif
+                                    @if ($booking->status === 'awaiting_verification')
+                                        <form action="{{ route('reservations.approve-payment', $booking) }}" method="POST"
+                                            class="proof-form" onsubmit="return confirm('Approve this payment and confirm the booking?');">
+                                            @csrf
+                                            <button type="submit" class="btn-icon-edit btn-icon-approve" title="Approve payment">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('reservations.reject-payment', $booking) }}" method="POST"
+                                            class="proof-form" onsubmit="return askRejectReason(this);">
+                                            @csrf
+                                            <input type="hidden" name="reason" value="">
+                                            <button type="submit" class="btn-icon-edit btn-icon-reject" title="Reject payment">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                     <form action="{{ route('reservations.destroy', $booking) }}" method="POST"
                                         class="delete-form">
