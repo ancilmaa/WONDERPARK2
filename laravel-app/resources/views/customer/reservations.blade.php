@@ -330,6 +330,14 @@
         .proof-form { display: inline-block; margin: 0; }
         .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
 
+        /* payment proof approval (Waiting for Approval -> Approve / Reject) */
+        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
+        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
+        .btn-icon-reject  { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
+        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
+        .proof-form { display: inline-block; margin: 0; }
+        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
+
         .btn-icon-delete:hover {
             background: var(--cancelled-soft);
             border-color: var(--cancelled);
@@ -1052,6 +1060,7 @@
                                     <span class="proof-status" style="color:var(--cancelled);" title="{{ $booking->payment_rejection_reason }}">Proof rejected</span>
                                 @endif
 <<<<<<< ours
+<<<<<<< ours
                             </td>
                             <td data-label="Status">
                                 @if ($isDone)
@@ -1076,6 +1085,8 @@
                                         @endif
                                     </div>
                                 @endif
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
                             </td>
