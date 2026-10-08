@@ -13,6 +13,7 @@
         :root {
             /* status colors (page only) */
             --confirmed: #0F9D8A;
+            --confirmed-text: #0B7C6D;
             --confirmed-soft: #E6F6F3;
             --pending: #B7791F;
             --pending-soft: #FEF4E0;
@@ -20,8 +21,9 @@
             --paid-soft: #E8F0FE;
             --cancelled: #DC2650;
             --cancelled-soft: #FDE8ED;
+            --text-sub: #625C70;
+            --text-faint: #9A94A8;
 
-            /* local radius / spacing scale */
             --r-sm: 8px;
             --r-md: 10px;
             --r-lg: 14px;
@@ -44,35 +46,10 @@
             gap: 16px;
         }
 
-        .toolbar .eyebrow {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 4px;
-        }
-
-        .toolbar h2 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.45rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1.2;
-        }
-
-        .toolbar p.sub {
-            font-size: .8rem;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-
-        .toolbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+        .toolbar .eyebrow { font-size: .68rem; font-weight: 700; color: var(--pink-deep); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+        .toolbar h2 { font-family: 'Source Serif 4', serif; font-size: 1.45rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
+        .toolbar p.sub { font-size: .8rem; color: var(--text-sub); margin-top: 4px; }
+        .toolbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
         /* ===== FILTER BAR ===== */
         .filter-bar {
@@ -88,21 +65,8 @@
             align-items: center;
         }
 
-        .filter-bar .search-wrap {
-            position: relative;
-            flex: 1;
-            min-width: 220px;
-        }
-
-        .filter-bar .search-wrap i {
-            position: absolute;
-            left: 13px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--muted);
-            font-size: 12.5px;
-            pointer-events: none;
-        }
+        .filter-bar .search-wrap { position: relative; flex: 1; min-width: 220px; }
+        .filter-bar .search-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12.5px; pointer-events: none; }
 
         .filter-bar input[type="text"],
         .filter-bar select {
@@ -116,22 +80,11 @@
             transition: border-color .15s, box-shadow .15s;
         }
 
-        .filter-bar input[type="text"] {
-            width: 100%;
-            padding: 0 12px 0 36px;
-        }
-
-        .filter-bar select {
-            padding: 0 12px;
-            cursor: pointer;
-        }
+        .filter-bar input[type="text"] { width: 100%; padding: 0 12px 0 36px; }
+        .filter-bar select { padding: 0 12px; cursor: pointer; }
 
         .filter-bar input[type="text"]:focus,
-        .filter-bar select:focus {
-            outline: none;
-            border-color: var(--pink);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
+        .filter-bar select:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-light); }
 
         .filter-clear {
             height: 40px;
@@ -148,17 +101,8 @@
             transition: .15s;
         }
 
-        .filter-clear:hover {
-            background: var(--pink-pale);
-            border-color: var(--pink);
-            color: var(--pink-deep);
-        }
-
-        .filter-count {
-            font-size: 12px;
-            color: var(--muted);
-            white-space: nowrap;
-        }
+        .filter-clear:hover { background: var(--pink-pale); border-color: var(--pink); color: var(--pink-deep); }
+        .filter-count { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
 
         /* ===== TABLE BOX ===== */
         .table-box {
@@ -180,17 +124,18 @@
             font-weight: 600;
         }
 
+        /* Fixed layout + colgroup widths = every row lines up, nothing wraps */
         table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            min-width: 980px;
+            table-layout: fixed;
+            min-width: 1000px;
             font-size: 13px;
         }
 
-        th,
-        td {
-            padding: 13px 16px;
+        th, td {
+            padding: 12px 16px;
             text-align: left;
             border-bottom: 1px solid var(--line);
             vertical-align: middle;
@@ -198,7 +143,7 @@
 
         thead tr th {
             background: #F7F7FA;
-            color: var(--muted);
+            color: var(--text-sub);
             font-weight: 700;
             font-size: 11px;
             text-transform: uppercase;
@@ -214,48 +159,48 @@
         tbody tr { transition: background .12s; }
         tbody tr:hover { background: #FAFAFC; }
         tbody tr:last-child td { border-bottom: none; }
-
         tbody tr.clickable-row { cursor: pointer; }
 
-        td { color: var(--ink-soft); }
-        td:first-child { color: var(--ink); font-weight: 600; }
-        td.email-cell { color: var(--muted); font-size: 12px; }
+        td { color: var(--ink-soft); overflow: hidden; }
+
+        /* two-line cell pattern: main value on top, supporting detail below */
+        .cell-main { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cell-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dash { color: var(--text-faint); }
+
+        .sub-wait, .sub-ok, .sub-bad { font-weight: 600; }
+        .sub-wait { color: var(--pending); }
+        .sub-ok { color: var(--confirmed-text); }
+        .sub-bad { color: var(--cancelled); }
 
         /* ===== BADGES ===== */
         .badge {
-            display: inline-block;
-            padding: 4px 11px;
+            display: inline-flex;
+            align-items: center;
+            height: 24px;
+            padding: 0 11px;
             border-radius: 999px;
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 700;
-            text-transform: capitalize;
             letter-spacing: .02em;
             white-space: nowrap;
         }
 
-        .badge-confirmed { background: var(--confirmed-soft); color: var(--confirmed); }
-        .badge-pending { background: var(--pending-soft); color: var(--pending); }
         .badge-paid { background: var(--paid-soft); color: var(--paid); }
-        .badge-cancelled { background: var(--cancelled-soft); color: var(--cancelled); }
+        .badge-done { background: var(--paid-soft); color: var(--paid); gap: 6px; }
 
-        .badge-done {
-            background: var(--paid-soft);
-            color: var(--paid);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+        /* Done badge shown in the Status column (replaces the dropdown once voucher is punched) */
+        .badge-done-status { height: 30px; padding: 0 14px; font-size: 12px; }
 
         /* ===== STATUS DROPDOWN ===== */
-        .status-form { display: inline-block; }
-
         .status-select {
             appearance: none;
             -webkit-appearance: none;
-            padding: 6px 28px 6px 12px;
+            height: 30px;
+            padding: 0 28px 0 12px;
             border-radius: 999px;
             border: 1px solid transparent;
-            font-size: 11.5px;
+            font-size: 12px;
             font-weight: 700;
             text-transform: capitalize;
             letter-spacing: .02em;
@@ -268,30 +213,19 @@
         }
 
         .status-select:focus { outline: none; box-shadow: 0 0 0 3px var(--pink-light); }
-        .status-select:disabled { opacity: .6; cursor: wait; }
+        .status-select:disabled { opacity: .6; cursor: not-allowed; }
 
         .status-select[data-status="pending"] { background-color: var(--pending-soft); color: var(--pending); }
         .status-select[data-status="approved"],
-        .status-select[data-status="confirmed"] { background-color: var(--confirmed-soft); color: var(--confirmed); }
+        .status-select[data-status="confirmed"] { background-color: var(--confirmed-soft); color: var(--confirmed-text); }
         .status-select[data-status="paid"] { background-color: var(--paid-soft); color: var(--paid); }
         .status-select[data-status="rejected"],
         .status-select[data-status="cancelled"] { background-color: var(--cancelled-soft); color: var(--cancelled); }
 
-        .reject-reason {
-            margin-top: 6px;
-            font-size: 11px;
-            line-height: 1.4;
-            color: var(--cancelled);
-            max-width: 180px;
-            font-weight: 500;
-        }
+        .reject-reason { color: var(--cancelled); font-weight: 500; }
 
         /* ===== ACTION BUTTONS ===== */
-        .action-buttons {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .action-buttons { display: flex; align-items: center; gap: 6px; }
 
         .btn-icon-edit,
         .btn-icon-delete {
@@ -300,7 +234,7 @@
             border-radius: var(--r-sm);
             border: 1px solid var(--line-strong);
             background: #fff;
-            color: var(--muted);
+            color: var(--text-sub);
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -312,38 +246,11 @@
         .btn-icon-edit:hover { background: var(--paid-soft); border-color: var(--paid); color: var(--paid); }
         .btn-icon-delete:hover { background: var(--cancelled-soft); border-color: var(--cancelled); color: var(--cancelled); }
 
+        /* edit is locked once the reservation is Done (voucher already used) */
+        .btn-icon-edit:disabled,
+        .btn-icon-edit:disabled:hover { opacity: .45; cursor: not-allowed; background: #fff; border-color: var(--line-strong); color: var(--muted); }
+
         .delete-form { display: inline-block; margin: 0; }
-
-<<<<<<< ours
-        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
-        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
-        .btn-icon-reject { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
-        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
-        .proof-form { display: inline-block; margin: 0; }
-        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
-=======
-        /* payment proof approval (Waiting for Approval -> Approve / Reject) */
-        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
-        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
-        .btn-icon-reject  { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
-        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
-        .proof-form { display: inline-block; margin: 0; }
-        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
-
-        /* payment proof approval (Waiting for Approval -> Approve / Reject) */
-        .btn-icon-approve { color: var(--confirmed); border-color: var(--confirmed); background: var(--confirmed-soft); }
-        .btn-icon-approve:hover { background: var(--confirmed); color: #fff; }
-        .btn-icon-reject  { color: var(--cancelled); border-color: var(--cancelled); background: var(--cancelled-soft); }
-        .btn-icon-reject:hover { background: var(--cancelled); color: #fff; }
-        .proof-form { display: inline-block; margin: 0; }
-        .proof-status { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 700; }
-
-        .btn-icon-delete:hover {
-            background: var(--cancelled-soft);
-            border-color: var(--cancelled);
-            color: var(--cancelled);
-        }
->>>>>>> theirs
 
         /* ===== PAGINATION ===== */
         .pagination {
@@ -356,11 +263,7 @@
             border-top: 1px solid var(--line);
         }
 
-        .pagination-info {
-            font-size: 12px;
-            color: var(--muted);
-            margin-right: 8px;
-        }
+        .pagination-info { font-size: 12px; color: var(--text-sub); margin-right: 8px; }
 
         .pagination button {
             min-width: 32px;
@@ -377,23 +280,13 @@
             transition: .15s;
         }
 
-        .pagination button:hover:not(:disabled):not(.active) {
-            background: var(--pink-pale);
-            border-color: var(--pink);
-            color: var(--pink-deep);
-        }
-
-        .pagination button.active {
-            background: var(--pink-deep);
-            border-color: var(--pink-deep);
-            color: #fff;
-        }
-
+        .pagination button:hover:not(:disabled):not(.active) { background: var(--pink-pale); border-color: var(--pink); color: var(--pink-deep); }
+        .pagination button.active { background: var(--pink-deep); border-color: var(--pink-deep); color: #fff; }
         .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 
         #noMatchRow td {
             padding: 36px !important;
-            color: var(--muted) !important;
+            color: var(--text-sub) !important;
             background: var(--card) !important;
             text-align: center !important;
             font-weight: 500 !important;
@@ -402,33 +295,31 @@
         /* ===== GROUPED CUSTOMER ROWS ===== */
         tr.group-header { cursor: pointer; background: #FAFAFC; }
         tr.group-header:hover { background: var(--pink-pale); }
-        tr.group-header td { font-weight: 600; }
         tr.group-header.expanded td { border-bottom-color: var(--pink-light); background: var(--pink-pale); }
 
-        .group-chevron {
-            display: inline-block;
-            width: 10px;
-            margin-right: 8px;
-            color: var(--pink-deep);
-            font-size: 11px;
-            transition: transform .15s ease;
-        }
+        .group-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .group-name > div { min-width: 0; }
+        .group-chevron { width: 10px; flex-shrink: 0; color: var(--pink-deep); font-size: 11px; transition: transform .15s ease; }
 
-        .group-summary-cell { color: var(--muted) !important; font-weight: 500 !important; }
-        .group-hint { color: var(--muted) !important; font-size: 11.5px; font-weight: 500 !important; }
+        .group-summary-cell { color: var(--text-sub) !important; font-weight: 500; }
+        .group-hint { color: var(--text-sub) !important; font-size: 12px; }
 
         .badge-pending-mini {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            height: 24px;
             background: var(--pending-soft);
             color: var(--pending);
-            font-size: 10.5px;
+            font-size: 11.5px;
             font-weight: 700;
-            padding: 3px 9px;
+            padding: 0 11px;
             border-radius: 999px;
+            white-space: nowrap;
         }
 
-        tr.detail-row td:first-child { padding-left: 38px; }
+        /* bookings inside an expanded group: indented, with an accent bar */
         tr.detail-row td { background: #fff; }
+        tr.detail-row td:first-child { padding-left: 36px; box-shadow: inset 3px 0 0 var(--pink-light); }
 
         /* ===== BUTTONS ===== */
         .btn-primary,
@@ -451,10 +342,8 @@
 
         .btn-primary { background: var(--pink-deep); color: #fff; border: none; }
         .btn-primary:hover { background: var(--pink-dark); box-shadow: 0 0 0 3px var(--pink-light); }
-
         .btn-danger { background: var(--cancelled); color: #fff; border: none; }
         .btn-danger:hover { filter: brightness(.92); box-shadow: 0 0 0 3px var(--cancelled-soft); }
-
         .btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line-strong); }
         .btn-ghost:hover { background: var(--bg); border-color: var(--pink); }
 
@@ -496,29 +385,9 @@
             animation: cardPop .22s ease;
         }
 
-        .modal-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .modal-head .eyebrow {
-            font-size: .66rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 4px;
-        }
-
-        .modal-head h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--ink);
-        }
+        .modal-head { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); }
+        .modal-head .eyebrow { font-size: .66rem; font-weight: 700; color: var(--pink-deep); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+        .modal-head h3 { font-family: 'Source Serif 4', serif; font-size: 1.2rem; font-weight: 700; color: var(--ink); }
 
         .modal-close {
             width: 32px;
@@ -537,25 +406,12 @@
         }
 
         .modal-close:hover { background: var(--pink-light); color: var(--pink-deep); }
-
         .modal-body { padding: 20px 24px; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group.full { grid-column: 1 / -1; }
-
-        .form-group label {
-            font-size: 11.5px;
-            font-weight: 700;
-            color: var(--ink-soft);
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
+        .form-group label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
 
         .form-group input,
         .form-group select,
@@ -572,29 +428,15 @@
 
         .form-group input:focus,
         .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--pink);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
+        .form-group textarea:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-light); }
 
         .form-group textarea { resize: vertical; min-height: 80px; }
-        .form-hint { font-size: 11.5px; color: var(--muted); }
+        .form-hint { font-size: 12px; color: var(--text-sub); }
 
-        .modal-foot {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 16px 24px 22px;
-            border-top: 1px solid var(--line);
-        }
+        .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px 22px; border-top: 1px solid var(--line); }
 
         @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
-
-        @keyframes cardPop {
-            from { opacity: 0; transform: translateY(8px) scale(.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        @keyframes cardPop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
         /* ===== REJECT REASON MODAL ===== */
         .reason-list { display: flex; flex-direction: column; gap: 8px; }
@@ -616,13 +458,7 @@
 
         .reason-option:hover { border-color: var(--cancelled); background: var(--cancelled-soft); }
         .reason-option input { accent-color: var(--cancelled); width: 16px; height: 16px; flex-shrink: 0; }
-
-        .reason-option:has(input:checked) {
-            border-color: var(--cancelled);
-            background: var(--cancelled-soft);
-            color: var(--cancelled);
-            font-weight: 600;
-        }
+        .reason-option:has(input:checked) { border-color: var(--cancelled); background: var(--cancelled-soft); color: var(--cancelled); font-weight: 600; }
 
         #rejectNoteWrap { display: none; margin-top: 12px; }
         #rejectNoteWrap.show { display: block; }
@@ -640,17 +476,13 @@
             min-height: 80px;
         }
 
-        #rejectNoteWrap textarea:focus {
-            outline: none;
-            border-color: var(--pink);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
+        #rejectNoteWrap textarea:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-light); }
 
         .reject-error { display: none; margin-top: 10px; font-size: 12px; color: var(--cancelled); font-weight: 600; }
         .reject-error.show { display: block; }
 
         /* ===== VOUCHER MODAL ===== */
-        .voucher-meta { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+        .voucher-meta { font-size: 12.5px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6; }
         .voucher-meta strong { color: var(--ink); font-size: 14px; }
 
         .voucher-code-box {
@@ -664,22 +496,18 @@
             padding: 16px 18px;
         }
 
-        .voucher-code {
-            font-family: 'Courier New', monospace;
-            font-size: 1.35rem;
-            font-weight: 700;
-            letter-spacing: .12em;
-            color: var(--pink-deep);
-            word-break: break-all;
-        }
+        /* Done = already punched by the cashier, can't be used again */
+        .voucher-code-box.used { background: #F4F4F7; border-color: var(--line-strong); }
 
-        .voucher-code.empty {
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            letter-spacing: 0;
-            color: var(--muted);
-            font-weight: 500;
-        }
+        .voucher-code { font-family: 'Courier New', monospace; font-size: 1.35rem; font-weight: 700; letter-spacing: .12em; color: var(--pink-deep); word-break: break-all; }
+        .voucher-code.empty { font-family: 'Inter', sans-serif; font-size: 13px; letter-spacing: 0; color: var(--text-sub); font-weight: 500; }
+        .voucher-code.used { color: var(--text-sub); text-decoration: line-through; }
+
+        .voucher-note { display: none; margin-top: 12px; padding: 10px 14px; border-radius: var(--r-md); font-size: 12.5px; font-weight: 600; line-height: 1.5; }
+        .voucher-note.show { display: block; }
+        .voucher-note.note-used { background: var(--paid-soft); color: var(--paid); }
+        .voucher-note.note-wait { background: var(--pending-soft); color: var(--pending); }
+        .voucher-note.note-rejected { background: var(--cancelled-soft); color: var(--cancelled); }
 
         /* ===== CONFIRM DELETE MODAL ===== */
         .confirm-card {
@@ -706,16 +534,8 @@
             font-size: 21px;
         }
 
-        .confirm-card h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 8px;
-        }
-
+        .confirm-card h3 { font-family: 'Source Serif 4', serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
         .confirm-card p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 22px; }
-
         .confirm-actions { display: flex; gap: 10px; justify-content: center; }
 
         .confirm-actions button {
@@ -736,9 +556,7 @@
         .btn-confirm-delete { background: var(--cancelled); color: #fff; }
         .btn-confirm-delete:hover { filter: brightness(.92); box-shadow: 0 0 0 3px var(--cancelled-soft); }
 
-        @media(max-width:420px) {
-            .confirm-actions { flex-direction: column-reverse; }
-        }
+        @media(max-width:420px) { .confirm-actions { flex-direction: column-reverse; } }
 
         /* ===== TOAST ===== */
         #toastStack {
@@ -803,28 +621,9 @@
         .toast .toast-body { flex: 1; min-width: 0; padding-top: 2px; }
         .toast .toast-title { font-weight: 700; font-size: 12.5px; margin-bottom: 2px; color: var(--ink); }
         .toast .toast-msg { color: var(--ink-soft); font-size: 12.5px; word-break: break-word; }
-
-        .toast .toast-close {
-            flex-shrink: 0;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--muted);
-            font-size: 13px;
-            padding: 2px;
-        }
-
+        .toast .toast-close { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 13px; padding: 2px; }
         .toast .toast-close:hover { color: var(--ink); }
-
-        .toast .toast-bar {
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            height: 3px;
-            background: currentColor;
-            opacity: .3;
-            animation: toastShrink 3s linear forwards;
-        }
+        .toast .toast-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: currentColor; opacity: .3; animation: toastShrink 3s linear forwards; }
 
         @keyframes toastIn { to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes toastOut { to { opacity: 0; transform: translateY(-12px) scale(.96); } }
@@ -833,7 +632,7 @@
         /* ===== RESPONSIVE ===== */
         @media(max-width:900px) {
             .toolbar h2 { font-size: 1.15rem; }
-            table { min-width: 860px; font-size: 12.5px; }
+            table { min-width: 900px; font-size: 12.5px; }
             th, td { padding: 10px 12px; }
         }
 
@@ -853,7 +652,7 @@
             .table-box { background: transparent; border: none; box-shadow: none; overflow: visible; }
 
             table, thead, tbody, th, td, tr { display: block; }
-            thead { display: none; }
+            colgroup, thead { display: none; }
 
             tbody tr {
                 border: 1px solid var(--line);
@@ -866,19 +665,14 @@
 
             tbody tr:hover { background: var(--card); }
 
-            td {
-                border: none;
-                padding: 5px 0;
-                font-size: 13px;
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-            }
+            td { border: none; padding: 5px 0; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; overflow: visible; }
+            td > div { min-width: 0; }
+            .cell-main, .cell-sub { white-space: normal; }
 
             td::before {
                 content: attr(data-label);
                 font-weight: 700;
-                color: var(--muted);
+                color: var(--text-sub);
                 min-width: 80px;
                 font-size: 10.5px;
                 text-transform: uppercase;
@@ -887,6 +681,7 @@
             }
 
             table { min-width: unset; }
+            tr.detail-row td:first-child { padding-left: 0; box-shadow: none; }
             .pagination { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
         }
     </style>
@@ -904,18 +699,15 @@
         $usingDummyData = !isset($bookings) || $bookings->count() === 0;
         $packageOptions = $packages ?? ['Whole Day Pass', 'Half Day Pass', 'Birthday Package', 'Group Package'];
 
-        // Maps the `service` slug saved by the customer booking flow
-        // (dino_adventure / rollerfever / field_of_rides) to its label.
-        // Reservations made via the admin "New Reservation" form don't
-        // collect a service yet, so those show as "—" for now.
+        // Maps the `service` slug saved by the customer booking flow to its label.
+        // Reservations made via the admin "New Reservation" form don't collect a service yet.
         $serviceLabels = [
             'dino_adventure' => 'Dino Adventure',
             'rollerfever'    => 'RollerFever',
             'field_of_rides' => 'Field of Rides',
         ];
 
-        // Mga rason kung bakit nirereject ang isang reservation.
-        // Ito rin ang makikita ng customer sa side nila.
+        // Rejection reasons. These are also shown to the customer.
         $rejectReasons = [
             'Invalid or unclear payment receipt',
             'Incorrect payment amount',
@@ -924,6 +716,8 @@
             'Incomplete or incorrect booking details',
             'Others',
         ];
+
+        $methodLabels = ['qrph' => 'QR Ph', 'gcash' => 'GCash', 'maya' => 'Maya', 'cash' => 'Cash'];
     @endphp
 
     <!-- TOOLBAR -->
@@ -978,13 +772,19 @@
         @endif
 
         <table>
+            <colgroup>
+                <col style="width:25%">   {{-- Customer (name + email) --}}
+                <col style="width:130px"> {{-- Schedule (date + time) --}}
+                <col style="width:20%">   {{-- Package (package + category) --}}
+                <col style="width:64px">  {{-- Pax --}}
+                <col style="width:150px"> {{-- Payment --}}
+                <col style="width:150px"> {{-- Status --}}
+                <col style="width:140px"> {{-- Actions --}}
+            </colgroup>
             <thead>
                 <tr>
                     <th>Customer</th>
-                    <th>Email</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Category</th>
+                    <th>Schedule</th>
                     <th>Package</th>
                     <th>Pax</th>
                     <th>Payment</th>
@@ -995,80 +795,115 @@
             <tbody>
                 @if ($usingDummyData)
                     @foreach ($dummyRows as $row)
-                        <tr>
-                            <td data-label="Customer">{{ $row['customer'] }}</td>
-                            <td data-label="Email" class="email-cell">{{ $row['email'] }}</td>
-                            <td data-label="Date">{{ $row['date'] }}</td>
-                            <td data-label="Time">{{ $row['time'] }}</td>
-                            <td data-label="Category">{{ $row['category'] }}</td>
-                            <td data-label="Package">{{ $row['package'] }}</td>
+                        <tr data-customer="{{ $row['customer'] }}" data-email="{{ $row['email'] }}"
+                            data-category="{{ $row['category'] }}" data-pax="{{ $row['pax'] }}" data-status-key="">
+                            <td data-label="Customer">
+                                <div class="cell-main">{{ $row['customer'] }}</div>
+                                <div class="cell-sub">{{ $row['email'] }}</div>
+                            </td>
+                            <td data-label="Schedule">
+                                <div class="cell-main">{{ $row['date'] }}</div>
+                                <div class="cell-sub">{{ $row['time'] }}</div>
+                            </td>
+                            <td data-label="Package">
+                                <div class="cell-main">{{ $row['package'] }}</div>
+                                <div class="cell-sub">{{ $row['category'] }}</div>
+                            </td>
                             <td data-label="Pax">{{ $row['pax'] }}</td>
-                            <td data-label="Payment">&mdash;</td>
-                            <td data-label="Status">&mdash;</td>
-                            <td data-label="Actions">&mdash;</td>
+                            <td data-label="Payment"><span class="dash">&mdash;</span></td>
+                            <td data-label="Status"><span class="dash">&mdash;</span></td>
+                            <td data-label="Actions"><span class="dash">&mdash;</span></td>
                         </tr>
                     @endforeach
                 @else
                     @foreach ($bookings as $booking)
                         @php
-                            // pending | approved | rejected  (galing sa admin)
+                            // FLOW:
+                            //  1. Customer books      -> approval_status = 'pending'
+                            //  2. Admin verifies      -> 'approved' or 'rejected'
+                            //  3. Only approved reservations can be punched by the cashier
+                            //  4. Voucher punched     -> DONE (cannot be used again)
+
                             $approval = $booking->approval_status ?? 'pending';
+                            $isApproved = $approval === 'approved';
 
-                            // DONE = nagamit na ang voucher sa cashier.
-                            // ⚠️ Palitan lang itong isang condition kung iba ang pangalan
-                            // ng column/relationship na ginagamit ng cashier mo
-                            // (hal. $booking->voucher?->used_at, $booking->is_used, etc.)
+                            // DONE = voucher already punched by the cashier. Add any other
+                            // column name your cashier module uses to this check.
                             $isDone = !empty($booking->voucher_used_at)
-                                || ($booking->voucher_status ?? null) === 'used';
+                                || !empty($booking->used_at)
+                                || !empty($booking->redeemed_at)
+                                || !empty($booking->is_used)
+                                || in_array($booking->voucher_status ?? null, ['used', 'redeemed', 'punched'], true)
+                                || in_array($booking->status ?? null, ['used', 'redeemed', 'completed', 'done'], true);
 
-                            // ito ang ginagamit ng filter at ng auto-refresh
+                            // used by the filter and by auto-refresh
                             $statusKey = $isDone ? 'done' : $approval;
+
+                            $custName = $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in');
+                            $custEmail = $booking->display_customer->email ?? null;
+                            $catLabel = $serviceLabels[$booking->service] ?? null;
                         @endphp
                         <tr class="clickable-row"
                             data-id="{{ $booking->id }}"
                             data-status-key="{{ $statusKey }}"
                             data-sig="{{ $booking->id }}-{{ $booking->updated_at?->timestamp }}-{{ $statusKey }}"
                             data-voucher="{{ $booking->voucher_code ?? '' }}"
-                            data-customer="{{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}"
+                            data-approval="{{ $approval }}"
+                            data-done="{{ $isDone ? '1' : '0' }}"
+                            data-customer="{{ $custName }}"
+                            data-email="{{ $custEmail ?? '' }}"
+                            data-category="{{ $catLabel ?? '' }}"
+                            data-pax="{{ $booking->display_pax }}"
                             data-package="{{ $booking->package }}"
                             data-date="{{ $booking->display_date?->format('M d, Y') }}">
+
                             <td data-label="Customer">
-                                {{ $booking->display_customer->fullname ?? ($booking->customer_name ?? 'Walk-in') }}
+                                <div class="cell-main">{{ $custName }}</div>
+                                <div class="cell-sub">{{ $custEmail ?: 'No email' }}</div>
                             </td>
-                            <td data-label="Email" class="email-cell">
-                                {{ $booking->display_customer->email ?? '—' }}
+
+                            <td data-label="Schedule">
+                                <div class="cell-main">{{ $booking->display_date?->format('M d, Y') }}</div>
+                                <div class="cell-sub">{{ $booking->display_time }}</div>
                             </td>
-                            <td data-label="Date">{{ $booking->display_date?->format('M d, Y') }}</td>
-                            <td data-label="Time">{{ $booking->display_time }}</td>
-                            <td data-label="Category">{{ $serviceLabels[$booking->service] ?? '—' }}</td>
-                            <td data-label="Package">{{ $booking->package }}</td>
+
+                            <td data-label="Package">
+                                <div class="cell-main" title="{{ $booking->package }}">{{ $booking->package }}</div>
+                                <div class="cell-sub">{{ $catLabel ?? '—' }}</div>
+                            </td>
+
                             <td data-label="Pax">{{ $booking->display_pax }}</td>
+
+                            {{-- PAYMENT: always shows the payment method used (GCash, Maya, QR Ph, Cash). --}}
                             <td data-label="Payment">
-                                @php
-                                    $methodLabels = ['qrph' => 'QR Ph', 'gcash' => 'GCash', 'maya' => 'Maya', 'cash' => 'Cash'];
-                                @endphp
-                                @if (isset($methodLabels[$booking->payment_method]))
-                                    <span class="badge" style="background:var(--paid-soft);color:var(--paid);">{{ $methodLabels[$booking->payment_method] }}</span>
-                                @else
-                                    <span style="color:var(--muted);font-size:12px;">&mdash;</span>
-                                @endif
-                                @if ($booking->status === 'awaiting_verification')
-                                    <span class="proof-status" style="color:var(--pending);">Waiting for approval</span>
-                                @elseif ($booking->status === 'confirmed' && $booking->payment_verified_at)
-                                    <span class="proof-status" style="color:var(--confirmed);">Approved</span>
-                                @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
-                                    <span class="proof-status" style="color:var(--cancelled);" title="{{ $booking->payment_rejection_reason }}">Proof rejected</span>
-                                @endif
-<<<<<<< ours
-<<<<<<< ours
+                                <div>
+                                    @if (isset($methodLabels[$booking->payment_method]))
+                                        <span class="badge badge-paid">{{ $methodLabels[$booking->payment_method] }}</span>
+                                    @else
+                                        <span class="dash">&mdash;</span>
+                                    @endif
+
+                                    @if (!$isDone)
+                                        @if ($booking->status === 'awaiting_verification')
+                                            <div class="cell-sub sub-wait">Waiting for approval</div>
+                                        @elseif ($isApproved)
+                                            <div class="cell-sub sub-ok">Ready for cashier</div>
+                                        @elseif ($booking->status === 'pending_payment' && $booking->payment_rejection_reason)
+                                            <div class="cell-sub sub-bad" title="{{ $booking->payment_rejection_reason }}">Proof rejected</div>
+                                        @endif
+                                    @endif
+                                </div>
                             </td>
+
+                            {{-- STATUS: shows "Done" once the voucher is punched, otherwise the Approve/Reject dropdown. --}}
                             <td data-label="Status">
-                                @if ($isDone)
-                                    <span class="badge badge-done" title="Nagamit na ang voucher sa cashier">
-                                        <i class="fa-solid fa-check-double"></i> Done
-                                    </span>
-                                @else
-                                    <div>
+                                <div>
+                                    @if ($isDone)
+                                        <span class="badge badge-done badge-done-status" title="Voucher already punched by the cashier">
+                                            <i class="fa-solid fa-check-double"></i> Done
+                                        </span>
+                                        <div class="cell-sub">Voucher used</div>
+                                    @else
                                         <select class="status-select"
                                             data-status="{{ $approval }}"
                                             data-current="{{ $approval }}"
@@ -1079,20 +914,21 @@
                                             <option value="rejected" @selected($approval === 'rejected')>Rejected</option>
                                         </select>
                                         @if ($approval === 'rejected' && ($booking->reject_reason ?? null))
-                                            <div class="reject-reason">
-                                                {{ $booking->reject_reason }}@if ($booking->reject_note): {{ $booking->reject_note }}@endif
-                                            </div>
+                                            @php
+                                                $fullReason = $booking->reject_reason . ($booking->reject_note ? ': ' . $booking->reject_note : '');
+                                            @endphp
+                                            <div class="cell-sub reject-reason" title="{{ $fullReason }}">{{ $fullReason }}</div>
                                         @endif
-                                    </div>
-                                @endif
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+                                    @endif
+                                </div>
                             </td>
+
                             <td data-label="Actions">
                                 <div class="action-buttons">
-                                    <button type="button" class="btn-icon-edit" title="Edit reservation"
+                                    <button type="button" class="btn-icon-edit"
+                                        title="{{ $isDone ? 'Locked — reservation is already done' : 'Edit reservation' }}"
+                                        aria-label="Edit reservation"
+                                        @disabled($isDone)
                                         onclick="openEditModal({
                                             id: '{{ $booking->id }}',
                                             customer_name: @js($booking->display_customer->fullname ?? $booking->customer_name ?? ''),
@@ -1107,32 +943,17 @@
                                     </button>
                                     @if ($booking->receipt_path)
                                         <button type="button" class="btn-icon-edit" title="View proof of payment"
+                                            aria-label="View proof of payment"
                                             onclick="openReceiptModal('{{ asset('storage/' . $booking->receipt_path) }}')">
                                             <i class="fa-solid fa-receipt"></i>
                                         </button>
-                                    @endif
-                                    @if ($booking->status === 'awaiting_verification')
-                                        <form action="{{ route('reservations.approve-payment', $booking) }}" method="POST"
-                                            class="proof-form" onsubmit="return confirm('Approve this payment and confirm the booking?');">
-                                            @csrf
-                                            <button type="submit" class="btn-icon-edit btn-icon-approve" title="Approve payment">
-                                                <i class="fa-solid fa-check"></i>
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('reservations.reject-payment', $booking) }}" method="POST"
-                                            class="proof-form" onsubmit="return askRejectReason(this);">
-                                            @csrf
-                                            <input type="hidden" name="reason" value="">
-                                            <button type="submit" class="btn-icon-edit btn-icon-reject" title="Reject payment">
-                                                <i class="fa-solid fa-xmark"></i>
-                                            </button>
-                                        </form>
                                     @endif
                                     <form action="{{ route('reservations.destroy', $booking) }}" method="POST"
                                         class="delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn-icon-delete" title="Delete reservation">
+                                        <button type="submit" class="btn-icon-delete" title="Delete reservation"
+                                            aria-label="Delete reservation">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>
@@ -1147,7 +968,7 @@
         <div class="pagination no-print" id="pagination"></div>
     </div>
 
-    <!-- HIDDEN FORM: APPROVE (nagsa-submit kapag pinili ang "Approved") -->
+    <!-- HIDDEN FORM: APPROVE (submitted when "Approved" is selected) -->
     <form id="approveForm" method="POST" style="display:none;">
         @csrf
         @method('PATCH')
@@ -1165,7 +986,7 @@
                 <div class="modal-head">
                     <div>
                         <div class="eyebrow">Reject Reservation</div>
-                        <h3 id="rejectModalTitle">Bakit nireject?</h3>
+                        <h3 id="rejectModalTitle">Reason for rejection</h3>
                     </div>
                     <button type="button" class="modal-close" id="closeRejectModal" aria-label="Close">
                         <i class="fa-solid fa-xmark"></i>
@@ -1173,7 +994,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-hint" style="margin-bottom:12px;">
-                        Makikita ng customer ang rason na pipiliin mo.
+                        The customer will be able to see the reason you select.
                     </div>
                     <div class="reason-list">
                         @foreach ($rejectReasons as $reason)
@@ -1184,9 +1005,9 @@
                         @endforeach
                     </div>
                     <div id="rejectNoteWrap">
-                        <textarea name="reject_note" id="rejectNote" placeholder="I-type ang rason..."></textarea>
+                        <textarea name="reject_note" id="rejectNote" placeholder="Type the reason..."></textarea>
                     </div>
-                    <div class="reject-error" id="rejectError">Pumili muna ng rason.</div>
+                    <div class="reject-error" id="rejectError">Please select a reason.</div>
                 </div>
                 <div class="modal-foot">
                     <button type="button" class="btn-ghost" id="cancelRejectModal">Cancel</button>
@@ -1366,12 +1187,13 @@
                     <div><strong id="voucherCustomer"></strong></div>
                     <div><span id="voucherPackage"></span> &middot; <span id="voucherDate"></span></div>
                 </div>
-                <div class="voucher-code-box">
+                <div class="voucher-code-box" id="voucherCodeBox">
                     <span class="voucher-code" id="voucherCode"></span>
                     <button type="button" class="btn-ghost" id="copyVoucherBtn">
                         <i class="fa-regular fa-copy"></i> Copy
                     </button>
                 </div>
+                <div class="voucher-note" id="voucherNote"></div>
             </div>
         </div>
     </div>
@@ -1470,14 +1292,6 @@
         const receiptImage = document.getElementById('receiptImage');
         const closeReceiptModalBtn = document.getElementById('closeReceiptModal');
 
-        function askRejectReason(form) {
-            const reason = window.prompt('Why is the payment proof being rejected? (the customer will see this)');
-            if (reason === null) return false;            // cancelled
-            if (!reason.trim()) { alert('Please enter a reason.'); return false; }
-            form.querySelector('input[name="reason"]').value = reason.trim().slice(0, 255);
-            return true;
-        }
-
         function openReceiptModal(url) {
             if (/\.pdf($|\?)/i.test(url)) { window.open(url, '_blank'); return; }   // PDFs open in a new tab
             receiptImage.src = url;
@@ -1505,7 +1319,7 @@
         const rejectNoteWrap = document.getElementById('rejectNoteWrap');
         const rejectNote = document.getElementById('rejectNote');
         const rejectError = document.getElementById('rejectError');
-        let pendingStatusSelect = null; // ang <select> na kasalukuyang nire-reject
+        let pendingStatusSelect = null; // the <select> currently being rejected
 
         function statusUrl(id) {
             return `/reservations/${id}/status`;
@@ -1544,7 +1358,7 @@
             if (e.target === rejectOverlay) closeRejectModal();
         });
 
-        // kapag "Others" ang pinili, lalabas ang textbox
+        // choosing "Others" reveals the text box
         rejectForm?.addEventListener('change', (e) => {
             if (e.target.name !== 'reject_reason') return;
             const isOthers = e.target.value === 'Others';
@@ -1557,13 +1371,13 @@
             const chosen = rejectForm.querySelector('input[name="reject_reason"]:checked');
             if (!chosen) {
                 e.preventDefault();
-                rejectError.textContent = 'Pumili muna ng rason.';
+                rejectError.textContent = 'Please select a reason.';
                 rejectError.classList.add('show');
                 return;
             }
             if (chosen.value === 'Others' && !rejectNote.value.trim()) {
                 e.preventDefault();
-                rejectError.textContent = 'I-type ang rason kapag "Others".';
+                rejectError.textContent = 'Please enter a reason when selecting "Others".';
                 rejectError.classList.add('show');
                 rejectNote.focus();
                 return;
@@ -1574,12 +1388,18 @@
             window.__submittingForm = true;
         });
 
-        // pagpili sa dropdown ng status (delegated, gumagana kahit hidden/grouped ang row)
+        // status dropdown change (delegated, so it works for hidden/grouped rows too)
         document.querySelector('.table-box table tbody')?.addEventListener('change', (e) => {
             const sel = e.target.closest('select.status-select');
             if (!sel) return;
 
-            sel.dataset.status = sel.value; // para agad magbago ang kulay
+            // locked once Done (voucher already punched)
+            if (sel.closest('tr')?.dataset.done === '1') {
+                revertSelect(sel);
+                return;
+            }
+
+            sel.dataset.status = sel.value; // update the color right away
 
             if (sel.value === 'approved') {
                 sel.disabled = true;
@@ -1630,30 +1450,51 @@
                 pendingDeleteForm.submit();
             }
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (confirmOverlay.classList.contains('active')) closeConfirmModal();
-                if (editReservationOverlay.classList.contains('active')) closeEditModal();
-                if (reservationOverlay.classList.contains('active')) closeReservationModal();
-                if (receiptOverlay.classList.contains('active')) closeReceiptModal();
-                if (rejectOverlay.classList.contains('active')) closeRejectModal();
-            }
-        });
 
         // ── Voucher Code modal (click a booking row) ──
         const voucherOverlay = document.getElementById('voucherOverlay');
         const voucherCodeEl = document.getElementById('voucherCode');
+        const voucherCodeBox = document.getElementById('voucherCodeBox');
+        const voucherNote = document.getElementById('voucherNote');
         const copyVoucherBtn = document.getElementById('copyVoucherBtn');
 
+        function setVoucherNote(type, text) {
+            voucherNote.className = 'voucher-note';
+            if (!type) { voucherNote.textContent = ''; return; }
+            voucherNote.classList.add('show', 'note-' + type);
+            voucherNote.textContent = text;
+        }
+
+        // Voucher states:
+        //  DONE      -> already punched by the cashier, cannot be used again
+        //  APPROVED  -> valid, the cashier can punch it
+        //  PENDING / REJECTED -> not usable
         function openVoucherModal(d) {
             document.getElementById('voucherCustomer').textContent = d.customer || '';
             document.getElementById('voucherPackage').textContent = d.package || '';
             document.getElementById('voucherDate').textContent = d.date || '';
 
             const code = (d.voucher || '').trim();
-            voucherCodeEl.textContent = code || 'Walang voucher code';
+            const isDone = d.done === '1';
+            const approval = d.approval || 'pending';
+
+            voucherCodeEl.textContent = code || 'No voucher code';
             voucherCodeEl.classList.toggle('empty', !code);
-            copyVoucherBtn.style.display = code ? '' : 'none';
+            voucherCodeEl.classList.toggle('used', isDone && !!code);
+            voucherCodeBox.classList.toggle('used', isDone);
+
+            // Copy only makes sense for a valid (approved, not yet punched) code
+            copyVoucherBtn.style.display = (code && !isDone && approval === 'approved') ? '' : 'none';
+
+            if (isDone) {
+                setVoucherNote('used', 'Done — this voucher has already been punched by the cashier and can no longer be used.');
+            } else if (approval === 'pending') {
+                setVoucherNote('wait', 'This reservation has not been approved yet, so the cashier cannot punch the voucher.');
+            } else if (approval === 'rejected') {
+                setVoucherNote('rejected', 'This reservation was rejected, so the voucher cannot be used.');
+            } else {
+                setVoucherNote('', '');
+            }
 
             voucherOverlay.classList.add('active');
             voucherOverlay.setAttribute('aria-hidden', 'false');
@@ -1666,7 +1507,7 @@
             document.body.style.overflow = '';
         }
 
-        // Kopya ng text: gumagamit ng Clipboard API, may fallback kung hindi secure context (http)
+        // Clipboard API, with a fallback for non-secure (http) contexts
         async function copyText(text) {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
@@ -1684,7 +1525,7 @@
         }
 
         document.querySelector('.table-box table tbody')?.addEventListener('click', (e) => {
-            // huwag mag-open kapag buttons/forms (edit, receipt, delete, status) ang pinindot
+            // ignore clicks on buttons/forms/status select
             if (e.target.closest('button, a, form, select, input, option')) return;
             const row = e.target.closest('tr.clickable-row');
             if (!row) return;
@@ -1695,17 +1536,25 @@
         voucherOverlay?.addEventListener('click', (e) => {
             if (e.target === voucherOverlay) closeVoucherModal();
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && voucherOverlay.classList.contains('active')) closeVoucherModal();
-        });
 
         copyVoucherBtn?.addEventListener('click', async () => {
             try {
                 await copyText(voucherCodeEl.textContent.trim());
                 showToast('Voucher code copied.', 'success');
             } catch (err) {
-                showToast('Hindi ma-copy ang code.', 'error');
+                showToast('Unable to copy the code.', 'error');
             }
+        });
+
+        // Escape closes whichever modal is open
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (confirmOverlay.classList.contains('active')) closeConfirmModal();
+            if (editReservationOverlay.classList.contains('active')) closeEditModal();
+            if (reservationOverlay.classList.contains('active')) closeReservationModal();
+            if (receiptOverlay.classList.contains('active')) closeReceiptModal();
+            if (rejectOverlay.classList.contains('active')) closeRejectModal();
+            if (voucherOverlay.classList.contains('active')) closeVoucherModal();
         });
 
         // ── Toast notifications ──
@@ -1752,12 +1601,12 @@
         if (successMsg) showToast(successMsg, "success");
         if (errorMsg) showToast(errorMsg, "error");
 
-        // ===== AUTO-REFRESH: kapag may bago / nagbago (bagong booking, approve,
-        // reject, o "Done" galing cashier), kusa nang mag-re-reload ang page. =====
-        // Paano: bawat 8 segundo, kinukuha nito ang kasalukuyang page sa background
-        // at kinukumpara ang "signature" ng bawat row (id + updated_at + status).
-        // Hindi nire-reload habang may bukas na modal o nagsa-submit para hindi
-        // maputol ang ginagawa mo. Naaalala rin ang search/filters pagkatapos mag-reload.
+        // ===== AUTO-REFRESH =====
+        // Every 8 seconds the current page is fetched in the background and each row's
+        // "signature" (id + updated_at + status) is compared. If anything changed (new
+        // booking, approve, reject, or "Done" from the cashier) the page reloads.
+        // It never reloads while a modal is open or a form is submitting, and the
+        // search/filters are restored after the reload.
         (function() {
             const POLL_MS = 8000;
             const STATE_KEY = 'reservations_filter_state';
@@ -1785,7 +1634,7 @@
                         category: document.getElementById('categoryFilter')?.value || '',
                         status: document.getElementById('statusFilter')?.value || ''
                     }));
-                } catch (e) { /* ok lang kung hindi available */ }
+                } catch (e) { /* storage unavailable — fine */ }
             }
 
             async function checkForUpdates() {
@@ -1802,15 +1651,15 @@
                     const newSig = signatureOf(doc);
 
                     if (newSig !== initialSig) {
-                        // may bago — hintayin munang maisara ang modal bago mag-reload
+                        // wait until any open modal is closed
                         if (anyModalOpen() || window.__submittingForm) return;
                         reloading = true;
                         saveFilterState();
-                        showToast('May bagong update. Nire-refresh...', 'success', { title: 'Updated', duration: 1200 });
+                        showToast('New updates found. Refreshing...', 'success', { title: 'Updated', duration: 1200 });
                         setTimeout(() => window.location.reload(), 1000);
                     }
                 } catch (err) {
-                    // network hiccup — subukan ulit sa susunod na poll
+                    // network hiccup — try again on the next poll
                 }
             }
 
@@ -1821,9 +1670,9 @@
         })();
 
         // ===== GROUP BY CUSTOMER + SEARCH + FILTER + CLIENT-SIDE PAGINATION =====
-        // Rows are grouped purely in the DOM/JS (the Blade/PHP loop above is
-        // untouched), so every edit/delete/receipt button still works exactly
-        // as before — we're only ever hiding/showing existing <tr> elements.
+        // Grouping happens purely in the DOM: existing <tr> elements are only shown/hidden,
+        // so every edit/delete/receipt/status control keeps working as before.
+        // Row data is read from data-* attributes (customer, email, category, pax, status-key).
         (function() {
             const paginationEl = document.getElementById('pagination');
             const tbody = document.querySelector('.table-box table tbody');
@@ -1837,11 +1686,7 @@
 
             const PAGE_SIZE = 10;
             let currentPage = 1;
-
-            // column index reference (0-based, matches the <thead> order):
-            // 0 Customer | 1 Email | 2 Date | 3 Time | 4 Category | 5 Package | 6 Pax | 7 Payment | 8 Status | 9 Actions
-            const COL = { customer: 0, email: 1, date: 2, time: 3, category: 4, package: 5, pax: 6, payment: 7, status: 8, actions: 9 };
-            const COL_COUNT = table.querySelectorAll('thead th').length || 10;
+            const COL_COUNT = table.querySelectorAll('thead th').length || 7;
 
             const originalRows = Array.from(tbody.querySelectorAll('tr'));
             if (!originalRows.length) return;
@@ -1852,7 +1697,7 @@
                 }[c]));
             }
 
-            // ibalik ang search/filters pagkatapos ng auto-refresh
+            // restore search/filters after an auto-refresh
             try {
                 const saved = JSON.parse(sessionStorage.getItem('reservations_filter_state') || 'null');
                 if (saved) {
@@ -1863,14 +1708,14 @@
                 }
             } catch (e) { /* ignore */ }
 
-            // ---- Group rows by customer (name + email) ----
+            // ---- Group rows by customer (email when available, otherwise name) ----
             const groupsMap = new Map();
             const orderedKeys = [];
 
             originalRows.forEach(row => {
-                const name = row.children[COL.customer]?.textContent.trim() || '';
-                const email = row.children[COL.email]?.textContent.trim() || '';
-                const key = (name + '||' + email).toLowerCase();
+                const name = (row.dataset.customer || '').trim();
+                const email = (row.dataset.email || '').trim();
+                const key = (email || name).toLowerCase();
                 if (!groupsMap.has(key)) {
                     groupsMap.set(key, { name, email, rows: [] });
                     orderedKeys.push(key);
@@ -1878,11 +1723,10 @@
                 groupsMap.get(key).rows.push(row);
             });
 
-            // ---- Build the list of pagination "items": a standalone row for
-            // customers with just one booking, or a collapsible group header
-            // + its detail rows for customers with more than one. ----
+            // ---- Pagination "items": a standalone row for customers with one booking,
+            // or a collapsible group header + its detail rows for customers with several ----
             const items = [];
-            const groupState = new Map(); // groupIndex -> manually expanded? (default collapsed)
+            const groupState = new Map(); // groupIndex -> expanded? (default collapsed)
 
             orderedKeys.forEach((key, idx) => {
                 const group = groupsMap.get(key);
@@ -1895,9 +1739,8 @@
                 let totalPax = 0;
                 let pendingCount = 0;
                 group.rows.forEach(row => {
-                    const paxVal = parseInt(row.children[COL.pax]?.textContent.trim(), 10);
+                    const paxVal = parseInt(row.dataset.pax, 10);
                     if (!isNaN(paxVal)) totalPax += paxVal;
-                    // ilang booking ang naghihintay pa ng approve/reject
                     if (row.dataset.statusKey === 'pending') pendingCount++;
                     row.classList.add('detail-row');
                     row.dataset.group = String(idx);
@@ -1908,12 +1751,19 @@
                 header.className = 'group-header';
                 header.dataset.group = String(idx);
                 header.innerHTML = `
-                    <td data-label="Customer"><i class="fa-solid fa-chevron-right group-chevron"></i><strong>${escapeHtml(group.name)}</strong></td>
-                    <td data-label="Email" class="email-cell">${escapeHtml(group.email)}</td>
-                    <td colspan="4" data-label="Bookings" class="group-summary-cell">${group.rows.length} bookings</td>
-                    <td data-label="Pax">${totalPax}</td>
+                    <td data-label="Customer">
+                        <div class="group-name">
+                            <i class="fa-solid fa-chevron-right group-chevron"></i>
+                            <div>
+                                <div class="cell-main">${escapeHtml(group.name)}</div>
+                                <div class="cell-sub">${group.email ? escapeHtml(group.email) : 'No email'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td colspan="2" data-label="Bookings" class="group-summary-cell">${group.rows.length} bookings</td>
+                    <td data-label="Pax"><span class="cell-main">${totalPax}</span></td>
                     <td data-label="Payment"></td>
-                    <td data-label="Status">${pendingCount > 0 ? `<span class="badge badge-pending-mini">${pendingCount} pending</span>` : ''}</td>
+                    <td data-label="Status">${pendingCount > 0 ? `<span class="badge-pending-mini">${pendingCount} pending</span>` : ''}</td>
                     <td data-label="Actions" class="group-hint">Click to view all</td>
                 `;
                 header.addEventListener('click', () => {
@@ -1934,9 +1784,9 @@
             tbody.appendChild(noMatchRow);
 
             function rowMatchesFilters(row, search, category, status) {
-                const customer = row.children[COL.customer]?.textContent.toLowerCase() || '';
-                const email = row.children[COL.email]?.textContent.toLowerCase() || '';
-                const rowCategory = row.children[COL.category]?.textContent.trim() || '';
+                const customer = (row.dataset.customer || '').toLowerCase();
+                const email = (row.dataset.email || '').toLowerCase();
+                const rowCategory = row.dataset.category || '';
                 const rowStatus = row.dataset.statusKey || '';
 
                 const matchesSearch = !search || customer.includes(search) || email.includes(search);
@@ -1996,18 +1846,17 @@
                 });
             }
 
-            // Counts how many <tr> each item will actually show on screen right now
+            // how many <tr> each item will show on screen right now
             function computeVisibleRowCounts(filteredItems, hasActiveFilter) {
                 return filteredItems.map(item => {
                     if (item.type === 'single') return 1;
-                    const manuallyExpanded = groupState.get(item.groupIndex);
-                    const expanded = hasActiveFilter ? true : manuallyExpanded;
+                    const expanded = hasActiveFilter ? true : groupState.get(item.groupIndex);
                     const rowsCount = hasActiveFilter ? item.matchingRows.length : item.rows.length;
-                    return 1 + (expanded ? rowsCount : 0); // +1 for the header row itself
+                    return 1 + (expanded ? rowsCount : 0); // +1 for the header row
                 });
             }
 
-            // Splits items into pages so each page shows at most PAGE_SIZE visible rows
+            // split items into pages of at most PAGE_SIZE visible rows
             function paginateByVisibleRows(filteredItems, counts, pageSize) {
                 const pages = [];
                 let current = [];
@@ -2050,8 +1899,7 @@
                     const chevron = item.header.querySelector('.group-chevron');
                     const summaryCell = item.header.querySelector('.group-summary-cell');
 
-                    const manuallyExpanded = groupState.get(item.groupIndex);
-                    const showExpanded = hasActiveFilter ? true : manuallyExpanded;
+                    const showExpanded = hasActiveFilter ? true : groupState.get(item.groupIndex);
                     const rowsToShow = hasActiveFilter ? item.matchingRows : item.rows;
 
                     item.header.classList.toggle('expanded', showExpanded);
