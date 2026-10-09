@@ -649,10 +649,13 @@
             track.addEventListener('pointerleave', () => { hovering = false; });
             new IntersectionObserver(es => { visible = es[0].isIntersecting; }, { threshold: 0.3 }).observe(track);
 
-            // Always moves, every 2 seconds: no pause on hover, focus, open details or reduced-motion.
-            // It only waits while a finger/mouse is actively dragging the track, or the tab is hidden.
+            // Auto-slide every 2 seconds. Pauses while the mouse is over a card, resumes when it leaves.
+            // The hover check only applies to devices with a real mouse, so touch screens never get stuck paused.
+            const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+            const overCard = () => canHover.matches && cards.some(c => c.matches(':hover'));
+
             setInterval(() => {
-                if (down || animating || document.hidden) return;
+                if (down || animating || document.hidden || overCard()) return;
                 const next = cards[best + 1];
                 if (next) slideTo(leftFor(next), 900);
             }, 2000);
@@ -667,7 +670,7 @@
             window.addEventListener('resize', start);
         })();
 
-                /* ---------- How it works ---------- */
+        /* ---------- How it works ---------- */
         const steps = [...document.querySelectorAll('.wp-step')];
         const panes = [...document.querySelectorAll('.wp-pane')];
         const $ = id => document.getElementById(id);
@@ -781,7 +784,7 @@
             note($('wpVNote'), 'Show this code to the cashier on site and enjoy your day.', true);
         };
 
-                /* ---------- Visit us: live open status (Philippine time) ---------- */
+        /* ---------- Visit us: live open status (Philippine time) ---------- */
         (function visitStatus() {
             const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false });
             const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));

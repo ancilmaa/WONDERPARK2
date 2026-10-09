@@ -1011,20 +1011,21 @@ html { scroll-behavior: smooth; }
     will-change: transform;
 }
 
+/* Photo: fully visible on top, white blend only at the BOTTOM (where the text starts) */
 .wp-photo {
     position: absolute;
     top: 0;
     left: -30px;
     right: -30px;
-    height: 440px;
+    height: 430px;
     background-size: cover;
     background-position: center;
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 26%, rgba(0, 0, 0, .5) 50%, transparent 74%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 26%, rgba(0, 0, 0, .5) 50%, transparent 74%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, rgba(0, 0, 0, .55) 78%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, rgba(0, 0, 0, .55) 78%, transparent 100%);
     will-change: transform;
 }
 
-.wp-body { position: relative; padding: 0 26px 54px; margin-top: 330px; }
+.wp-body { position: relative; padding: 0 26px 54px; margin-top: 350px; }
 .wp-body .tag { display: inline-block; font: 700 13px "Inter", sans-serif; color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 99px; }
 .wp-body h3 { margin: 12px 0 8px; font: 700 28px/1.1 "Baloo 2", sans-serif; color: var(--wp-ink); }
 .wp-body p { margin: 0 0 14px; font-size: 15px; line-height: 1.55; color: #4a4036; }
