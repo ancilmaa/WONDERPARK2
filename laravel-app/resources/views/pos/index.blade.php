@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>WonderPark System | POS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/pos.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -27,18 +27,20 @@
             gap: 6px;
             padding: 8px 14px;
             border-radius: 8px;
-            background: #1c1c1e;
-            color: #fff;
+            background: var(--white);
+            color: var(--ink);
+            border: 1.5px solid var(--border);
             text-decoration: none;
             font-size: 13px;
             font-weight: 600;
             margin-right: 12px;
-            transition: background .15s ease;
+            transition: background .15s ease, border-color .15s ease;
         }
 
         .back-home-btn:hover {
-            background: #2c2c2e;
-            color: #fff;
+            background: var(--pink-pale);
+            border-color: var(--pink-deep);
+            color: var(--pink-dark);
         }
 
         .payment-box {
@@ -56,7 +58,8 @@
         }
 
         .pt-header-text h3 {
-            font-size: 18px;
+            font-family: var(--font-display);
+            font-size: 19px;
             font-weight: 800;
             color: var(--text-primary);
             margin-bottom: 4px;
@@ -73,7 +76,7 @@
             width: 30px;
             height: 30px;
             border: none;
-            background: var(--pink-pale);
+            background: var(--bg);
             border-radius: 8px;
             color: var(--text-muted);
             font-size: 15px;
@@ -192,7 +195,7 @@
             text-align: right;
             font-size: 22px;
             font-weight: 800;
-            border: 1.5px solid var(--pink);
+            border: 1.5px solid var(--pink-deep);
             border-radius: var(--radius-sm);
             padding: 10px 12px;
             background: var(--white);
@@ -235,8 +238,8 @@
         .qa-btn:hover { background: var(--pink-light); border-color: var(--pink); color: var(--pink-dark); }
 
         .cash-change-card {
-            background: #EAF3DE;
-            border: 1px solid #cde8b3;
+            background: var(--green-soft);
+            border: 1px solid #99F6E4;
             border-radius: var(--radius);
             padding: 10px 14px;
             margin-top: 0;
@@ -251,8 +254,8 @@
             font-weight: 800;
         }
 
-        #cashChangeRow.insufficient .cash-change-card { background: #FCEBEB; border-color: #f5b8b8; }
-        #cashChangeRow.insufficient .change-val { color: #E24B4A; }
+        #cashChangeRow.insufficient .cash-change-card { background: var(--danger-soft); border-color: #FECDD3; }
+        #cashChangeRow.insufficient .change-val { color: var(--danger); }
 
         .pay-keypad {
             display: flex;
@@ -369,7 +372,7 @@
         .loading-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(243, 239, 243, .85);
+            background: rgba(248, 250, 252, .85);
             backdrop-filter: blur(2px);
             z-index: 5000;
             display: flex;
@@ -457,10 +460,10 @@
                         <i class="ti ti-search"></i>
                         <input type="text" id="searchInput" placeholder="Search item..." oninput="renderProducts()">
                     </div>
-                   <div id="skatesCatWrap" class="skates-body">
-                    <div class="snack-sidebar" id="catRow"></div>
-                    <div class="products-grid" id="prodGridSkates"></div>
-                </div>
+                    <div id="skatesCatWrap" class="skates-body">
+                        <div class="snack-sidebar" id="catRow"></div>
+                        <div class="products-grid" id="prodGridSkates"></div>
+                    </div>
                     <div id="snackbarBody" class="snackbar-body" style="display:none;">
                         <div class="snack-sidebar" id="snackSidebar"></div>
                         <div class="products-grid" id="prodGrid"></div>
@@ -472,7 +475,7 @@
                 <!-- RIGHT: 4 Stacked Boxes -->
                 <div class="right-col">
 
-                                   <!-- BOX 1: Options | Reports -->
+                    <!-- BOX 1: Options | Reports -->
                     <div class="rbox rbox1">
                         <div class="rbox1-inner">
                             <div class="rbox1-col">
@@ -514,8 +517,8 @@
                                     <i class="ti ti-edit"></i>Correction
                                 </button>
                                 <button class="qbtn red" onclick="openVoidTransaction()">
-                                <i class="ti ti-receipt-off"></i>Void Transaction
-                            </button>
+                                    <i class="ti ti-receipt-off"></i>Void Transaction
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -563,7 +566,7 @@
                             <div class="totals-col">
                                 <div class="t-row"><span>Gross:</span><span id="grossV">₱0.00</span></div>
                                 <div class="t-row"><span>Discount:</span><span id="discV"
-                                        style="color:#E24B4A;">−₱0.00</span></div>
+                                        style="color:var(--danger);">−₱0.00</span></div>
                                 <div class="t-row"><span>Tax (12% VAT):</span><span id="taxV">₱0.00</span></div>
                                 <div class="t-row grand"><span>Sub-Total:</span><span class="gval"
                                         id="totalV">₱0.00</span></div>
@@ -572,7 +575,7 @@
                                 style="display:flex;flex-direction:column;justify-content:flex-end;">
                                 <div class="pay-head" style="opacity:.6;">Press Checkout to select payment method
                                 </div>
-                               <button class="co-btn" onclick="doCheckout()">
+                                <button class="co-btn" onclick="doCheckout()">
                                     <i class="ti ti-check"></i>Checkout
                                     <span class="co-btn-kbd">F9</span>
                                 </button>
@@ -588,108 +591,109 @@
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">Processing…</div>
     </div>
+
     <!-- RECEIPT MODAL -->
-<div class="modal-overlay" id="receiptModal">
-    <div class="modal-box receipt-box">
-        <div class="receipt-header">
-            <div id="rVoidedBanner" style="display:none;text-align:center;color:#E24B4A;font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:6px;border:2px dashed #E24B4A;padding:4px;">
-                ** VOIDED **
+    <div class="modal-overlay" id="receiptModal">
+        <div class="modal-box receipt-box">
+            <div class="receipt-header">
+                <div id="rVoidedBanner" style="display:none;text-align:center;color:var(--danger);font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:6px;border:2px dashed var(--danger);padding:4px;">
+                    ** VOIDED **
+                </div>
+                <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+                <div class="receipt-owned">Owned &amp; Optd. by:</div>
+                <div class="receipt-owned">WONDERPARK AMUSEMENT COM. INC.</div>
+                <div class="receipt-address">Lower Deck, Building J., The Outlets at Lipa<br>Lima Estates, San Lucas,
+                    City of Lipa, Batangas</div>
+                <div class="receipt-tin">VAT Reg. TIN : 010-412-741-00006</div>
+                <div class="receipt-min">MIN : 240903083555678750</div>
+                <div class="receipt-min">MSN : 8500324000925</div>
+                <div class="receipt-title">SALES INVOICE</div>
             </div>
-            <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
-            <div class="receipt-owned">Owned &amp; Optd. by:</div>
-            <div class="receipt-owned">WONDERPARK AMUSEMENT COM. INC.</div>
-            <div class="receipt-address">Lower Deck, Building J., The Outlets at Lipa<br>Lima Estates, San Lucas,
-                City of Lipa, Batangas</div>
-            <div class="receipt-tin">VAT Reg. TIN : 010-412-741-00006</div>
-            <div class="receipt-min">MIN : 240903083555678750</div>
-            <div class="receipt-min">MSN : 8500324000925</div>
-            <div class="receipt-title">SALES INVOICE</div>
-        </div>
-        <hr class="dashed">
-        <div class="receipt-meta">
-            <div class="meta-row"><span class="meta-label">No. of Guest:</span><span class="meta-val"
-                    id="rGuestCount">1</span></div>
-            <div class="meta-row"><span class="meta-label">Order #:</span><span class="meta-val"
-                    id="rOrderNum"></span></div>
-            <div class="meta-row"><span class="meta-label">Invoice #:</span><span class="meta-val"
-                    id="rInvNum"></span></div>
-            <div class="meta-row">
-                <span class="meta-label">Term #: 1&nbsp;&nbsp;&nbsp;Cshr: <span
-                        id="rCashier">CASHIER</span></span>
+            <hr class="dashed">
+            <div class="receipt-meta">
+                <div class="meta-row"><span class="meta-label">No. of Guest:</span><span class="meta-val"
+                        id="rGuestCount">1</span></div>
+                <div class="meta-row"><span class="meta-label">Order #:</span><span class="meta-val"
+                        id="rOrderNum"></span></div>
+                <div class="meta-row"><span class="meta-label">Invoice #:</span><span class="meta-val"
+                        id="rInvNum"></span></div>
+                <div class="meta-row">
+                    <span class="meta-label">Term #: 1&nbsp;&nbsp;&nbsp;Cshr: <span
+                            id="rCashier">CASHIER</span></span>
+                </div>
+                <div style="font-weight:700;font-size:12px;margin-top:3px" id="rServiceLabel">WALK-IN</div>
             </div>
-            <div style="font-weight:700;font-size:12px;margin-top:3px" id="rServiceLabel">WALK-IN</div>
-        </div>
-        <hr class="dashed">
-        <div class="receipt-items-head">
-            <span>Qty</span>
-            <span>Description(s)</span>
-            <span style="text-align:right">Price</span>
-        </div>
-        <div id="rItems"></div>
-        <div style="font-size:11px;color:#666;text-align:center;margin:4px 0;font-family:'Courier New',monospace">
-            -------- <span id="rItemCount">0</span> item(s) --------
-        </div>
-        <div class="receipt-totals-section">
-            <div class="rt-row"><span class="rt-label">Sub Total</span><span class="rt-val"
-                    id="rSubTotal">0.00</span></div>
-            <div class="rt-row" id="rDiscountRow" style="display:none;"><span class="rt-label">Discount</span><span class="rt-val"
-                    id="rDiscount">0.00</span></div>
-        </div>
-        <hr class="solid">
-        <div class="receipt-totals-section">
-            <div class="rt-row rt-total"><span>TOTAL</span><span id="rTotal">0.00</span></div>
-            <div class="rt-row rt-tendered">
-                <span class="rt-label">Tendered:<br><span id="rPaymentMethod"
-                        style="font-weight:700">CASH</span></span>
-                <span class="rt-val" id="rTendered">0.00</span>
+            <hr class="dashed">
+            <div class="receipt-items-head">
+                <span>Qty</span>
+                <span>Description(s)</span>
+                <span style="text-align:right">Price</span>
             </div>
-            <div class="rt-row rt-change" style="font-weight:700">
-                <span class="rt-label">Change:</span>
-                <span class="rt-val" id="rChange">0.00</span>
+            <div id="rItems"></div>
+            <div style="font-size:11px;color:#666;text-align:center;margin:4px 0;font-family:'Courier New',monospace">
+                -------- <span id="rItemCount">0</span> item(s) --------
             </div>
-        </div>
-        <hr class="dashed">
-        <div class="receipt-vat-section">
-            <div class="vat-row"><span>VATable Sales(V)</span><span id="rVatable">0.00</span></div>
-            <div class="vat-row"><span>VAT Amount</span><span id="rVatAmt">0.00</span></div>
-            <div class="vat-row"><span>VAT Exempt Sales(E)</span><span id="rVatExempt">0.00</span></div>
-            <div class="vat-row"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
-        </div>
-        <hr class="dashed">
-        <div class="receipt-datetime" id="rDateTime"></div>
-        <div class="receipt-buyer-section">
-            <div class="buyer-row"><span class="blabel">Name :</span><span class="bval" id="rCust"></span>
+            <div class="receipt-totals-section">
+                <div class="rt-row"><span class="rt-label">Sub Total</span><span class="rt-val"
+                        id="rSubTotal">0.00</span></div>
+                <div class="rt-row" id="rDiscountRow" style="display:none;"><span class="rt-label">Discount</span><span class="rt-val"
+                        id="rDiscount">0.00</span></div>
             </div>
-            <div class="buyer-row"><span class="blabel">Address :</span><span class="bval"></span></div>
-            <div class="buyer-row"><span class="blabel">TIN :</span><span class="bval"></span></div>
-            <div class="buyer-row"><span class="blabel">Business Style :</span><span class="bval"></span></div>
-        </div>
-        <div class="receipt-machine-section">
-            <div class="machine-company">Syntax Squad</div>
-            <div>Balintawak rd</div>
-            <div>Lipa City, Batangas</div>
-            <div>VAT Reg. TIN : 006-737-173-00000</div>
-            <div>BIR Accr. No.: 046-006737173-000611</div>
-            <div>Date Issued: 03/01/2013&nbsp;&nbsp;Valid Until: 07/31/2025</div>
-            <br>
-            <div>PTU No : FP092024-059-0465680-0090989</div>
-            <div>Date Issued : 09/10/2024</div>
-        </div>
-        <hr class="dashed">
-        <div id="rVoidedDetails" style="display:none;text-align:left;font-size:11px;color:#E24B4A;border-top:1px dashed #E24B4A;padding-top:6px;margin-top:6px;">
-            <div><strong>Void Reason:</strong> <span id="rVoidReason"></span></div>
-            <div><strong>Voided By:</strong> <span id="rVoidedBy"></span></div>
-            <div><strong>Voided At:</strong> <span id="rVoidedAt"></span></div>
-        </div>
-        <div class="receipt-thank">This serves as a SALES INVOICE</div>
-        <div class="receipt-thank">Thank you... Come Again...</div>
-        <div class="modal-buttons">
-            <button class="mbtn print" onclick="printReceipt()"><i class="ti ti-printer"></i> Print</button>
-            <button class="mbtn close-btn" onclick="closeVoidedReceiptModal()" id="voidedCloseBtn" style="display:none;"><i class="ti ti-x"></i> Close</button>
-            <button class="mbtn close-btn" onclick="closeReceiptModal()" id="normalCloseBtn"><i class="ti ti-x"></i> Close</button>
+            <hr class="solid">
+            <div class="receipt-totals-section">
+                <div class="rt-row rt-total"><span>TOTAL</span><span id="rTotal">0.00</span></div>
+                <div class="rt-row rt-tendered">
+                    <span class="rt-label">Tendered:<br><span id="rPaymentMethod"
+                            style="font-weight:700">CASH</span></span>
+                    <span class="rt-val" id="rTendered">0.00</span>
+                </div>
+                <div class="rt-row rt-change" style="font-weight:700">
+                    <span class="rt-label">Change:</span>
+                    <span class="rt-val" id="rChange">0.00</span>
+                </div>
+            </div>
+            <hr class="dashed">
+            <div class="receipt-vat-section">
+                <div class="vat-row"><span>VATable Sales(V)</span><span id="rVatable">0.00</span></div>
+                <div class="vat-row"><span>VAT Amount</span><span id="rVatAmt">0.00</span></div>
+                <div class="vat-row"><span>VAT Exempt Sales(E)</span><span id="rVatExempt">0.00</span></div>
+                <div class="vat-row"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </div>
+            <hr class="dashed">
+            <div class="receipt-datetime" id="rDateTime"></div>
+            <div class="receipt-buyer-section">
+                <div class="buyer-row"><span class="blabel">Name :</span><span class="bval" id="rCust"></span>
+                </div>
+                <div class="buyer-row"><span class="blabel">Address :</span><span class="bval"></span></div>
+                <div class="buyer-row"><span class="blabel">TIN :</span><span class="bval"></span></div>
+                <div class="buyer-row"><span class="blabel">Business Style :</span><span class="bval"></span></div>
+            </div>
+            <div class="receipt-machine-section">
+                <div class="machine-company">Syntax Squad</div>
+                <div>Balintawak rd</div>
+                <div>Lipa City, Batangas</div>
+                <div>VAT Reg. TIN : 006-737-173-00000</div>
+                <div>BIR Accr. No.: 046-006737173-000611</div>
+                <div>Date Issued: 03/01/2013&nbsp;&nbsp;Valid Until: 07/31/2025</div>
+                <br>
+                <div>PTU No : FP092024-059-0465680-0090989</div>
+                <div>Date Issued : 09/10/2024</div>
+            </div>
+            <hr class="dashed">
+            <div id="rVoidedDetails" style="display:none;text-align:left;font-size:11px;color:var(--danger);border-top:1px dashed var(--danger);padding-top:6px;margin-top:6px;">
+                <div><strong>Void Reason:</strong> <span id="rVoidReason"></span></div>
+                <div><strong>Voided By:</strong> <span id="rVoidedBy"></span></div>
+                <div><strong>Voided At:</strong> <span id="rVoidedAt"></span></div>
+            </div>
+            <div class="receipt-thank">This serves as a SALES INVOICE</div>
+            <div class="receipt-thank">Thank you... Come Again...</div>
+            <div class="modal-buttons">
+                <button class="mbtn print" onclick="printReceipt()"><i class="ti ti-printer"></i> Print</button>
+                <button class="mbtn close-btn" onclick="closeVoidedReceiptModal()" id="voidedCloseBtn" style="display:none;"><i class="ti ti-x"></i> Close</button>
+                <button class="mbtn close-btn" onclick="closeReceiptModal()" id="normalCloseBtn"><i class="ti ti-x"></i> Close</button>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- DISCOUNT MODAL -->
     <div class="modal-overlay" id="discountModal">
@@ -717,7 +721,7 @@
     <div class="modal-overlay" id="pwdSeniorModal">
         <div class="modal-box small-box">
             <h3><i class="ti ti-id-badge-2"></i> PWD / Senior Citizen Discount</h3>
-            <p style="font-size:12px;color:#888;margin-bottom:10px">
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">
                 Select the item(s) covered by this ID, then enter the holder's details.
                 (20% discount + 12% VAT exemption per RA 9994 / RA 10754)
             </p>
@@ -742,7 +746,7 @@
                     style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px;">
                 </div>
             </div>
-            <div id="pwdSeniorError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div id="pwdSeniorError" style="color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px"></div>
             <div class="modal-buttons">
                 <button class="mbtn print" onclick="confirmPwdSeniorDiscount()"><i class="ti ti-check"></i>
                     Apply</button>
@@ -801,7 +805,7 @@
 
                     <div class="amt-row" id="discountRow" style="display:none;">
                         <span class="amt-label" style="margin-bottom:0">Discount</span>
-                        <span class="amt-val" id="discountDisplay" style="color:#E24B4A;">−₱0.00</span>
+                        <span class="amt-val" id="discountDisplay" style="color:var(--danger);">−₱0.00</span>
                     </div>
 
                     <div id="tenderedRow">
@@ -919,7 +923,7 @@
     <div class="modal-overlay" id="voucherModal">
         <div class="modal-box small-box">
             <h3><i class="ti ti-barcode"></i> Online Booking Voucher</h3>
-            <p style="font-size:12px;color:#888;margin-bottom:12px">
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
                 Enter the voucher code from the customer's booking receipt.
             </p>
             <div class="form-group">
@@ -930,7 +934,7 @@
             </div>
             <div id="voucherPreview"
                 style="display:none;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;"></div>
-            <div id="voucherError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div id="voucherError" style="color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px"></div>
             <div class="modal-buttons">
                 <button class="mbtn print" id="voucherFindBtn" onclick="lookupVoucher()">
                     <i class="ti ti-search"></i> Find Voucher
@@ -949,7 +953,7 @@
     <div class="modal-overlay" id="authModal">
         <div class="modal-box small-box">
             <h3><i class="ti ti-lock"></i> Manager Authorization</h3>
-            <p style="font-size:12px;color:#888;margin-bottom:12px">TL or Manager credentials required.</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">TL or Manager credentials required.</p>
             <div class="form-group">
                 <label>Username</label>
                 <input type="text" id="authUser" class="form-control" placeholder="Enter username">
@@ -958,7 +962,7 @@
                 <label>Password</label>
                 <input type="password" id="authPass" class="form-control" placeholder="Enter password">
             </div>
-            <div id="authError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div id="authError" style="color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px"></div>
             <div class="modal-buttons">
                 <button class="mbtn print" onclick="confirmAuth()">
                     <i class="ti ti-check"></i> Authorize
@@ -974,7 +978,7 @@
     <div class="modal-overlay" id="correctionModal">
         <div class="modal-box small-box">
             <h3><i class="ti ti-trash"></i> Void Item</h3>
-            <p style="font-size:12px;color:#888;margin-bottom:12px">Select item to void from cart:</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Select item to void from cart:</p>
             <div id="correctionItems" style="max-height:220px;overflow-y:auto;margin-bottom:12px"></div>
             <div class="modal-buttons">
                 <button class="mbtn close-btn" onclick="closeModal('correctionModal')">
@@ -983,35 +987,62 @@
             </div>
         </div>
     </div>
-<!-- VOID TRANSACTION MODAL -->
-<div class="modal-overlay" id="voidTxnModal">
-    <div class="modal-box small-box">
-        <h3><i class="ti ti-receipt-off"></i> Void Transaction</h3>
-        <p style="font-size:12px;color:#888;margin-bottom:12px">
-            Enter the invoice number of the completed transaction to void.
-            This requires Manager/TL authorization and will reflect in the sales report.
-        </p>
-        <div class="form-group">
-            <label>Invoice Number</label>
-            <input type="text" id="voidTxnInvInput" class="form-control"
-                placeholder="e.g. 14988 or 00000014988">
-        </div>
-        <div id="voidTxnPreview" style="display:none;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;"></div>
-        <div class="form-group">
-            <label>Reason for Void</label>
-            <textarea id="voidTxnReason" class="form-control" rows="2" placeholder="e.g. Wrong item, customer changed order..."></textarea>
-        </div>
-        <div id="voidTxnError" style="color:#dc2626;font-size:12px;margin-bottom:8px;min-height:16px"></div>
-        <div class="modal-buttons">
-            <button class="mbtn print" id="voidTxnLookupBtn" onclick="lookupVoidTransaction()">
-                <i class="ti ti-search"></i> Find Transaction
-            </button>
-            <button class="mbtn close-btn" onclick="closeModal('voidTxnModal')">
-                <i class="ti ti-x"></i> Cancel
-            </button>
+
+    <!-- REPRINT RECEIPT MODAL (was missing — reprintReceipt() in pos.js needs these ids) -->
+    <div class="modal-overlay" id="reprintModal">
+        <div class="modal-box small-box">
+            <h3><i class="ti ti-printer"></i> Reprint Receipt</h3>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+                Enter the invoice number of the receipt you want to reprint.
+            </p>
+            <div class="form-group">
+                <label>Invoice Number</label>
+                <input type="text" id="reprintInvInput" class="form-control"
+                    placeholder="e.g. 14988 or 00000014988" autocomplete="off"
+                    onkeydown="if(event.key==='Enter') confirmReprint()">
+            </div>
+            <div id="reprintError" style="color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div class="modal-buttons">
+                <button class="mbtn print" id="reprintLookupBtn" onclick="confirmReprint()">
+                    <i class="ti ti-search"></i> Find &amp; Reprint
+                </button>
+                <button class="mbtn close-btn" onclick="closeModal('reprintModal')">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+            </div>
         </div>
     </div>
-</div>
+
+    <!-- VOID TRANSACTION MODAL -->
+    <div class="modal-overlay" id="voidTxnModal">
+        <div class="modal-box small-box">
+            <h3><i class="ti ti-receipt-off"></i> Void Transaction</h3>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+                Enter the invoice number of the completed transaction to void.
+                This requires Manager/TL authorization and will reflect in the sales report.
+            </p>
+            <div class="form-group">
+                <label>Invoice Number</label>
+                <input type="text" id="voidTxnInvInput" class="form-control"
+                    placeholder="e.g. 14988 or 00000014988">
+            </div>
+            <div id="voidTxnPreview" style="display:none;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;"></div>
+            <div class="form-group">
+                <label>Reason for Void</label>
+                <textarea id="voidTxnReason" class="form-control" rows="2" placeholder="e.g. Wrong item, customer changed order..."></textarea>
+            </div>
+            <div id="voidTxnError" style="color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px"></div>
+            <div class="modal-buttons">
+                <button class="mbtn print" id="voidTxnLookupBtn" onclick="lookupVoidTransaction()">
+                    <i class="ti ti-search"></i> Find Transaction
+                </button>
+                <button class="mbtn close-btn" onclick="closeModal('voidTxnModal')">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Pass PHP data to JS via data attributes -->
     <div id="posData" data-products="{{ json_encode($products) }}" data-start-invoice="{{ $last_inv }}"
         data-user-role="{{ session('role') }}" data-user-name="{{ $cashier_name }}"
@@ -1027,8 +1058,6 @@
         const currentUserId = posDataEl.dataset.currentUserId;
     </script>
     <script src="{{ asset('js/pos.js') }}"></script>
-
-    
 
 </body>
 

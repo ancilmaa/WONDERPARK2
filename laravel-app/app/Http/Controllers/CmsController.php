@@ -14,10 +14,9 @@ class CmsController extends Controller
 {
     public function __construct()
     {
-        // Direktang check, hindi na dumadaan sa $this->middleware() —
-        // wala na kasing HasMiddleware/middleware() sa base Controller
-        // simula Laravel 11. Sunod sa parehong session-based role check
-        // na ginagamit sa sidebar (session('role') === 'admin').
+        // Direct check instead of $this->middleware(): the base Controller
+        // no longer provides middleware() since Laravel 11. Uses the same
+        // session-based role check as the sidebar (session('role') === 'admin').
         abort_unless(session('role') === 'admin', 403);
     }
 
