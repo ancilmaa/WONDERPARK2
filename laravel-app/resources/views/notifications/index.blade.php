@@ -178,6 +178,7 @@
             box-shadow: var(--shadow-sm);
             border-radius: 10px;
             padding: 4px;
+            z-index: none;
         }
 
         .notif-segment a {
@@ -191,24 +192,29 @@
             color: var(--ink-soft);
             white-space: nowrap;
             transition: background .12s, color .12s;
+            
         }
 
         .notif-segment a:hover {
             color: var(--ink);
+          
         }
 
         .notif-segment a.active {
             background: var(--ink);
             color: #fff;
+            
         }
 
         .notif-segment a .count {
             font-weight: 800;
             opacity: .75;
+           
         }
 
         .notif-segment a.active .count {
             opacity: .9;
+            
         }
 
         /* Category tabs */
@@ -216,6 +222,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+           
         }
 
         .notif-tabs a {
@@ -620,36 +627,89 @@
             font-weight: 700;
         }
 
-        .notif-pagination nav > div:first-child {
-            display: none;
-        }
-
-        .notif-pagination ul {
+        /* ---- Pagination (redesigned) ---- */
+        .notif-pager {
             display: flex;
-            gap: 4px;
-            list-style: none;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
         }
 
-        .notif-pagination a,
-        .notif-pagination span {
+        .notif-pager .pg-pages {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            border-radius: 10px;
+            padding: 4px;
+        }
+
+        .notif-pager .pg-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 30px;
-            height: 30px;
-            padding: 0 8px;
-            border-radius: 8px;
-            font-size: .78rem;
-            font-weight: 600;
+            gap: 7px;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: 7px;
+            font-size: .8rem;
+            font-weight: 700;
             color: var(--ink-soft);
-            background: var(--card);
-            box-shadow: var(--shadow-sm);
+            background: transparent;
+            transition: background .12s, color .12s;
         }
 
-        .notif-pagination .active span {
+        .notif-pager a.pg-btn:hover {
+            background: var(--pink-pale);
+            color: var(--pink-dark);
+        }
+
+        .notif-pager .pg-btn.is-active {
             background: var(--pink);
             color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+        }
+
+        /* Prev / Next sit outside the pill group */
+        .notif-pager .pg-nav {
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            border-radius: 10px;
+            height: 40px;
+            padding: 0 14px;
+        }
+
+        .notif-pager a.pg-nav:hover {
+            background: var(--pink-pale);
+        }
+
+        .notif-pager .pg-nav i {
+            font-size: .68rem;
+        }
+
+        .notif-pager .pg-btn.is-disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .notif-pager .pg-gap {
+            min-width: 24px;
+            text-align: center;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: .8rem;
+        }
+
+        .notif-pager .pg-status {
+            display: none;
+            font-size: .8rem;
+            color: var(--ink-soft);
+            padding: 0 6px;
+        }
+
+        .notif-pager .pg-status strong {
+            color: var(--ink);
         }
 
         .notif-statusbar {
@@ -697,6 +757,25 @@
             .notif-toolbar-right {
                 width: 100%;
                 justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .notif-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .notif-pager {
+                justify-content: space-between;
+            }
+
+            .notif-pager .pg-pages {
+                display: none;
+            }
+
+            .notif-pager .pg-status {
+                display: inline;
             }
         }
 
@@ -928,9 +1007,64 @@
                 Showing <strong>{{ $notifications->firstItem() }}</strong> to <strong>{{ $notifications->lastItem() }}</strong>
                 of <strong>{{ $notifications->total() }}</strong> results
             </div>
-            <div class="notif-pagination">
-                {{ $notifications->onEachSide(1)->links() }}
-            </div>
+            @if ($notifications->hasPages())
+                @php
+                    // Keep status / type / q filters on every page link.
+                    $notifications->withQueryString();
+
+                    $current = $notifications->currentPage();
+                    $last    = $notifications->lastPage();
+
+                    // Window: first, last, current ±1, with "…" gaps.
+                    $window = collect([1, $last, $current - 1, $current, $current + 1])
+                        ->filter(fn ($p) => $p >= 1 && $p <= $last)
+                        ->unique()
+                        ->sort()
+                        ->values();
+                @endphp
+
+                <nav class="notif-pager" role="navigation" aria-label="Pagination">
+                    {{-- Previous --}}
+                    @if ($notifications->onFirstPage())
+                        <span class="pg-btn pg-nav is-disabled" aria-disabled="true">
+                            <i class="fa-solid fa-chevron-left"></i><span class="pg-label">Prev</span>
+                        </span>
+                    @else
+                        <a href="{{ $notifications->previousPageUrl() }}" rel="prev" class="pg-btn pg-nav" aria-label="Previous page">
+                            <i class="fa-solid fa-chevron-left"></i><span class="pg-label">Prev</span>
+                        </a>
+                    @endif
+
+                    {{-- Mobile: compact status --}}
+                    <span class="pg-status">Page <strong>{{ $current }}</strong> of {{ $last }}</span>
+
+                    {{-- Page numbers --}}
+                    <div class="pg-pages">
+                        @foreach ($window as $i => $page)
+                            @if ($i > 0 && $page - $window[$i - 1] > 1)
+                                <span class="pg-gap">&hellip;</span>
+                            @endif
+
+                            @if ($page === $current)
+                                <span class="pg-btn is-active" aria-current="page">{{ $page }}</span>
+                            @else
+                                <a href="{{ $notifications->url($page) }}" class="pg-btn" aria-label="Go to page {{ $page }}">{{ $page }}</a>
+                            @endif
+                        @endforeach
+                    </div>
+
+                    {{-- Next --}}
+                    @if ($notifications->hasMorePages())
+                        <a href="{{ $notifications->nextPageUrl() }}" rel="next" class="pg-btn pg-nav" aria-label="Next page">
+                            <span class="pg-label">Next</span><i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    @else
+                        <span class="pg-btn pg-nav is-disabled" aria-disabled="true">
+                            <span class="pg-label">Next</span><i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                    @endif
+                </nav>
+            @endif
         </div>
     @endif
 

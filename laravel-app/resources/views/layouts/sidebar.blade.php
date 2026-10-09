@@ -141,6 +141,12 @@
             border-bottom: 1px solid var(--line);
         }
 
+        /* FIX: lift the topbar (and the fixed notif panel inside it) above page content while the panel is open.
+           Stays under the sidebar overlay (45) and sidebar (50). */
+        .mobile-topbar:has(.notif-panel.open) {
+            z-index: 44;
+        }
+
         .mobile-topbar img {
             height: 30px;
         }
@@ -201,6 +207,7 @@
             height: 100vh;
             height: 100dvh;
             border-right: 1px solid var(--sb-line);
+            z-index: 60; /* FIX: raise the whole sidebar (and the notif dropdown inside it) above page content */
         }
 
         /* --- Brand --- */
@@ -354,7 +361,7 @@
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-md);
             overflow: hidden;
-            z-index: 10000;
+            z-index: 200; /* FIX: was 1 */
         }
 
         .notif-panel.open {

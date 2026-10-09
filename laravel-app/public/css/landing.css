@@ -1364,6 +1364,32 @@ header .logo img { height: 46px !important; }
     cursor: pointer;
 }
 
+.lg-body .lg-intro,
+.lg-sec p,
+.lg-sec li {
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
+}
+
+/* headings and the numbered badges stay left-aligned */
+.lg-sec h3 {
+    text-align: left;
+}
+
+/* on narrow phones, justified text leaves big gaps, so go back to left-aligned */
+@media (max-width: 480px) {
+    .lg-body .lg-intro,
+    .lg-sec p,
+    .lg-sec li {
+        text-align: left;
+        hyphens: manual;
+        -webkit-hyphens: manual;
+    }
+}
+
 /* =========================================================
    LEGAL MODALS (Terms & Conditions, Privacy Notice)
 ========================================================= */

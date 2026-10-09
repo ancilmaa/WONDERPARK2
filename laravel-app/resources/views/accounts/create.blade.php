@@ -642,8 +642,6 @@
         $hasAddErrors = $errors->any() && (old('fullname') || old('username'));
     @endphp
 
-    <a href="/home" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
-
     {{-- TOOLBAR: title, live counts, and the one primary action, all in one row --}}
     <div class="toolbar">
         <div>
