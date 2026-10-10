@@ -1,130 +1,306 @@
-<!-- Terms & Conditions -->
-<dialog id="termsModal" class="legal-modal">
-    <div class="legal-head">
-        <h3>Terms &amp; Conditions</h3>
-        <button type="button" class="legal-close" data-close aria-label="Close">&times;</button>
+{{-- resources/views/partials/legal-modals.blade.php
+     Opened by any link with data-open="termsModal" or data-open="privacyModal".
+     Sections are numbered automatically (CSS counter), so you can add, remove or
+     reorder <div class="lg-sec"> blocks freely. Styles live in css/landing.css (".lg-*"). --}}
+
+{{-- ============ TERMS & CONDITIONS ============ --}}
+<div class="lg-overlay" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsTitle" hidden>
+    <div class="lg-modal">
+        <div class="lg-head">
+            <div>
+                <h2 id="termsTitle">Terms &amp; Conditions</h2>
+                <p>WonderPark Amusement Com Inc. &middot; Last updated October 2026</p>
+            </div>
+            <button type="button" class="lg-x" data-close aria-label="Close">&times;</button>
+        </div>
+
+        <div class="lg-body" tabindex="0">
+            <p class="lg-intro">
+                Please read these Terms &amp; Conditions before creating an account, booking or visiting Wonder Park.
+                By using this website or our venue, you agree to be bound by them.
+            </p>
+
+            <div class="lg-sections">
+
+                <div class="lg-sec">
+                    <h3>Acceptance of Terms</h3>
+                    <p>
+                        By accessing this website, creating an account or booking a visit with WonderPark Amusement Com Inc.
+                        (&ldquo;Wonder Park&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;), you agree to these Terms and to our
+                        <a href="#" data-open="privacyModal">Privacy Notice</a>. If you do not agree, please do not use the
+                        website or make a booking.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Your Account</h3>
+                    <ul>
+                        <li>Provide accurate and complete information when you register.</li>
+                        <li>Keep your username and password confidential. You are responsible for all activity under your account.</li>
+                        <li>Tell us right away if you suspect unauthorized use of your account.</li>
+                        <li>We may suspend or close accounts that contain false information or are used improperly.</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Bookings and Confirmation</h3>
+                    <ul>
+                        <li>A booking is a request until our team reviews and confirms it.</li>
+                        <li>All bookings depend on slot availability and venue capacity.</li>
+                        <li>Walk-ins are welcome, depending on capacity.</li>
+                        <li>Birthdays, school trips and group events are arranged in advance with our reservations team.</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Rates and Payments</h3>
+                    <ul>
+                        <li>Rates apply to the zone or pass you choose and may change during promos and seasonal events.</li>
+                        <li>We accept cash, credit and debit cards, GCash, Maya, Klook vouchers and StarDeals vouchers.</li>
+                        <li>Online payments are made by QR code. Upload your proof of payment and wait for approval before your voucher is issued.</li>
+                        <li>Show your voucher code to the cashier on arrival.</li>
+                        <li>Partner vouchers (Klook, StarDeals) are redeemed at the gate and are also subject to the partner&rsquo;s own terms.</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Safety and Health</h3>
+                    <ul>
+                        <li>Follow all posted ride rules, height and age limits, and staff instructions.</li>
+                        <li>Guests with heart conditions, severe asthma, epilepsy, recent injuries or similar concerns should avoid extreme rides.</li>
+                        <li>Pregnant guests are not allowed on extreme or high-impact rides.</li>
+                        <li>Staff may refuse or stop any ride or activity for safety reasons.</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Minors and Guardians</h3>
+                    <ul>
+                        <li>Guests under 18 need parent or guardian consent. Consent can be given in person, by call, text or online chat.</li>
+                        <li>Dino Adventure: only children 12 and under may use the play areas, and children aged 1 to 5 must always have a guardian with them.</li>
+                        <li>Roller Fever: children aged 4 to 6 must have a guardian inside the rink, and the guardian must also wear roller skates.</li>
+                        <li>Guardians must supervise young children at all times.</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Guest Conduct</h3>
+                    <p>
+                        Please treat staff, other guests and property with respect. Harassment, damaging property, entering
+                        restricted areas and unsafe behavior are not allowed, and guests may be asked to leave.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Changes and Cancellations</h3>
+                    <p>
+                        Requests to change or cancel a booking are subject to approval and to the terms that applied when you
+                        booked. Please contact our reservations team as early as possible.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Limitation of Liability</h3>
+                    <p>
+                        To the extent permitted by law, Wonder Park is not liable for the loss, theft or damage of personal
+                        belongings, or for injuries that result from not following ride rules, posted instructions or staff
+                        directions. Nothing in these Terms limits any liability that cannot be limited by law.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Changes to These Terms</h3>
+                    <p>
+                        We may update these Terms from time to time. The date at the top shows when they were last updated.
+                        Continuing to use the website or visit the park after an update means you accept the new Terms.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Contact Us</h3>
+                   <p>
+                        Questions about these Terms? Talk to our team at Lima Technology Center, 
+                        Lipa City / Malvar, Batangas, reach us through this website, or email us at 
+                        <a href="mailto:amusementwonderpark@gmail.com">amusementwonderpark@gmail.com</a>.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="lg-foot">
+            <button type="button" class="btn btn-primary" data-close>I Understand</button>
+        </div>
     </div>
-    <div class="legal-body">
-        <p class="legal-updated">Last updated: October 4, 2026</p>
+</div>
 
-        <h4>1. Acceptance of Terms</h4>
-        <p>By accessing or using this system, you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the system.</p>
+{{-- ============ PRIVACY NOTICE ============ --}}
+<div class="lg-overlay" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle" hidden>
+    <div class="lg-modal">
+        <div class="lg-head">
+            <div>
+                <h2 id="privacyTitle">Privacy Notice</h2>
+                <p>WonderPark Amusement Com Inc. &middot; Last updated October 2026</p>
+            </div>
+            <button type="button" class="lg-x" data-close aria-label="Close">&times;</button>
+        </div>
 
-        <h4>2. Purpose of the System</h4>
-        <p>This system is used by WonderPark Amusement Com Inc., Lipa Branch to manage bookings, inventory, and front-desk operations for Roller Fever, Dino Adventure, and the Field of Rides.</p>
+        <div class="lg-body" tabindex="0">
+            <p class="lg-intro">
+                Wonder Park respects your privacy. This notice explains what personal information we collect, why we collect it,
+                and your rights under the Data Privacy Act of 2012 (Republic Act No. 10173).
+            </p>
 
-        <h4>3. User Accounts</h4>
-        <p>You are responsible for keeping your username and password confidential and for all activities under your account. Notify the administrator immediately if you suspect unauthorized access. Sharing of accounts is not allowed.</p>
+            <div class="lg-sections">
 
-        <h4>4. Acceptable Use</h4>
-        <p>You agree not to: (a) access data or features beyond your assigned role; (b) attempt to bypass security or interfere with the system; (c) enter false, misleading, or fraudulent information; or (d) use the system for any unlawful purpose.</p>
+                <div class="lg-sec">
+                    <h3>Information We Collect</h3>
+                    <ul>
+                        <li><strong>Account details:</strong> full name, username, email, age and password.</li>
+                        <li><strong>Booking details:</strong> chosen zones or rides, date, time and number of guests.</li>
+                        <li><strong>Payment records:</strong> proof-of-payment screenshots, payment references and voucher codes.</li>
+                        <li><strong>Sign-in data:</strong> if you sign in with Google or Facebook, the name and email they share with us.</li>
+                        <li><strong>Guardian consent:</strong> records of parent or guardian consent for guests under 18.</li>
+                        <li><strong>Technical data:</strong> IP address, browser type and device information when you use the website.</li>
+                    </ul>
+                </div>
 
-        <h4>5. Bookings and Transactions</h4>
-        <p>Bookings, payments, and ticketing records entered in the system are subject to the company's park policies, including rates, schedules, refunds, and ride safety rules, which may change without prior notice.</p>
+                <div class="lg-sec">
+                    <h3>How We Use Your Information</h3>
+                    <ul>
+                        <li>Create and manage your account.</li>
+                        <li>Review, confirm and verify bookings and payments, and issue vouchers.</li>
+                        <li>Contact you about your booking, schedule changes or safety matters.</li>
+                        <li>Check age and guardian consent requirements for rides and play areas.</li>
+                        <li>Keep the website secure and prevent fraud or misuse.</li>
+                        <li>Meet our legal and accounting obligations.</li>
+                    </ul>
+                </div>
 
-        <h4>6. Intellectual Property</h4>
-        <p>All content, branding, and software in this system belong to WonderPark Amusement Com Inc. or its licensors. You may not copy, modify, or distribute any part of it without written permission.</p>
+                <div class="lg-sec">
+                    <h3>Consent and Legal Basis</h3>
+                    <p>
+                        We process your information with your consent, to carry out your booking, and to comply with the law.
+                        You may withdraw your consent at any time, subject to existing bookings and legal requirements.
+                    </p>
+                </div>
 
-        <h4>7. Suspension or Termination</h4>
-        <p>The company may suspend or terminate any account that violates these Terms or that poses a risk to the security of the system.</p>
+                <div class="lg-sec">
+                    <h3>Sharing of Information</h3>
+                    <p>We do not sell your personal information. We share it only with:</p>
+                    <ul>
+                        <li>Payment and e-wallet providers that process your payment.</li>
+                        <li>Google or Facebook, when you choose to sign in with them.</li>
+                        <li>Klook and StarDeals, for bookings made through those partners.</li>
+                        <li>Hosting and IT service providers that help us run the website.</li>
+                        <li>Government agencies or law enforcement when the law requires it.</li>
+                    </ul>
+                </div>
 
-        <h4>8. Limitation of Liability</h4>
-        <p>The system is provided "as is." The company is not liable for any loss arising from downtime, errors, or unauthorized access caused by failure to protect your login credentials.</p>
+                <div class="lg-sec">
+                    <h3>Storage and Retention</h3>
+                    <p>
+                        We keep your information only as long as needed for the purposes above and for legal or accounting
+                        requirements. After that, we securely delete or anonymize it.
+                    </p>
+                </div>
 
-        <h4>9. Changes to These Terms</h4>
-        <p>We may update these Terms from time to time. Continued use of the system means you accept the updated Terms.</p>
+                <div class="lg-sec">
+                    <h3>Security</h3>
+                    <p>
+                        We use organizational, physical and technical measures to protect your information from loss, misuse and
+                        unauthorized access. No system is completely secure, so please keep your password confidential.
+                    </p>
+                </div>
 
-        <h4>10. Contact</h4>
-        <p>For questions, contact the Lipa Branch administrator at <strong>amusementwonderpark@gmail.com</strong>.</p>
+                <div class="lg-sec">
+                    <h3>Your Rights</h3>
+                    <p>Under the Data Privacy Act, you have the right to:</p>
+                    <ul>
+                        <li>Be informed about how your data is processed.</li>
+                        <li>Access the personal information we hold about you.</li>
+                        <li>Object to processing and withdraw your consent.</li>
+                        <li>Correct inaccurate or outdated information.</li>
+                        <li>Request erasure or blocking of your data.</li>
+                        <li>Receive a copy of your data in a usable format.</li>
+                        <li>Claim damages where appropriate, and file a complaint with the National Privacy Commission (privacy.gov.ph).</li>
+                    </ul>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Children&rsquo;s Privacy</h3>
+                    <p>
+                        For guests under 18, we collect and use information only with the consent of a parent or guardian.
+                        Parents and guardians may ask us to review or delete their child&rsquo;s information.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Changes to This Notice</h3>
+                    <p>
+                        We may update this notice from time to time. The date at the top shows when it was last updated.
+                    </p>
+                </div>
+
+                <div class="lg-sec">
+                    <h3>Contact Us</h3>
+                     <p>
+                        To use your rights or ask a question about your data, talk to our team at 
+                        Lima Technology Center, Lipa City / Malvar, Batangas, reach us through this 
+                        website, or email us at 
+                        <a href="mailto:amusementwonderpark@gmail.com">amusementwonderpark@gmail.com</a>. 
+                        You may also ask for our Data Protection Officer. You can read our 
+                        <a href="#" data-open="termsModal">Terms &amp; Conditions</a>.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="lg-foot">
+            <button type="button" class="btn btn-primary" data-close>I Understand</button>
+        </div>
     </div>
-    <div class="legal-foot">
-        <label class="legal-agree">
-            <input type="checkbox">
-            <span>I have read and agree to the Terms &amp; Conditions</span>
-        </label>
-        <button type="button" class="btn btn-primary legal-accept" data-accept disabled>I Accept</button>
-    </div>
-</dialog>
-
-<!-- Privacy Notice -->
-<dialog id="privacyModal" class="legal-modal">
-    <div class="legal-head">
-        <h3>Privacy Notice</h3>
-        <button type="button" class="legal-close" data-close aria-label="Close">&times;</button>
-    </div>
-    <div class="legal-body">
-        <p class="legal-updated">Last updated: October 4, 2026</p>
-        <p>WonderPark Amusement Com Inc., Lipa Branch respects your privacy and processes personal data in accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>.</p>
-
-        <h4>1. Information We Collect</h4>
-        <p>Full name, username, email address, age, booking and transaction details, and, if you use Google or Facebook login, the basic profile information (name and email) that those services share with us. We also record technical data such as login activity and IP address for security.</p>
-
-        <h4>2. How We Use Your Information</h4>
-        <p>To create and manage your account, process bookings and payments, manage inventory and operations, send account-related notices (such as password resets), prevent fraud, and improve our services.</p>
-
-        <h4>3. Legal Basis</h4>
-        <p>We process your data based on your consent, the performance of a contract or service, and our legitimate business and legal obligations.</p>
-
-        <h4>4. Sharing of Information</h4>
-        <p>We do not sell your personal data. It is shared only with authorized personnel, trusted service providers (e.g., payment or email providers), or government authorities when required by law.</p>
-
-        <h4>5. Storage and Security</h4>
-        <p>Your data is stored securely and protected by reasonable organizational, physical, and technical measures, including encrypted passwords and access controls. Data is retained only as long as necessary for the purposes stated above or as required by law.</p>
-
-        <h4>6. Your Rights</h4>
-        <p>Under the Data Privacy Act, you have the right to be informed, to access, to correct, to object, to erasure or blocking, to data portability, to file a complaint with the <strong>National Privacy Commission (NPC)</strong>, and to claim damages where applicable.</p>
-
-        <h4>7. Cookies</h4>
-        <p>We use essential cookies to keep you signed in and to protect your session. We do not use them for advertising.</p>
-
-        <h4>8. Contact Our Data Protection Officer</h4>
-        <p>To exercise your rights or ask questions, contact us at <strong>amusementwonderpark@gmail.com</strong>.</p>
-    </div>
-    <div class="legal-foot">
-        <label class="legal-agree">
-            <input type="checkbox">
-            <span>I have read and agree to the Privacy Notice</span>
-        </label>
-        <button type="button" class="btn btn-primary legal-accept" data-accept disabled>I Accept</button>
-    </div>
-</dialog>
+</div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var formTerms = document.getElementById('terms'); // checkbox sa register form (wala sa login)
+    (function () {
+        var lastFocus = null;
 
-        document.querySelectorAll('[data-open]').forEach(function (link) {
-            link.addEventListener('click', function (e) {
+        function openModal(id) {
+            var modal = document.getElementById(id);
+            if (!modal) return;
+            document.querySelectorAll('.lg-overlay:not([hidden])').forEach(function (m) { m.hidden = true; });
+            if (!lastFocus) lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('lg-lock');
+            modal.querySelector('.lg-body').scrollTop = 0;
+            modal.querySelector('.lg-x').focus();
+        }
+
+        function closeModal(modal) {
+            modal.hidden = true;
+            document.body.classList.remove('lg-lock');
+            if (lastFocus && lastFocus.focus) lastFocus.focus();
+            lastFocus = null;
+        }
+
+        document.addEventListener('click', function (e) {
+            var opener = e.target.closest('[data-open]');
+            if (opener && document.getElementById(opener.getAttribute('data-open'))) {
                 e.preventDefault();
-                var dlg = document.getElementById(link.dataset.open);
-                var cb  = dlg.querySelector('.legal-agree input');
-                var btn = dlg.querySelector('[data-accept]');
-                cb.checked = formTerms ? formTerms.checked : false;
-                btn.disabled = !cb.checked;
-                dlg.showModal();
-                dlg.querySelector('.legal-body').scrollTop = 0;
-            });
+                openModal(opener.getAttribute('data-open'));
+                return;
+            }
+            var closer = e.target.closest('[data-close]');
+            if (closer) { closeModal(closer.closest('.lg-overlay')); return; }
+            if (e.target.classList && e.target.classList.contains('lg-overlay')) closeModal(e.target);
         });
 
-        document.querySelectorAll('.legal-modal').forEach(function (dlg) {
-            var cb  = dlg.querySelector('.legal-agree input');
-            var btn = dlg.querySelector('[data-accept]');
-
-            dlg.querySelectorAll('[data-close]').forEach(function (b) {
-                b.addEventListener('click', function () { dlg.close(); });
-            });
-
-            cb.addEventListener('change', function () { btn.disabled = !cb.checked; });
-
-            btn.addEventListener('click', function () {
-                if (formTerms) formTerms.checked = true; // i-tick ang checkbox sa register form
-                dlg.close();
-            });
-
-            // close kapag nag-click sa dark backdrop
-            dlg.addEventListener('click', function (e) {
-                if (e.target === dlg) dlg.close();
-            });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.lg-overlay:not([hidden])').forEach(closeModal);
+            }
         });
-    });
+    })();
 </script>
