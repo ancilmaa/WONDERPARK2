@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.session' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
         ]);
+
+        // System Logs: nagde-detect ng kakaibang galaw (request spike, 403 / bawal na access).
+        // Naka-append sa dulo ng "web" group para tapos na ang session bago ito tumakbo.
+        $middleware->appendToGroup('web', \App\Http\Middleware\DetectUnusualActivity::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

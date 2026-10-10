@@ -30,7 +30,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\BookingCmsController;
-
+   use App\Http\Controllers\Admin\SystemLogController;
+   Route::get('/admin/system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
 
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
 Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])->name('attendance.checkin.store');

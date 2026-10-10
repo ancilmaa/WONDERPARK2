@@ -1832,6 +1832,19 @@
                             </a>
                         @endif
                     </div>
+
+                    {{-- ============================================================
+                         SYSTEM nav-section — Admin only. Sakop ang buong system.
+                         ============================================================ --}}
+                    @if (session('role') === 'admin')
+                        <div class="nav-section">
+                            <div class="nav-label">System</div>
+
+                            <a href="{{ route('system-logs.index') }}" class="{{ request()->routeIs('system-logs.*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-shield-halved"></i> <span>System Logs</span>
+                            </a>
+                        </div>
+                    @endif
                 @endif
             </nav>
 
