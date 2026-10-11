@@ -105,8 +105,8 @@
     height: 52px;
     margin: 0 auto 14px;
     border-radius: 50%;
-    background: var(--pink-pale, #ffe6ee);
-    color: var(--pink-deep, #b82850);
+    background: var(--pink-pale, #EEF2FF);
+    color: var(--pink-deep, #4F46E5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,15 +115,15 @@
     font-size: 1.05rem;
     font-weight: 700;
     margin-bottom: 6px;
-    color: #1a1523;
+    color: #0F172A;
 }
 .booking-modal-sub {
     font-size: .85rem;
-    color: #635c72;
+    color: #475569;
     margin-bottom: 18px;
 }
 .booking-modal-summary {
-    background: #f8f6f9;
+    background: #F8FAFC;
     border-radius: 12px;
     padding: 14px 16px;
     margin-bottom: 20px;
@@ -137,10 +137,10 @@
     padding: 5px 0;
 }
 .booking-modal-row span {
-    color: #9c94ab;
+    color: #64748B;
 }
 .booking-modal-row b {
-    color: #1a1523;
+    color: #0F172A;
     text-align: right;
 }
 .booking-modal-actions {
@@ -157,18 +157,18 @@
     cursor: pointer;
 }
 .btn-cancel {
-    background: #f1eef2;
-    color: #635c72;
+    background: #F1F5F9;
+    color: #475569;
 }
 .btn-cancel:hover {
-    background: #e5e0e8;
+    background: #E2E8F0;
 }
 .btn-confirm {
-    background: var(--pink-deep, #b82850);
+    background: var(--pink-deep, #4F46E5);
     color: #fff;
 }
 .btn-confirm:hover {
-    background: var(--pink-dark, #d63e63);
+    background: var(--pink-dark, #4338CA);
 }
 
 /* pagination controls */
@@ -270,7 +270,7 @@
     line-height: 1.4;
 }
 .cat-filter button:hover {
-    background: var(--pink-pale, #ffe6ee);
+    background: var(--pink-pale, #EEF2FF);
     color: var(--pink-dark);
     border-color: var(--pink-deep);
     box-shadow: var(--shadow-card);
@@ -285,7 +285,7 @@
     background: var(--pink-deep);
     color: #fff;
     border-color: var(--red-deep);
-    box-shadow: 0 6px 16px -8px rgba(184,40,80,.55);
+    box-shadow: 0 6px 16px -8px rgba(99,102,241,.55);
     transform: translateY(-1px);
 }
 .cat-filter button.active svg { opacity: 1; }
@@ -308,7 +308,7 @@
     color: var(--d-muted);
 }
 [data-theme="dark"] .cat-filter button:hover {
-    background: rgba(184,40,80,.16);
+    background: rgba(99,102,241,.16);
     color: #fff;
     border-color: var(--pink-deep);
 }
@@ -386,18 +386,18 @@
             .cal-sheet-head::before {
                 content: ""; position: absolute; top: 6px; left: 50%;
                 width: 40px; height: 4px; margin-left: -20px;
-                border-radius: 4px; background: var(--line, #e5e0ea);
+                border-radius: 4px; background: var(--line, #E2E8F0);
             }
-            .cal-sheet-title { font-weight: 800; font-size: 15px; color: var(--ink, #1a1523); }
+            .cal-sheet-title { font-weight: 800; font-size: 15px; color: var(--ink, #0F172A); }
             .cal-sheet-close {
-                width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--line, #e5e0ea);
+                width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--line, #E2E8F0);
                 background: #fff; color: var(--ink-soft, #555); font-size: 18px; line-height: 1; cursor: pointer;
             }
             .cal-sheet-done {
                 display: block; width: 100%; margin-top: 10px; padding: 13px 16px;
                 border: 0; border-radius: 14px; cursor: pointer;
                 font-weight: 700; font-size: 14px; color: #fff;
-                background: linear-gradient(120deg, var(--pink-dark, #d63e63), var(--pink-deep, #b82850));
+                background: linear-gradient(120deg, var(--pink-dark, #4338CA), var(--pink-deep, #4F46E5));
             }
             .cal-sheet-done:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -412,8 +412,8 @@
             .cal-open-btn {
                 display: flex; align-items: center; gap: 8px; width: 100%;
                 margin: 8px 0 0; padding: 11px 14px; border-radius: 14px; cursor: pointer;
-                border: 1.5px dashed var(--pink-deep, #b82850); background: #fff;
-                color: var(--pink-deep, #b82850); font-weight: 700; font-size: 13px; text-align: left;
+                border: 1.5px dashed var(--pink-deep, #4F46E5); background: #fff;
+                color: var(--pink-deep, #4F46E5); font-weight: 700; font-size: 13px; text-align: left;
             }
             .cal-open-btn[hidden] { display: none; }
             .cal-open-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
@@ -435,7 +435,7 @@
                 <div class="service-switch" id="serviceSwitch">
                     @foreach ($services as $svcCode => $svc)
                         <button type="button" class="service-tab {{ $loop->first ? 'active' : '' }}" data-service="{{ $svcCode }}">
-                            <img src="{{ asset('images/'.$svc['image']) }}" alt="{{ $svc['name'] }}">
+                            <span class="svc-ico" aria-hidden="true">{{ ['dino_adventure' => '🦕', 'rollerfever' => '🛼', 'field_of_rides' => '🎡'][$svcCode] ?? '🎟️' }}</span>
                             <span>
                                 <b>{{ $svc['name'] }}</b>
                                 <small>{{ $svc['tagline'] }}</small>

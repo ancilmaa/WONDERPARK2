@@ -73,7 +73,7 @@
                 <div class="ap-hero-stat">
                     <div class="ap-hero-stat-label">Status</div>
                     <div class="ap-hero-stat-value" style="display:flex;align-items:center;gap:5px;">
-                        <span style="width:7px;height:7px;border-radius:50%;background:{{ $isActive ? '#12B5A6' : '#FF5C85' }};display:inline-block;"></span>
+                        <span style="width:7px;height:7px;border-radius:50%;background:{{ $isActive ? '#0D9488' : '#DC2626' }};display:inline-block;"></span>
                         {{ ucfirst($user->status ?? 'active') }}
                     </div>
                 </div>

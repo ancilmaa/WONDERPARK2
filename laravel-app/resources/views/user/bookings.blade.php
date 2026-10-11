@@ -98,7 +98,7 @@
                     <p style="margin:0;font-size:13px;color:var(--muted);">{{ $booking['date'] }} &middot; {{ $booking['pax'] }} pax</p>
 
                     @if ($booking['status_class'] === 'green' && !empty($booking['voucher_code']))
-                        <div style="margin-top:10px;background:var(--bg,#f8f6f9);border-radius:10px;padding:8px 12px;display:inline-block;">
+                        <div style="margin-top:10px;background:var(--bg,#F8FAFC);border-radius:10px;padding:8px 12px;display:inline-block;">
                             <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:6px;">Voucher Code</span>
                             <span style="font-family:monospace;font-size:13px;font-weight:700;letter-spacing:.5px;">{{ $booking['voucher_code'] }}</span>
                         </div>
@@ -135,7 +135,7 @@
                                     @csrf
                                     <button type="submit"
                                             class="u-btn ghost"
-                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#e24b4a;border-color:#e24b4a;">
+                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#B3203F;border-color:#B3203F;">
                                         Cancel
                                     </button>
                                 </form>
@@ -145,7 +145,7 @@
                         <div style="display:flex;flex-direction:column;gap:8px;">
 
                             @if (!empty($booking['rejection_reason']))
-                                <p style="margin:0;font-size:11.5px;line-height:1.5;color:#e24b4a;">
+                                <p style="margin:0;font-size:11.5px;line-height:1.5;color:#B3203F;">
                                     Your payment proof was not accepted: {{ $booking['rejection_reason'] }}. Please upload a new proof.
                                 </p>
                             @endif
@@ -170,7 +170,7 @@
                                     @csrf
                                     <button type="submit"
                                             class="u-btn ghost"
-                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#e24b4a;border-color:#e24b4a;">
+                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#B3203F;border-color:#B3203F;">
                                         Cancel
                                     </button>
                                 </form>
@@ -259,7 +259,7 @@
                 datasets: [{
                     label: 'Bookings',
                     data: @json($stats['history_values']),
-                    backgroundColor: '#4b6bff',
+                    backgroundColor: '#4F46E5',
                     borderRadius: 4,
                 }],
             },
@@ -273,7 +273,7 @@
 
         var categoryLabels = @json($stats['category_labels']);
         var categoryValues = @json($stats['category_values']);
-        var categoryColors = ['#4b6bff', '#ff6b8a', '#ffb648'];
+        var categoryColors = ['#4F46E5', '#0D9488', '#F59E0B'];
 
         new Chart(document.getElementById('categoryChart'), {
             type: 'doughnut',

@@ -80,6 +80,7 @@ Route::prefix('app')
         Route::post('/booking', [UserBookingController::class, 'store'])->name('booking.store');
 
         Route::get('/my-bookings', [UserBookingController::class, 'index'])->name('bookings');
+        Route::get('/activity', [\App\Http\Controllers\User\ActivityLogController::class, 'index'])->name('activity');
 
         Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{booking}/reschedule', [UserBookingController::class, 'reschedule'])->name('bookings.reschedule');

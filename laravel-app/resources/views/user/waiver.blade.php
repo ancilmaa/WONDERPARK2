@@ -58,13 +58,13 @@ html, body { margin: 0; padding: 0; }
 }
 
 .u-btn:disabled {
-    background-color: #cccccc;
-    color: #888888;
+    background-color: #D9D4DE;
+    color: #6B6080;
     cursor: not-allowed;
     opacity: 0.7;
 }
 .u-btn:not(:disabled) {
-    background-color: #c44484;
+    background-color: var(--pink-deep, #d12d50);
     color: #fff;
     cursor: pointer;
     opacity: 1;

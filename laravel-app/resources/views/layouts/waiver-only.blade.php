@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Waiver') · WonderPark Amusement</title>
     <link rel="stylesheet" href="{{ asset('css/user-app-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/user-landing-theme.css') }}?v={{ filemtime(public_path('css/user-landing-theme.css')) }}">
 
     <style>
         body{
@@ -14,7 +15,7 @@
             display:flex;
             align-items:flex-start;
             justify-content:center;
-            background:linear-gradient(180deg,#FAF6F9 0%,#F3ECF1 100%);
+            background:var(--bg,#F8FAFC);
             font-family:inherit;
             padding:32px 16px;
         }

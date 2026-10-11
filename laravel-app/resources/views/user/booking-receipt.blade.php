@@ -48,13 +48,13 @@
     </div>
 
     @if (!empty($booking['voucher_code']))
-        <div class="u-card" style="margin-top:14px;text-align:center;background:#f6f6f8;">
+        <div class="u-card" style="margin-top:14px;text-align:center;background:#F1F5F9;">
             <span style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">Voucher Code</span>
             <div style="font-family:monospace;font-size:30px;font-weight:700;letter-spacing:3px;margin:8px 0;">{{ $booking['voucher_code'] }}</div>
             <p style="font-size:12px;color:var(--muted);margin:0;">Show this code to the cashier at the counter to claim your booking.</p>
         </div>
     @else
-        <div class="u-card" style="margin-top:14px;text-align:center;background:#fff8e6;">
+        <div class="u-card" style="margin-top:14px;text-align:center;background:#FEF3C7;">
             <span style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">Waiting for Approval</span>
             <p style="font-size:13px;margin:8px 0 0;line-height:1.6;">
                 Our team is checking your proof of payment. Your voucher code will appear in

@@ -185,9 +185,11 @@ class ReservationController extends Controller
                 'reject_note'         => null,
             ]);
 
+            $emailed = $this->emailPaymentResult($reservation, true);
+
             return redirect()
                 ->route('reservations.index')
-                ->with('success', 'Reservation approved.');
+                ->with('success', 'Reservation approved.' . ($emailed ? ' The customer was notified by email.' : ''));
         }
 
         // OTHER STATUSES
