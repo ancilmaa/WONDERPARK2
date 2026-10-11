@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Support\BookingCatalog;
 use App\Support\BookingPricingOverrides;
+use App\Services\SystemLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -23,6 +24,53 @@ class ReservationController extends Controller
         'Incomplete or incorrect booking details',
         'Others',
     ];
+
+    // ─── SYSTEM LOG HELPER ─────────────────────────────────
+    // Isang lugar lang ang tawag sa SystemLogger::record().
+    // Session ang gamit ng app (hindi Laravel Auth), kaya manual na
+    // ipinapasa ang user_id at email ng staff na gumawa ng aksyon.
+    // Kapag ang event ay nagtatapos sa "_deleted", tinatawag din ang
+    // checkBulkDelete(). Naka-try/catch: hindi masisira ang main action
+    // kapag nag-fail ang log.
+    private function audit(
+        string $eventType,
+        string $description,
+        string $severity = 'info',
+        array $context = [],
+        bool $isAnomaly = false
+    ): void {
+        try {
+            $sessionId = session('user_id');
+            $uid = is_numeric($sessionId) ? (int) $sessionId : null;
+
+            SystemLogger::record(
+                $eventType,
+                $description,
+                $severity,
+                $context,
+                $isAnomaly,
+                $uid,
+                session('email'),
+                'reservations'
+            );
+
+            if (str_ends_with($eventType, '_deleted')) {
+                SystemLogger::checkBulkDelete($uid, 'reservations');
+            }
+        } catch (\Throwable $e) {
+            Log::error('SystemLogger failed (Reservations): ' . $e->getMessage());
+        }
+    }
+
+    // Gawing simpleng string ang value (para sa paghahambing ng luma vs bago).
+    private function norm($v): string
+    {
+        if ($v instanceof \DateTimeInterface) {
+            return $v->format('Y-m-d');
+        }
+
+        return (string) $v;
+    }
 
     /**
      * Display a listing of the resource.
@@ -57,7 +105,7 @@ class ReservationController extends Controller
             'notes'             => ['nullable', 'string'],
         ]);
 
-        Booking::create([
+        $booking = Booking::create([
             'customer_id'      => $validated['customer_id'] ?? null,
             'customer_name'    => $validated['customer_name'] ?? null,
             'customer_contact' => $validated['customer_contact'] ?? null,
@@ -69,6 +117,22 @@ class ReservationController extends Controller
             'status'           => 'pending',
             'approval_status'  => 'pending',
         ]);
+
+        // LOG: bagong reservation na ginawa ng staff (walang pangalan o contact)
+        $this->audit(
+            'reservation_created',
+            "Gumawa ng reservation #{$booking->getKey()} ({$validated['package']}, {$validated['pax']} pax)",
+            'info',
+            [
+                'new' => [
+                    'booking_id'       => $booking->getKey(),
+                    'package'          => mb_substr($validated['package'], 0, 100),
+                    'pax'              => (int) $validated['pax'],
+                    'reservation_date' => $validated['reservation_date'],
+                    'status'           => 'pending',
+                ],
+            ]
+        );
 
         return redirect()
             ->route('reservations.index')
@@ -111,7 +175,31 @@ class ReservationController extends Controller
                 'status' => ['required', 'in:pending,confirmed,paid,cancelled'],
             ]);
 
+            $oldStatus = $reservation->status;
+
             $reservation->update($validated);
+
+            // LOG: manual na palit ng status. Anomaly kapag naging confirmed/paid
+            // nang hindi dumaan sa verification ng payment (awaiting_verification).
+            if ($oldStatus !== $validated['status']) {
+                $bypass = in_array($validated['status'], ['confirmed', 'paid'], true)
+                    && $oldStatus !== 'awaiting_verification';
+
+                $this->audit(
+                    'reservation_status_changed',
+                    "Binago ang status ng reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
+                        . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                    $bypass ? 'warning' : 'info',
+                    [
+                        'booking_id'   => $reservation->getKey(),
+                        'voucher_code' => $reservation->voucher_code ?? null,
+                        'old'          => ['status' => $oldStatus],
+                        'new'          => ['status' => $validated['status']],
+                        'via'          => 'inline_dropdown',
+                    ],
+                    $bypass
+                );
+            }
 
             return redirect()->route('reservations.index')->with('success', 'Reservation updated.');
         }
@@ -127,7 +215,45 @@ class ReservationController extends Controller
             'notes'             => ['nullable', 'string'],
         ]);
 
+        // Para sa log: dating values BAGO i-update
+        $watch  = ['package', 'pax', 'reservation_date', 'reservation_time'];
+        $before = [];
+        foreach ($watch as $f) {
+            $before[$f] = $this->norm($reservation->{$f});
+        }
+        $nameBefore = $this->norm($reservation->customer_name);
+
         $reservation->update($validated);
+
+        // LOG: mga field na nagbago lang. Pangalan at contact ng customer: sinasabi
+        // lang kung nagbago, hindi nilalagay ang laman.
+        $oldVals = [];
+        $newVals = [];
+        $fresh   = $reservation->fresh();
+        foreach ($watch as $f) {
+            $after = $this->norm($fresh->{$f});
+            if ($before[$f] !== $after) {
+                $oldVals[$f] = $before[$f];
+                $newVals[$f] = $after;
+            }
+        }
+        $nameChanged = $nameBefore !== $this->norm($fresh->customer_name);
+
+        if ($newVals || $nameChanged) {
+            $this->audit(
+                'reservation_updated',
+                "Na-edit ang reservation #{$reservation->getKey()}: "
+                    . implode(', ', array_merge(array_keys($newVals), $nameChanged ? ['customer_name'] : [])),
+                'info',
+                [
+                    'booking_id'            => $reservation->getKey(),
+                    'voucher_code'          => $reservation->voucher_code ?? null,
+                    'old'                   => $oldVals,
+                    'new'                   => $newVals,
+                    'customer_name_changed' => $nameChanged,
+                ]
+            );
+        }
 
         return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
     }
@@ -161,6 +287,10 @@ class ReservationController extends Controller
             'reject_note.required_if'   => 'Please add a note when the reason is "Others".',
         ]);
 
+        // Para sa log: dating status BAGO i-update
+        $oldStatus   = $reservation->status;
+        $oldApproval = $reservation->approval_status;
+
         // REJECT
         if ($validated['status'] === 'rejected') {
             $reservation->update([
@@ -169,6 +299,21 @@ class ReservationController extends Controller
                 'reject_reason'   => $validated['reject_reason'],
                 'reject_note'     => $validated['reject_note'] ?? null,
             ]);
+
+            // LOG: na-reject ang reservation (may reason at note)
+            $this->audit(
+                'reservation_rejected',
+                "Na-reject ang reservation #{$reservation->getKey()}: {$validated['reject_reason']}",
+                'warning',
+                [
+                    'booking_id'   => $reservation->getKey(),
+                    'voucher_code' => $reservation->voucher_code ?? null,
+                    'reason'       => $validated['reject_reason'],
+                    'note'         => isset($validated['reject_note']) ? mb_substr($validated['reject_note'], 0, 300) : null,
+                    'old'          => ['status' => $oldStatus, 'approval_status' => $oldApproval],
+                    'new'          => ['status' => 'rejected', 'approval_status' => 'rejected'],
+                ]
+            );
 
             return redirect()
                 ->route('reservations.index')
@@ -185,6 +330,24 @@ class ReservationController extends Controller
                 'reject_note'         => null,
             ]);
 
+            // LOG: na-approve ang reservation. Nagiging 'confirmed' ito, kaya puwede
+            // nang i-redeem ang voucher sa POS. Anomaly kapag hindi ito galing sa
+            // awaiting_verification (hindi dumaan sa tseke ng payment).
+            $bypass = $oldStatus !== 'awaiting_verification';
+            $this->audit(
+                'reservation_approved',
+                "Na-approve ang reservation #{$reservation->getKey()}"
+                    . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                $bypass ? 'warning' : 'info',
+                [
+                    'booking_id'   => $reservation->getKey(),
+                    'voucher_code' => $reservation->voucher_code ?? null,
+                    'old'          => ['status' => $oldStatus, 'approval_status' => $oldApproval],
+                    'new'          => ['status' => 'confirmed', 'approval_status' => 'approved'],
+                ],
+                $bypass
+            );
+
             return redirect()
                 ->route('reservations.index')
                 ->with('success', 'Reservation approved.');
@@ -196,6 +359,28 @@ class ReservationController extends Controller
             'reject_reason' => null,
             'reject_note'   => null,
         ]);
+
+        // LOG: manual na palit ng status. Anomaly kapag naging confirmed/paid
+        // nang hindi dumaan sa verification ng payment.
+        if ($oldStatus !== $validated['status']) {
+            $bypass = in_array($validated['status'], ['confirmed', 'paid'], true)
+                && $oldStatus !== 'awaiting_verification';
+
+            $this->audit(
+                'reservation_status_changed',
+                "Binago ang status ng reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
+                    . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                $bypass ? 'warning' : 'info',
+                [
+                    'booking_id'   => $reservation->getKey(),
+                    'voucher_code' => $reservation->voucher_code ?? null,
+                    'old'          => ['status' => $oldStatus],
+                    'new'          => ['status' => $validated['status']],
+                    'via'          => 'update_status',
+                ],
+                $bypass
+            );
+        }
 
         return redirect()
             ->route('reservations.index')
@@ -216,11 +401,27 @@ class ReservationController extends Controller
                 ->with('error', 'Only bookings waiting for approval can be approved.');
         }
 
+        $oldStatus = $reservation->status;
+
         $reservation->update([
             'status'                   => 'confirmed',
             'payment_verified_at'      => now(),
             'payment_rejection_reason' => null,
         ]);
+
+        // LOG: na-approve ang payment. Reference lang (booking ID at voucher code),
+        // walang email, pangalan, o proof of payment.
+        $this->audit(
+            'payment_approved',
+            "Na-approve ang payment ng reservation #{$reservation->getKey()}",
+            'info',
+            [
+                'booking_id'   => $reservation->getKey(),
+                'voucher_code' => $reservation->voucher_code ?? null,
+                'old'          => ['status' => $oldStatus],
+                'new'          => ['status' => 'confirmed'],
+            ]
+        );
 
         $emailed = $this->emailPaymentResult($reservation, true);
 
@@ -248,11 +449,27 @@ class ReservationController extends Controller
                 ->with('error', 'Only bookings waiting for approval can be rejected.');
         }
 
+        $oldStatus = $reservation->status;
+
         $reservation->update([
             'status'                   => 'pending_payment',
             'payment_rejection_reason' => $validated['reason'],
             'payment_verified_at'      => null,
         ]);
+
+        // LOG: na-reject ang payment (may reason)
+        $this->audit(
+            'payment_rejected',
+            "Na-reject ang payment ng reservation #{$reservation->getKey()}: " . mb_substr($validated['reason'], 0, 120),
+            'warning',
+            [
+                'booking_id'   => $reservation->getKey(),
+                'voucher_code' => $reservation->voucher_code ?? null,
+                'reason'       => $validated['reason'],
+                'old'          => ['status' => $oldStatus],
+                'new'          => ['status' => 'pending_payment'],
+            ]
+        );
 
         $emailed = $this->emailPaymentResult($reservation, false);
 
@@ -335,7 +552,29 @@ class ReservationController extends Controller
      */
     public function destroy(Booking $reservation)
     {
+        // Para sa log: kunin ang buod BAGO burahin
+        $old = [
+            'booking_id'   => $reservation->getKey(),
+            'voucher_code' => $reservation->voucher_code ?? null,
+            'status'       => $reservation->status,
+            'package'      => $reservation->package,
+            'pax'          => $reservation->pax,
+            'date'         => $this->norm($reservation->reservation_date),
+        ];
+
         $reservation->delete();
+
+        // LOG: na-delete ang reservation. Warning kapag may nabayaran na o
+        // may voucher na puwedeng gamitin (confirmed/paid/awaiting_verification).
+        $hadMoney = in_array($old['status'], ['confirmed', 'paid', 'awaiting_verification'], true);
+
+        $this->audit(
+            'reservation_deleted',
+            "Na-delete ang reservation #{$old['booking_id']} (status: {$old['status']})",
+            $hadMoney ? 'critical' : 'warning',
+            ['old' => $old],
+            $hadMoney
+        );
 
         return redirect()
             ->route('reservations.index')

@@ -13,17 +13,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        // IP ng proxy/load balancer na nasa harap ng app (Nginx, Cloudflare, atbp.).
+        // - May proxy:   ilagay ang IP nito, hal. ['10.0.0.5'] (puwede ring CIDR, hal. '10.0.0.0/8')
+        // - Walang proxy (direktang naaabot ng internet): iwanang [] para hindi
+        //   mapeke ang X-Forwarded-For at hindi maiwasan ang checkBruteForce().
+        // Huwag gumamit ng '*' maliban kung sigurado kang may proxy sa harap.
+        $trustedProxies = [];
+
+        $middleware->trustProxies(at: $trustedProxies);
 
         // Public ang QR check-in at protektado na ito ng QR token at PIN,
         // kaya hindi na kailangan ng CSRF dito (iwas "CSRF token mismatch"
-        // kapag nag-expire ang session sa phone).
+        // kapag nag-expire ang session sa phone). May rate limit ito sa routes/web.php.
         $middleware->validateCsrfTokens(except: [
             'attendance/checkin',
         ]);
 
         $middleware->alias([
             'auth.session' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
+            'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
         // System Logs: nagde-detect ng kakaibang galaw (request spike, 403 / bawal na access).

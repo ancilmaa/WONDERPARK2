@@ -5,42 +5,72 @@ namespace App\Http\Middleware;
 use App\Services\SystemLogger;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
+/**
+ * Nagla-log ng 'unauthorized_access' kapag may tinanggihang request
+ * (ang EnsureUserHasRole ang nagse-set ng 'access_denied' sa request attributes).
+ *
+ * Dapat ang middleware na ito ay NASA LABAS ng 'auth.session' at 'role:...'
+ * (ibig sabihin, mas nauna sa pipeline) para mabasa nito ang attributes pagkatapos.
+ * Halimbawa: i-append sa 'web' group sa bootstrap/app.php.
+ */
 class DetectUnusualActivity
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $ip = $request->ip();
+        try {
+            $response = $next($request);
+        } catch (HttpExceptionInterface $e) {
+            // Ang abort(403) sa EnsureUserHasRole ay nagta-throw, kaya dito natin ito sasalo.
+            $this->logIfDenied($request);
 
-        // 1) Request spike: bilangin ang request per minute per IP
-        $key = 'syslog:rpm:' . $ip . ':' . now()->format('YmdHi');
-        Cache::add($key, 0, 90);
-        $count = Cache::increment($key);
-        $threshold = (int) config('system_log.requests_per_minute_threshold', 120);
-
-        if ($count > $threshold && Cache::add($key . ':flagged', 1, 90)) {
-            SystemLogger::anomaly(
-                'request_spike',
-                "Sobrang daming request ({$count}/min) mula sa IP {$ip}.",
-                'warning',
-                ['requests_per_minute' => $count, 'threshold' => $threshold]
-            );
+            throw $e;
         }
 
-        $response = $next($request);
-
-        // 2) Pagtatangkang mag-access ng bawal (403)
-        if ($response->getStatusCode() === 403) {
-            SystemLogger::anomaly(
-                'unauthorized_access',
-                'Bawal na access: ' . $request->method() . ' /' . ltrim($request->path(), '/'),
-                'warning',
-                ['status' => 403]
-            );
-        }
+        // Para sa JSON 403 response (hindi nagta-throw)
+        $this->logIfDenied($request);
 
         return $response;
+    }
+
+    private function logIfDenied(Request $request): void
+    {
+        $denied = $request->attributes->get('access_denied');
+
+        if (!$denied) {
+            return;
+        }
+
+        try {
+            $user = $request->attributes->get('auth_user');
+            $required = implode(', ', $denied['required'] ?? []);
+
+            SystemLogger::record(
+                'unauthorized_access',
+                "Walang pahintulot ang user #{$denied['user_id']} ({$denied['role']}) sa {$request->method()} /{$request->path()} (kailangan: {$required})",
+                'warning',
+                [
+                    'user_id'  => $denied['user_id'],
+                    'role'     => $denied['role'],
+                    'required' => $denied['required'] ?? [],
+                    'method'   => $request->method(),
+                    'path'     => '/' . ltrim($request->path(), '/'),
+                    'ip'       => $request->ip(),
+                ],
+                false,
+                $denied['user_id'],
+                $user->email ?? null,
+                'security'
+            );
+        } catch (\Throwable $e) {
+            // Hindi dapat ma-block ang request dahil lang pumalya ang pag-log.
+            Log::error('SystemLogger failed (unauthorized_access): ' . $e->getMessage());
+        }
+
+        // Iwas doble-log kung dalawang beses tinawag
+        $request->attributes->remove('access_denied');
     }
 }

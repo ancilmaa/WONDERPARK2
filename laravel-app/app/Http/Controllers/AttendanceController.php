@@ -13,6 +13,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\SalaryRate;
 use App\Models\PayrollSetting;
+use App\Services\SystemLogger;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -28,6 +29,54 @@ class AttendanceController extends Controller
     //   1h45m -> 1.5h         2h35m -> 2.5h      3h -> 3h
     // So OT is always a whole or half hour (1, 1.5, 2, 2.5, ...).
     private const OT_STEP_MINUTES = 30;
+
+    // ─── SYSTEM LOG HELPER ─────────────────────────────────
+    // A single place that calls SystemLogger::record().
+    // - The app uses sessions (not Laravel Auth), so the user_id and email
+    //   are passed manually from the session.
+    // - $public = true is for endpoints with no login (QR check-in):
+    //   no user_id/email is recorded, so the log is never tied to someone
+    //   else who happens to be logged in on the same browser. The IP is
+    //   still recorded.
+    // - When the event ends in "_deleted", checkBulkDelete() is also called.
+    // - Wrapped in try/catch: the main action never breaks if logging fails.
+    private function audit(
+        string $eventType,
+        string $description,
+        string $severity = 'info',
+        array $context = [],
+        bool $isAnomaly = false,
+        string $module = 'attendance',
+        bool $public = false
+    ): void {
+        try {
+            $uid   = null;
+            $email = null;
+
+            if (!$public) {
+                $sessionId = session('user_id');
+                $uid       = is_numeric($sessionId) ? (int) $sessionId : null;
+                $email     = session('email');
+            }
+
+            SystemLogger::record(
+                $eventType,
+                $description,
+                $severity,
+                $context,
+                $isAnomaly,
+                $uid,
+                $email,
+                $module
+            );
+
+            if (str_ends_with($eventType, '_deleted')) {
+                SystemLogger::checkBulkDelete($uid, $module);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SystemLogger failed (Attendance): ' . $e->getMessage());
+        }
+    }
 
     public function index(Request $request)
     {
@@ -130,11 +179,11 @@ class AttendanceController extends Controller
         ));
     }
 
-    // ─── Live check para sa Attendance sheet ───
-    // Tinatawag ng page tuwing ilang segundo. Ibinabalik nito ang isang
-    // "signature" ng lahat ng attendance sa period na nakikita. Kapag
-    // nagbago ang signature (may nag-Time In / Time Out / na-import),
-    // kusang ire-refresh ng page ang table nang hindi nire-reload ang buong page.
+    // ─── Live check for the Attendance sheet ───
+    // Called by the page every few seconds. Returns a "signature" of all
+    // attendance in the visible period. When the signature changes (someone
+    // timed in / timed out / an import happened), the page refreshes the
+    // table by itself without reloading the whole page.
     //
     // GET /attendance/live?period=YYYY-MM-DD
     public function liveSignature(Request $request)
@@ -668,6 +717,10 @@ class AttendanceController extends Controller
             'employees.*.shift' => 'nullable|in:opening,mid,closing',
         ]);
 
+        // For the log: capture the previous settings BEFORE saving
+        $shiftsBefore    = $this->shiftSettings();
+        $empShiftsBefore = $this->employeeShiftMap();
+
         $set = function (string $key, $value) {
             DB::table('app_settings')->updateOrInsert(
                 ['key' => $key],
@@ -695,6 +748,53 @@ class AttendanceController extends Controller
             } else {
                 $note = ' Employee default shifts were NOT saved — run "php artisan migrate" first.';
             }
+        }
+
+        // LOG: changes to shift times / grace / break / employee default shift.
+        // These affect who counts as "late" and therefore pay, so they matter.
+        $shiftsAfter    = $this->shiftSettings();
+        $empShiftsAfter = $this->employeeShiftMap();
+
+        $oldVals = [];
+        $newVals = [];
+        if ($shiftsBefore['grace'] !== $shiftsAfter['grace']) {
+            $oldVals['grace_minutes'] = $shiftsBefore['grace'];
+            $newVals['grace_minutes'] = $shiftsAfter['grace'];
+        }
+        if ($shiftsBefore['break'] !== $shiftsAfter['break']) {
+            $oldVals['break_minutes'] = $shiftsBefore['break'];
+            $newVals['break_minutes'] = $shiftsAfter['break'];
+        }
+        foreach ($shiftsAfter['shifts'] as $k => $sh) {
+            $b = $shiftsBefore['shifts'][$k] ?? null;
+            if ($b && ($b['start'] !== $sh['start'] || $b['end'] !== $sh['end'])) {
+                $oldVals["shift_{$k}"] = $b['start'] . '-' . $b['end'];
+                $newVals["shift_{$k}"] = $sh['start'] . '-' . $sh['end'];
+            }
+        }
+
+        $empChanged = 0;
+        foreach (array_unique(array_merge(array_keys($empShiftsBefore), array_keys($empShiftsAfter))) as $empName) {
+            if (($empShiftsBefore[$empName] ?? null) !== ($empShiftsAfter[$empName] ?? null)) {
+                $empChanged++;
+            }
+        }
+
+        if ($oldVals || $newVals || $empChanged > 0) {
+            $this->audit(
+                'shift_settings_updated',
+                'Shift settings updated'
+                    . ($oldVals ? ' (times/grace/break)' : '')
+                    . ($empChanged > 0 ? " and the default shift of {$empChanged} employee(s)" : ''),
+                'warning',
+                [
+                    'old'                => $oldVals,
+                    'new'                => $newVals,
+                    'employees_changed'  => $empChanged,
+                ],
+                false,
+                'attendance'
+            );
         }
 
         return back()->with('success', 'Shift settings saved.' . $note);
@@ -792,10 +892,38 @@ class AttendanceController extends Controller
             'rates.*' => 'required|numeric|min:0',
         ]);
 
+        // For the log: previous daily rate of each position BEFORE updating
+        $oldRates = SalaryRate::all()->pluck('daily_rate', 'position')
+            ->map(fn($v) => (float) $v)->all();
+
         foreach ($request->rates as $position => $dailyRate) {
             SalaryRate::updateOrCreate(
                 ['position' => $position],
                 ['daily_rate' => $dailyRate]
+            );
+        }
+
+        // LOG: daily rate changes. Only the positions that changed are recorded.
+        $oldChanged = [];
+        $newChanged = [];
+        foreach ($request->rates as $position => $dailyRate) {
+            $new = (float) $dailyRate;
+            $old = $oldRates[$position] ?? null;
+
+            if ($old === null || abs($old - $new) > 0.001) {
+                $oldChanged[$position] = $old;
+                $newChanged[$position] = $new;
+            }
+        }
+
+        if ($newChanged) {
+            $this->audit(
+                'salary_rates_updated',
+                'Daily rate updated for: ' . implode(', ', array_keys($newChanged)),
+                'warning',
+                ['old' => $oldChanged, 'new' => $newChanged],
+                false,
+                'payroll'
             );
         }
 
@@ -816,10 +944,39 @@ class AttendanceController extends Controller
             'late_rate_multiplier' => 'required|numeric|min:0',
         ]);
 
+        $keys = ['ot_multiplier', 'holiday_ot_multiplier', 'minutes_per_day', 'late_rate_multiplier'];
+
         $settings = PayrollSetting::current();
-        $settings->update($request->only([
-            'ot_multiplier', 'holiday_ot_multiplier', 'minutes_per_day', 'late_rate_multiplier',
-        ]));
+
+        // For the log: previous values BEFORE updating
+        $before = [];
+        foreach ($keys as $k) {
+            $before[$k] = (float) $settings->{$k};
+        }
+
+        $settings->update($request->only($keys));
+
+        // LOG: changes to OT / late / holiday-OT settings (affects all pay)
+        $oldChanged = [];
+        $newChanged = [];
+        foreach ($keys as $k) {
+            $after = (float) $request->input($k);
+            if (abs($before[$k] - $after) > 0.0001) {
+                $oldChanged[$k] = $before[$k];
+                $newChanged[$k] = $after;
+            }
+        }
+
+        if ($newChanged) {
+            $this->audit(
+                'payroll_settings_updated',
+                'Payroll settings updated: ' . implode(', ', array_keys($newChanged)),
+                'warning',
+                ['old' => $oldChanged, 'new' => $newChanged],
+                false,
+                'payroll'
+            );
+        }
 
         return redirect()->route('salary')->with('success', 'Overtime & deduction settings updated successfully.');
     }
@@ -863,6 +1020,8 @@ class AttendanceController extends Controller
 
         $generatedAt = now();
         $count = 0;
+        $sumGross = 0.0; // for the log
+        $sumNet = 0.0;   // for the log
 
         foreach ($records->groupBy('employee_name') as $name => $recs) {
             $first = $recs->first();
@@ -979,11 +1138,35 @@ class AttendanceController extends Controller
             Payroll::create($payrollData);
 
             $count++;
+            $sumGross += round($grossPay, 2);
+            $sumNet   += round($netSalary, 2);
         }
+
+        // LOG: payroll generated. No per-employee names or pay, totals only;
+        // the details are already in Payroll History. batch_id = generated_at.
+        $this->audit(
+            'payroll_generated',
+            "Payroll generated ({$cutoffType} cutoff, {$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}) "
+                . "for {$count} employee(s)",
+            'info',
+            [
+                'batch_id'          => $generatedAt->format('Y-m-d H:i:s'),
+                'cutoff_type'       => $cutoffType,
+                'period_start'      => $periodStart->format('Y-m-d'),
+                'period_end'        => $periodEnd->format('Y-m-d'),
+                'employees'         => $count,
+                'total_gross'       => round($sumGross, 2),
+                'total_net'         => round($sumNet, 2),
+                'govt_deductions'   => $applyGovt,
+                'holiday_days'      => is_array($holidays) ? count($holidays) : 0,
+            ],
+            false,
+            'payroll'
+        );
 
         $note = $hasUndertimeColumn
             ? ''
-            : ' (Paalala: hindi pa naka-run ang "php artisan migrate" — pansamantalang sama-sama pa ang Late at Undertime sa isang column.)';
+            : ' (Note: "php artisan migrate" has not been run yet — Late and Undertime are temporarily combined in one column.)';
 
         return redirect()->route('salary')->with('success', "Payroll generated for {$count} employee(s)." . $note);
     }
@@ -1031,14 +1214,40 @@ class AttendanceController extends Controller
             return redirect('/login');
         }
 
-        Payroll::where('generated_at', $batch)->delete();
+        // For the log: capture a summary of the batch BEFORE deleting it
+        $summary = Payroll::where('generated_at', $batch)
+            ->selectRaw('COUNT(*) as c, SUM(net_salary) as net, MIN(payroll_period_start) as ps, MAX(payroll_period_end) as pe, MAX(cutoff_type) as ct')
+            ->first();
+
+        $deleted = Payroll::where('generated_at', $batch)->delete();
+
+        // LOG: payroll batch deleted (key evidence if there is ever a pay dispute)
+        if ($deleted > 0) {
+            $this->audit(
+                'payroll_batch_deleted',
+                "Payroll batch deleted ({$deleted} payslip(s))",
+                'critical',
+                [
+                    'old' => [
+                        'batch_id'     => (string) $batch,
+                        'payslips'     => (int) $deleted,
+                        'total_net'    => (float) ($summary->net ?? 0),
+                        'period_start' => $summary->ps ?? null,
+                        'period_end'   => $summary->pe ?? null,
+                        'cutoff_type'  => $summary->ct ?? null,
+                    ],
+                ],
+                false,
+                'payroll'
+            );
+        }
 
         return redirect()->route('payroll-history')->with('success', 'Payroll batch deleted successfully.');
     }
 
     // ─── BULK DELETE PAYROLL BATCHES ────────────────
-    // Tumatanggap ng listahan ng generated_at values (isang batch bawat isa)
-    // at binubura lahat ng payroll rows sa mga batch na iyon.
+    // Accepts a list of generated_at values (one per batch) and deletes
+    // all payroll rows in those batches.
     //
     // DELETE /payroll-history/bulk-delete
     public function bulkDeleteBatches(Request $request)
@@ -1052,9 +1261,32 @@ class AttendanceController extends Controller
             'batches.*' => 'required|string',
         ]);
 
+        // For the log: summary BEFORE deleting
+        $summary = Payroll::whereIn('generated_at', $request->batches)
+            ->selectRaw('COUNT(*) as c, SUM(net_salary) as net')
+            ->first();
+
         $deleted = DB::transaction(function () use ($request) {
             return Payroll::whereIn('generated_at', $request->batches)->delete();
         });
+
+        // LOG: one line for the whole bulk delete
+        if ($deleted > 0) {
+            $this->audit(
+                'payroll_batches_deleted',
+                'Bulk deleted ' . count($request->batches) . " payroll batch(es) ({$deleted} payslip(s))",
+                'critical',
+                [
+                    'old' => [
+                        'batches'   => array_slice($request->batches, 0, 50),
+                        'payslips'  => (int) $deleted,
+                        'total_net' => (float) ($summary->net ?? 0),
+                    ],
+                ],
+                false,
+                'payroll'
+            );
+        }
 
         return redirect()->route('payroll-history')
             ->with('success', count($request->batches) . " payroll batch(es) deleted ({$deleted} payslip record(s)).");
@@ -1068,9 +1300,9 @@ class AttendanceController extends Controller
 
         $sal = Payroll::findOrFail($id);
 
-        // Buod ng oras para sa payslip: ilang oras ang OT, ilang minuto
-        // ang late at undertime sa cutoff na ito (galing sa attendance
-        // remarks, pareho ng ginamit sa pag-generate ng payroll).
+        // Hours summary for the payslip: how many OT hours, and how many
+        // late and undertime minutes in this cutoff (taken from the
+        // attendance remarks, same as when the payroll was generated).
         $minutesPerDay = (int) (PayrollSetting::current()->minutes_per_day ?: 480);
         $summary = ['ot_hours' => 0.0, 'late_minutes' => 0, 'undertime_minutes' => 0];
 
@@ -1116,6 +1348,19 @@ class AttendanceController extends Controller
         $qrDate = DB::table('app_settings')->where('key', 'checkin_qr_date')->value('value') ?? now()->format('Y-m-d');
 
         if ($currentToken && $request->query('token') !== $currentToken) {
+            // LOG: expired/wrong/missing token when opening the page. The token
+            // itself is never recorded. Severity 'info' because this is
+            // usually just an old printed QR.
+            $this->audit(
+                'qr_token_invalid',
+                'Opened the QR check-in page with ' . ($request->query('token') ? 'a wrong/expired' : 'no') . ' token',
+                'info',
+                ['stage' => 'page_open', 'token_given' => (bool) $request->query('token')],
+                false,
+                'attendance',
+                true
+            );
+
             return view('attendance.expired');
         }
 
@@ -1146,6 +1391,21 @@ class AttendanceController extends Controller
         $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
 
         if ($currentToken && $request->input('token') !== $currentToken) {
+            // LOG: expired QR on submit (public endpoint, so no user)
+            $this->audit(
+                'qr_token_invalid',
+                'Check-in submitted with an expired/wrong QR token',
+                'warning',
+                [
+                    'stage'         => 'submit',
+                    'employee_name' => mb_substr((string) $request->input('employee_name'), 0, 100),
+                    'type'          => $request->input('type'),
+                ],
+                false,
+                'attendance',
+                true
+            );
+
             return $this->checkinFail(
                 $request,
                 'This QR code has expired. Please scan the current QR code posted for check-in.',
@@ -1173,10 +1433,40 @@ class AttendanceController extends Controller
             ->first();
 
         if (!$employee || !$employee->pin_code) {
+            // LOG: the employee has no PIN (HR must set one)
+            $this->audit(
+                'checkin_no_pin',
+                "{$validated['employee_name']} tried to check in but has no PIN yet",
+                'info',
+                ['employee_name' => $validated['employee_name'], 'type' => $validated['type']],
+                false,
+                'attendance',
+                true
+            );
+
             return $this->checkinFail($request, 'No PIN has been set for your account yet. Please ask HR to set one.');
         }
 
         if (!Hash::check($validated['pin'], $employee->pin_code)) {
+            // LOG: wrong PIN. event_type = 'login_failed' so that
+            // checkBruteForce() counts it (the PIN is only 4 digits, 10,000
+            // combinations, and the endpoint is public). The PIN that was
+            // typed is never recorded.
+            $this->audit(
+                'login_failed',
+                "Wrong PIN on QR check-in for {$validated['employee_name']}",
+                'warning',
+                [
+                    'reason'        => 'qr_checkin_wrong_pin',
+                    'employee_name' => $validated['employee_name'],
+                    'type'          => $validated['type'],
+                ],
+                false,
+                'attendance',
+                true
+            );
+            SystemLogger::checkBruteForce($request->ip(), null);
+
             return $this->checkinFail($request, 'Incorrect PIN.');
         }
 
@@ -1197,18 +1487,18 @@ class AttendanceController extends Controller
             if ($timeIn) {
                 return $this->checkinFail(
                     $request,
-                    'Naka-Time In ka na kanina ng ' . Carbon::parse($timeIn)->format('g:i A') . '.'
+                    'You already timed in earlier at ' . Carbon::parse($timeIn)->format('g:i A') . '.'
                 );
             }
             $timeIn = $now;
         } else {
             if (!$timeIn) {
-                return $this->checkinFail($request, 'Wala ka pang Time In ngayong araw. Mag-Time In muna.');
+                return $this->checkinFail($request, 'You have not timed in today. Please time in first.');
             }
             if ($timeOut) {
                 return $this->checkinFail(
                     $request,
-                    'Naka-Time Out ka na kanina ng ' . Carbon::parse($timeOut)->format('g:i A') . '.'
+                    'You already timed out earlier at ' . Carbon::parse($timeOut)->format('g:i A') . '.'
                 );
             }
 
@@ -1219,8 +1509,8 @@ class AttendanceController extends Controller
             if ($worked < self::MIN_MINUTES_BEFORE_TIMEOUT) {
                 return $this->checkinFail(
                     $request,
-                    'Masyadong maaga ang Time Out. Kailangan ng at least ' . self::MIN_MINUTES_BEFORE_TIMEOUT
-                    . ' minutes mula sa Time In mo (' . Carbon::parse($timeIn)->format('g:i A') . ').'
+                    'Time Out is too early. At least ' . self::MIN_MINUTES_BEFORE_TIMEOUT
+                    . ' minutes are required after your Time In (' . Carbon::parse($timeIn)->format('g:i A') . ').'
                 );
             }
 
@@ -1269,6 +1559,28 @@ class AttendanceController extends Controller
         // model's $fillable doesn't include it.
         $record->forceFill(['source' => 'qr', 'remarks' => $qrRemarks])->save();
 
+        // LOG: normal check-ins are not logged (they are already in the
+        // attendance table). But when it is recorded on a different date
+        // because of the admin's catch-up date, it is logged, since it
+        // changes the pay of a past day.
+        if ($today !== now()->toDateString()) {
+            $this->audit(
+                'checkin_backdated',
+                "QR check-in for {$validated['employee_name']} recorded on {$today} (not today)",
+                'warning',
+                [
+                    'employee_name'   => $validated['employee_name'],
+                    'type'            => $validated['type'],
+                    'recorded_date'   => $today,
+                    'real_date'       => now()->toDateString(),
+                    'remarks'         => $validated['type'] === 'out' ? $qrRemarks : null,
+                ],
+                true,
+                'attendance',
+                true
+            );
+        }
+
         // ── Message shown to the employee ──
         $label = $validated['type'] === 'in' ? 'Timed in' : 'Timed out';
         $message = "{$label} successfully at " . now()->format('g:i A') . ". Thank you, {$validated['employee_name']}!";
@@ -1281,24 +1593,24 @@ class AttendanceController extends Controller
             );
 
             if ($info === null) {
-                $message .= ' (Walang naka-assign na shift sa iyo, kaya hindi makukuwenta ang late. Pakisabihan si HR.)';
+                $message .= ' (You have no assigned shift, so lateness cannot be computed. Please tell HR.)';
             } elseif ($info['late'] > 0) {
-                $message .= " Late ka ng {$info['raw']} minutes (shift start: {$info['start']}).";
+                $message .= " You are {$info['raw']} minutes late (shift start: {$info['start']}).";
             } elseif ($info['raw'] > 0) {
-                $message .= " {$info['raw']} min after start, pero nasa loob ka pa ng {$info['grace']}-minute grace period.";
+                $message .= " {$info['raw']} min after start, but you are still within the {$info['grace']}-minute grace period.";
             } else {
-                $message .= ' On time ka!';
+                $message .= ' You are on time!';
             }
 
-            $message .= ' Mabibilang ang attendance mo kapag nag-Time Out ka.';
+            $message .= ' Your attendance will count once you Time Out.';
         } elseif ($qrRemarks === 'P') {
-            $message .= ' Kumpleto ang 8 oras mo ngayong araw.';
+            $message .= ' You completed your 8 hours today.';
         } elseif (str_starts_with($qrRemarks, '+')) {
-            $message .= ' Overtime ngayong araw: ' . substr($qrRemarks, 1) . ' oras.';
+            $message .= ' Overtime today: ' . substr($qrRemarks, 1) . ' hour(s).';
         } elseif (preg_match('/^\d+(\.\d+)?h$/i', $qrRemarks)) {
-            $message .= " Record ngayong araw: {$qrRemarks} na-trabaho (kulang sa 8 oras, makikita ito bilang Undertime).";
+            $message .= " Today's record: {$qrRemarks} worked (short of 8 hours, shown as Undertime).";
         } else {
-            $message .= " Record ngayong araw: {$qrRemarks}.";
+            $message .= " Today's record: {$qrRemarks}.";
         }
 
         if ($request->wantsJson()) {
@@ -1343,6 +1655,20 @@ class AttendanceController extends Controller
         );
 
         $url = route('attendance.checkin', ['token' => $token]);
+
+        // LOG: new QR. The token and URL are never recorded. Flagged as an
+        // anomaly when set to a different date (backdated/future), since
+        // that is where scans will be recorded.
+        $isCatchUp = Carbon::parse($forDate)->toDateString() !== now()->toDateString();
+        $this->audit(
+            'qr_regenerated',
+            'Generated a new check-in QR'
+                . ($isCatchUp ? " set to {$forDate} (not today)" : ''),
+            $isCatchUp ? 'warning' : 'info',
+            ['for_date' => $forDate, 'catch_up_date' => $isCatchUp],
+            $isCatchUp,
+            'attendance'
+        );
 
         return response()->json([
             'token' => $token,
@@ -1444,7 +1770,7 @@ class AttendanceController extends Controller
                 // Every single row was unmatched — most likely the wrong
                 // file, or the Employees list hasn't been set up yet.
                 return redirect()->route('attendance')->with('error',
-                    'Walang na-import — lahat ng pangalan sa file ay hindi nakita sa listahan ng Employees: '
+                    'Nothing was imported — none of the names in the file were found in the Employees list: '
                     . implode(', ', array_unique($unmatchedNames)) . '.');
             }
 
@@ -1477,7 +1803,7 @@ class AttendanceController extends Controller
             // previously imported from the bio scanner for this exact
             // period before inserting the new file. QR records in this
             // period are left untouched.
-            Attendance::whereBetween('attendance_date', [
+            $replaced = Attendance::whereBetween('attendance_date', [
                 $periodStart->format('Y-m-d'),
                 $periodEnd->format('Y-m-d'),
             ])->where('source', 'bio')->delete();
@@ -1502,39 +1828,88 @@ class AttendanceController extends Controller
                 ['imported_at' => now()]
             );
 
+            // LOG: bio file imported. This replaces all bio entries in the
+            // period, so the number replaced is recorded. One line for the
+            // whole file.
+            $uniqueUnmatched = array_values(array_unique($unmatchedNames));
+            $this->audit(
+                'attendance_imported',
+                "Bio file imported ({$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}): "
+                    . "{$imported} new record(s), {$replaced} bio record(s) replaced",
+                'info',
+                [
+                    'period_start'    => $periodStart->format('Y-m-d'),
+                    'period_end'      => $periodEnd->format('Y-m-d'),
+                    'file_name'       => mb_substr((string) $file->getClientOriginalName(), 0, 120),
+                    'imported'        => $imported,
+                    'replaced_bio'    => (int) $replaced,
+                    'qr_preserved'    => $protectedCount,
+                    'unmatched_names' => count($uniqueUnmatched),
+                ],
+                false,
+                'attendance'
+            );
+
             $successMessage = "Imported {$imported} attendance record(s) into Days {$periodStart->day}-{$periodEnd->day} ({$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}) successfully!";
 
             if ($protectedCount > 0) {
-                $successMessage .= " {$protectedCount} na entry mula sa QR ang hindi na-overwrite (na-preserve dahil mas prioritized ito sa bio file para sa araw na iyon).";
+                $successMessage .= " {$protectedCount} QR entr" . ($protectedCount === 1 ? 'y was' : 'ies were') . " not overwritten (preserved because QR takes priority over the bio file for that day).";
             }
 
             if (!empty($unmatchedNames)) {
                 $uniqueUnmatched = array_unique($unmatchedNames);
-                $successMessage .= ' Hindi na-import ang ' . count($uniqueUnmatched)
-                    . ' pangalan na wala sa listahan ng Employees: ' . implode(', ', $uniqueUnmatched)
-                    . '. Idagdag muna sila sa Employees, tapos i-import ulit ang file.';
+                $successMessage .= ' ' . count($uniqueUnmatched)
+                    . ' name(s) not in the Employees list were not imported: ' . implode(', ', $uniqueUnmatched)
+                    . '. Add them to Employees first, then import the file again.';
             }
 
             return redirect()->route('attendance', ['period' => $periodStart->format('Y-m-d')])->with('success', $successMessage);
 
         } catch (\Throwable $e) {
+            // LOG: the import failed
+            $this->audit(
+                'attendance_import_failed',
+                'Bio file import failed',
+                'warning',
+                ['error' => mb_substr($e->getMessage(), 0, 200)],
+                false,
+                'attendance'
+            );
+
             return redirect()->route('attendance')->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 
-    // ─── CLEAR ALL ATTENDANCE (para sa testing / fresh start) ──────
-    // Binubura ang LAHAT ng attendance records — lahat ng period, lahat ng
-    // source — pati ang import history (attendance_imports).
-    // Payroll records ay SADYANG HINDI kasama; nasa Payroll History pa rin
-    // ang mga naunang generated na payslip.
+    // ─── CLEAR ALL ATTENDANCE (for testing / fresh start) ──────
+    // Deletes ALL attendance records — every period, every source — plus
+    // the import history (attendance_imports).
+    // Payroll records are deliberately NOT included; previously generated
+    // payslips remain in Payroll History.
     public function clearAll(Request $request)
     {
         if (!session()->has('user_id')) {
             return redirect('/login');
         }
 
+        // For the log: count BEFORE deleting
+        $total  = Attendance::count();
+        $qrRows = Attendance::where('source', 'qr')->count();
+
         Attendance::query()->delete();
         DB::table('attendance_imports')->delete();
+
+        // LOG: ALL attendance deleted. Critical anomaly, because pay is
+        // computed from this data.
+        $this->audit(
+            'attendance_cleared',
+            "Deleted ALL attendance records ({$total} record(s))",
+            'critical',
+            [
+                'old' => ['records' => $total, 'qr_records' => $qrRows],
+            ],
+            true,
+            'attendance'
+        );
 
         return redirect()->route('attendance')->with('success', 'All attendance records have been cleared.');
     }
