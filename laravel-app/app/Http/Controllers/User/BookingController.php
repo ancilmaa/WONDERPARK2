@@ -592,7 +592,7 @@ class BookingController extends Controller
         $rawItems  = json_decode($validated['items'], true);
         $rawExtras = json_decode($validated['extras'] ?? '[]', true);
         if (!is_array($rawItems) || !count($rawItems) || !is_array($rawExtras)) {
-            return response()->json(['message' => 'Please pick at least one ride or pass.'], 422);
+            return response()->json(['message' => 'Please pick at least one attraction.'], 422);
         }
 
         $lines = [];
@@ -600,7 +600,7 @@ class BookingController extends Controller
             $key = (string) ($row['key'] ?? '');
             $qty = (int) ($row['qty'] ?? 0);
             if (!isset($lookup['items'][$key]) || $qty < 1 || $qty > $guests) {
-                return response()->json(['message' => 'One of the selected rides is no longer available. Please review your picks.'], 422);
+                return response()->json(['message' => 'One of the selected attractions is no longer available. Please review your picks.'], 422);
             }
             $lines[$key] = ['qty' => $qty] + $lookup['items'][$key];
         }

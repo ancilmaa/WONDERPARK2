@@ -4,7 +4,7 @@
            POST /app/booking/submit          -> user.booking.submit   (BookingController@submit)
            GET  /app/booking/{id}/status     -> user.booking.status   (BookingController@status, polled by step 5)
 
-    Steps: 1 Who's coming (solo / couple / group)  2 Pick rides (Dino Adventure / Field of Rides / RollerFever tabs)
+    Steps: 1 Who's coming (solo / couple / group)  2 Pick attractions (Dino Adventure / Field of Rides / RollerFever tabs)
            3 Date & time   4 Pay by QR Ph + upload proof   5 Voucher (blurred until admin approves)
 
     Expects: $catalog (BookingWizard::catalog), $deals (BookingWizard::deals), $resume (wizard summary array or null).
@@ -259,7 +259,7 @@
     <ol class="bw-track" aria-label="Booking progress">
         <div class="bw-track-fill"></div>
         <li class="bw-node now"><i>🎟️</i><span>Who's coming</span></li>
-        <li class="bw-node"><i>🎢</i><span>Pick rides</span></li>
+        <li class="bw-node"><i>&#127914;</i><span>Pick attractions</span></li>
         <li class="bw-node"><i>📅</i><span>Date &amp; time</span></li>
         <li class="bw-node"><i>📱</i><span>Pay</span></li>
         <li class="bw-node"><i>🎁</i><span>Voucher</span></li>
@@ -270,11 +270,11 @@
         {{-- STEP 1 --}}
         <section class="bw-step is-active" data-step="1">
             <h3 class="bw-h">Who's coming to play? <span class="bw-wave">👋</span></h3>
-            <p class="bw-sub">Tell us about your squad so we can find you the best deals.</p>
+            <p class="bw-sub">How many are coming? Pick one so we can show you the best deals.</p>
             <div class="bw-party">
-                <button type="button" class="bw-pcard" data-party="solo"><span class="bw-big">🙋</span><b>Solo</b><small>Just me, myself &amp; fun</small></button>
-                <button type="button" class="bw-pcard" data-party="couple"><span class="bw-big">💑</span><b>Couple</b><small>Two's company</small></button>
-                <button type="button" class="bw-pcard" data-party="group"><span class="bw-big">🎉</span><b>Group</b><small>3 or more friends &amp; family</small></button>
+                <button type="button" class="bw-pcard" data-party="solo"><span class="bw-big">&#128587;</span><b>Solo</b><small>1 person</small></button>
+                <button type="button" class="bw-pcard" data-party="couple"><span class="bw-big">&#129489;&#8205;&#129309;&#8205;&#129489;</span><b>Duo</b><small>2 people</small></button>
+                <button type="button" class="bw-pcard" data-party="group"><span class="bw-big">&#127881;</span><b>Group</b><small>3 or more people</small></button>
             </div>
             <div class="bw-groupbox" id="bwGroupBox" hidden>
                 <b>How many are you?</b>
@@ -296,7 +296,7 @@
 
         {{-- STEP 2 --}}
         <section class="bw-step" data-step="2">
-            <h3 class="bw-h">Choose your rides <span class="bw-wave">🎢</span></h3>
+            <h3 class="bw-h">Choose your attractions <span class="bw-wave">&#127914;</span></h3>
             <p class="bw-sub">Tap to pick as many as you like — prices are per person.</p>
             <div class="bw-tabs" id="bwTabs"></div>
             <div class="bw-banner" id="bwBanner" hidden></div>
@@ -476,7 +476,7 @@ window.BW = {
     return false;
   }
   var HINT = {
-    1: 'Pick who is coming first \uD83D\uDC46', 2: 'Pick at least one attraction \uD83C\uDFA2',
+    1: 'Pick who is coming first \uD83D\uDC46', 2: 'Pick at least one attraction \uD83C\uDFAA',
     3: 'Choose a date and a time slot \uD83D\uDCC5', 4: 'Upload your payment screenshot \uD83D\uDCF8'
   };
   var hintTimer = null;
@@ -488,7 +488,7 @@ window.BW = {
     btnNext.disabled = state.busy;
     var t = '';
     if (state.step === 1) {
-      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure \uD83C\uDF89' : (state.party === 'couple' ? 'Date day \uD83D\uDC9E' : 'Me time \uD83D\uDE0E')) : '<b>Who is coming?</b>Pick one above';
+      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure \uD83C\uDF89' : (state.party === 'couple' ? 'Duo day \uD83E\uDD1D' : 'Me time \uD83D\uDE0E')) : '<b>Who is coming?</b>Pick one above';
     } else if (state.step === 4) {
       t = '<b>' + money(price().total) + '</b>Total to pay via QR Ph';
     } else {
@@ -678,7 +678,7 @@ window.BW = {
     var out = '', any = false;
     Object.keys(groups).forEach(function (g) {
       if (!groups[g].length) return; any = true;
-      out += '<div class="bw-slots-h">' + ({ Morning: '\uD83C\uDF05 ', Afternoon: '\u2600\uFE0F ', Evening: '\uD83C\uDF19 ' }[g]) + g + '</div><div class="bw-slots">' +
+      out += '<div class="bw-slots-h">' + g + '</div><div class="bw-slots">' +
         groups[g].map(function (v) { return '<button type="button" class="bw-slot' + (state.time === v ? ' sel' : '') + '" data-time="' + v + '">' + timeLabel(v) + '</button>'; }).join('') + '</div>';
     });
     box.innerHTML = any ? out : '<div class="bw-empty"><b>\uD83D\uDE34</b>No more slots today \u2014 try another day!</div>';
@@ -792,14 +792,14 @@ window.BW = {
       msg.textContent = 'Show this code at the entrance. Please sign the waiver before your visit.';
       l2.className = 'on'; l3.className = 'on';
       code.textContent = b.voucher_code; code.classList.add('reveal'); lock.classList.add('gone');
-      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCopy">Copy code</button><a class="bw-btn ghost" href="' + BW.urls.receipt.replace('__ID__', b.id) + '">View receipt</a>' + mine;
+      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCopy">Copy code</button><a class="bw-btn ghost" href="' + BW.urls.receipt.replace('__ID__', b.id) + '">View receipt</a>' + mine + again;
       var cp = $('#bwCopy'); if (cp) cp.addEventListener('click', function () { if (navigator.clipboard) navigator.clipboard.writeText(b.voucher_code); cp.textContent = 'Copied \u2713'; });
       if (confetti) boom();
     } else if (b.rejected) {
       pill.className = 'bw-pill bad'; pill.textContent = 'Payment not accepted';
       msg.textContent = b.rejection_reason || 'Please upload a clearer proof of payment.';
       l2.className = 'on';
-      acts.innerHTML = '<a class="bw-btn go" href="' + BW.urls.review.replace('__ID__', b.id) + '">Upload new proof</a>' + mine;
+      acts.innerHTML = '<a class="bw-btn go" href="' + BW.urls.review.replace('__ID__', b.id) + '">Upload new proof</a>' + mine + again;
     } else {
       pill.className = 'bw-pill'; pill.textContent = 'In review \u2014 hang tight!';
       msg.textContent = 'Our team is checking your payment. Your voucher unlocks here as soon as it is approved. \u2728';
