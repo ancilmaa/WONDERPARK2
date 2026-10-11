@@ -1,0 +1,284 @@
+<?php
+
+namespace App\Support;
+
+/**
+ * Catalog + pricing for the step-by-step booking wizard (user/booking).
+ *
+ * Prices are NOT duplicated here: every card's per-person price is read
+ * from the effective packages/add-ons the controller already passes in
+ * (BookingCatalog + CMS overrides), so editing prices in the CMS still
+ * updates the wizard. Only the *presentation* (ride names, icons) and the
+ * *deal rules* live here.
+ *
+ * price() is the single source of truth for totals. The browser runs the
+ * same algorithm for the live total, but the server always recomputes
+ * from its own catalog on submit — never trust prices from the client.
+ */
+class BookingWizard
+{
+    /** Individual Field of Rides attractions, grouped by the price package they belong to. */
+    protected const FOR_RIDES = [
+        'rides_60' => [
+            ['Tiger Train', '🚂'], ['Mini Carousel', '🎠'], ['Star Speed', '⭐'],
+            ['Little Chicken', '🐔'], ['Boat Pool', '🚤'], ['Carousel', '🎠'],
+            ['Flying Chair', '🪑'], ['Mini Ferris Wheel', '🎡'], ['Samba Balloon', '🎈'],
+            ['Crazy Plane', '✈️'],
+        ],
+        'rides_120' => [
+            ['Vikings', '⚓', 'vikings.jpg'], ['Go-Kart', '🏎️'],
+        ],
+        'rides_150' => [
+            ['Inflatable Playground (30 mins)', '🏰'], ['Mini Trampoline (30 mins)', '🤸'],
+            ['Rev & Roll (per car)', '🚗'], ['Happy Cars (per ride)', '🚙'],
+            ['Jurassic Adventure (per ride)', '🦖'],
+        ],
+    ];
+
+    /**
+     * Deal rules. PLACEHOLDER NUMBERS — confirm the real promos with the
+     * business and edit here only; the view and the server both read this.
+     *
+     *  - four_plus_one: buy 4 get 1 free on these passes (same promo as the
+     *    old "Group Bundle" packages). Applies per 5 passes of that item.
+     *  - group_tiers:   % off the whole ride/pass subtotal by party size
+     *    (not applied to lines already on a 4+1 deal, never to extras).
+     */
+    public static function deals(): array
+    {
+        return [
+            'four_plus_one' => [
+                'min_qty'  => 5,
+                'packages' => [
+                    'rollerfever' => ['walkin_1hour', 'walkin_2hour'],
+                ],
+            ],
+            'group_tiers' => [
+                ['min_guests' => 10, 'pct' => 15],
+                ['min_guests' => 5,  'pct' => 10],
+            ],
+        ];
+    }
+
+    public static function dealApplies(string $service, string $package): bool
+    {
+        return in_array($package, self::deals()['four_plus_one']['packages'][$service] ?? [], true);
+    }
+
+    /**
+     * Tabs for the ride-picker step. Each tab: label, emoji, items[], extras[].
+     */
+    public static function catalog(array $packages, array $addons, array $services): array
+    {
+        $tabs = [];
+
+        // ---- Dino Adventure: per-guest play passes -------------------
+        $tabs['dino_adventure'] = [
+            'label'   => $services['dino_adventure']['name'] ?? 'Dino Adventure',
+            'tagline' => 'Softplay & dino fun',
+            'emoji'   => '🦖',
+            'items'   => self::passItems('dino_adventure', $packages, '🦖'),
+            'extras'  => self::extras('dino_adventure', $addons),
+        ];
+
+        // ---- Field of Rides: one card per ride -----------------------
+        $forItems = [];
+        foreach (self::FOR_RIDES as $code => $rides) {
+            $unit = self::unitPrice($packages['field_of_rides'][$code] ?? null);
+            if ($unit === null) {
+                continue;
+            }
+            foreach ($rides as $ride) {
+                $forItems[] = [
+                    'key'        => 'field_of_rides:' . $code . ':' . self::slug($ride[0]),
+                    'service'    => 'field_of_rides',
+                    'package'    => $code,
+                    'name'       => $ride[0],
+                    'desc'       => 'Per person, per ride',
+                    'emoji'      => $ride[1],
+                    'image'      => $ride[2] ?? null,
+                    'unit_price' => $unit,
+                    'badge'      => null,
+                    'deal'       => null,
+                ];
+            }
+        }
+        $all = $packages['field_of_rides']['try_every_ride'] ?? null;
+        if ($all && self::unitPrice($all) !== null) {
+            array_unshift($forItems, [
+                'key'        => 'field_of_rides:try_every_ride',
+                'service'    => 'field_of_rides',
+                'package'    => 'try_every_ride',
+                'name'       => $all['name'],
+                'desc'       => 'One ride on every attraction on the price board',
+                'emoji'      => '🎢',
+                'image'      => $all['image'] ?? null,
+                'unit_price' => self::unitPrice($all),
+                'badge'      => 'Best value',
+                'deal'       => null,
+            ]);
+        }
+        $tabs['field_of_rides'] = [
+            'label'   => $services['field_of_rides']['name'] ?? 'Field of Rides',
+            'tagline' => 'Rides & games',
+            'emoji'   => '🎡',
+            'items'   => $forItems,
+            'extras'  => [],
+        ];
+
+        // ---- RollerFever: per-guest skate passes ---------------------
+        $tabs['rollerfever'] = [
+            'label'   => $services['rollerfever']['name'] ?? 'RollerFever',
+            'tagline' => 'Skate rink',
+            'emoji'   => '🛼',
+            'items'   => self::passItems('rollerfever', $packages, '🛼'),
+            'extras'  => self::extras('rollerfever', $addons),
+        ];
+
+        return $tabs;
+    }
+
+    /** key => item/extra lookup across all tabs (server-trusted prices). */
+    public static function lookup(array $catalog): array
+    {
+        $items = [];
+        $extras = [];
+        foreach ($catalog as $tab) {
+            foreach ($tab['items'] as $i) {
+                $items[$i['key']] = $i;
+            }
+            foreach ($tab['extras'] as $e) {
+                $extras[$e['key']] = $e;
+            }
+        }
+
+        return ['items' => $items, 'extras' => $extras];
+    }
+
+    /**
+     * @param array $lines  each: ['key','service','package','name','unit_price','qty']
+     * @param array $extras each: ['key','name','unit_price','qty']
+     */
+    public static function price(array $lines, array $extras, int $guests): array
+    {
+        $deals = self::deals();
+        $subtotal = 0.0;
+        $bundleDiscount = 0.0;
+        $groupBase = 0.0;
+        $outLines = [];
+
+        foreach ($lines as $l) {
+            $gross = $l['unit_price'] * $l['qty'];
+            $free = 0;
+            if (self::dealApplies($l['service'], $l['package']) && $l['qty'] >= $deals['four_plus_one']['min_qty']) {
+                $free = intdiv($l['qty'], $deals['four_plus_one']['min_qty']);
+            }
+            $disc = $free * $l['unit_price'];
+
+            $subtotal += $gross;
+            $bundleDiscount += $disc;
+            if ($free === 0) {
+                $groupBase += $gross;
+            }
+
+            $outLines[] = $l + [
+                'gross'           => round($gross, 2),
+                'free_units'      => $free,
+                'bundle_discount' => round($disc, 2),
+                'line_total'      => round($gross - $disc, 2),
+            ];
+        }
+
+        $groupPct = 0;
+        foreach ($deals['group_tiers'] as $tier) {
+            if ($guests >= $tier['min_guests']) {
+                $groupPct = max($groupPct, $tier['pct']);
+            }
+        }
+        $groupDiscount = round($groupBase * $groupPct / 100); // whole pesos (bookings.price is an integer column)
+
+        $extrasTotal = 0.0;
+        $outExtras = [];
+        foreach ($extras as $e) {
+            $line = $e['unit_price'] * $e['qty'];
+            $extrasTotal += $line;
+            $outExtras[] = $e + ['line_total' => round($line, 2)];
+        }
+
+        $discountTotal = round($bundleDiscount + $groupDiscount, 2);
+
+        return [
+            'lines'           => $outLines,
+            'extras'          => $outExtras,
+            'subtotal'        => round($subtotal, 2),
+            'bundle_discount' => round($bundleDiscount, 2),
+            'group_pct'       => $groupPct,
+            'group_discount'  => $groupDiscount,
+            'extras_total'    => round($extrasTotal, 2),
+            'discount_total'  => $discountTotal,
+            'total'           => round($subtotal - $discountTotal + $extrasTotal, 2),
+        ];
+    }
+
+    // ---------------------------------------------------------------
+
+    protected static function passItems(string $service, array $packages, string $emoji): array
+    {
+        $items = [];
+        foreach ($packages[$service] ?? [] as $code => $pkg) {
+            if (($pkg['category'] ?? null) !== 'solo') {
+                continue;
+            }
+            $unit = self::unitPrice($pkg);
+            if ($unit === null) {
+                continue;
+            }
+            $deal = self::dealApplies($service, $code) ? 'Buy 4, get 1 free' : null;
+            $items[] = [
+                'key'        => $service . ':' . $code,
+                'service'    => $service,
+                'package'    => $code,
+                'name'       => $pkg['name'],
+                'desc'       => $pkg['desc'] ?? '',
+                'emoji'      => $emoji,
+                'image'      => $pkg['image'] ?? null,
+                'unit_price' => $unit,
+                'badge'      => null,
+                'deal'       => $deal,
+            ];
+        }
+
+        return $items;
+    }
+
+    protected static function extras(string $service, array $addons): array
+    {
+        $out = [];
+        foreach ($addons[$service] ?? [] as $code => $a) {
+            $out[] = [
+                'key'        => $service . ':' . $code,
+                'service'    => $service,
+                'addon'      => $code,
+                'name'       => $a['name'],
+                'unit_price' => (float) $a['price'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Price for ONE guest of a package = its 1-pax tier. */
+    protected static function unitPrice(?array $pkg): ?float
+    {
+        if (!$pkg || !isset($pkg['tiers'][1])) {
+            return null;
+        }
+
+        return (float) $pkg['tiers'][1];
+    }
+
+    protected static function slug(string $s): string
+    {
+        return trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($s)), '-');
+    }
+}

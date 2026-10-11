@@ -18,6 +18,7 @@ class Booking extends Model
     'payment_proof_path', 'payment_submitted_at', 'payment_verified_at',
     'payment_rejection_reason',
     'xendit_payment_request_id', 'xendit_reference_id',
+    'items', 'party_type', 'discount_total',
 ];
 
 
@@ -25,6 +26,7 @@ class Booking extends Model
         'visit_date' => 'date',
         'reservation_date' => 'date',
         'addons' => 'array',
+        'items' => 'array',
         'payment_submitted_at' => 'datetime',
         'payment_verified_at' => 'datetime',
     ];
