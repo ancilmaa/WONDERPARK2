@@ -30,6 +30,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\BookingCmsController;
+use App\Http\Controllers\EmailLoginController;
 
 
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
@@ -311,3 +312,13 @@ Route::post('/employees/{employee}/activate', [\App\Http\Controllers\EmployeeCon
 
 Route::get('/api/ml/voucher_summary', [MlForecastController::class, 'voucherSummary']);
 Route::get('/api/zone-forecast/{zone}/voucher_summary', [ZoneForecastController::class, 'voucherSummary']);
+
+// Email login (passwordless code)
+Route::post('/login/email', [EmailLoginController::class, 'sendCode'])
+    ->middleware('throttle:5,1')->name('login.email.send');
+Route::get('/login/email/verify', [EmailLoginController::class, 'showVerifyForm'])
+    ->name('login.email.verify.show');
+Route::post('/login/email/verify', [EmailLoginController::class, 'verify'])
+    ->middleware('throttle:10,1')->name('login.email.verify');
+Route::post('/login/email/resend', [EmailLoginController::class, 'resend'])
+    ->middleware('throttle:3,1')->name('login.email.resend');
