@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'laravel/laravel',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '68820735644c0430077409d18d3b6101ccc7900a',
+        'pretty_version' => 'dev-shaira-ancil-work',
+        'version' => 'dev-shaira-ancil-work',
+        'reference' => '9a90174833052e75bde95b82cc6c08b8361bff5c',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -524,9 +524,9 @@
             'dev_requirement' => false,
         ),
         'laravel/laravel' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '68820735644c0430077409d18d3b6101ccc7900a',
+            'pretty_version' => 'dev-shaira-ancil-work',
+            'version' => 'dev-shaira-ancil-work',
+            'reference' => '9a90174833052e75bde95b82cc6c08b8361bff5c',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

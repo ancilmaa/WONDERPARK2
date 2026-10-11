@@ -498,6 +498,11 @@ class BookingController extends Controller
             'voucher_code'     => $booking->voucher_code,
             'can_reschedule'   => $this->canReschedule($booking->status),
             'rejection_reason' => $booking->status === 'pending_payment' ? $booking->payment_rejection_reason : null,
+
+            // ── BAGO: para sa clickable "Rejected" popup sa My Bookings ──
+            'approval_status'  => $booking->approval_status,
+            'reject_reason'    => $booking->reject_reason,
+            'reject_note'      => $booking->reject_note,
         ];
     }
 
@@ -516,10 +521,11 @@ class BookingController extends Controller
         return match ($status) {
             'pending_payment'       => ['label' => 'Pending payment', 'class' => 'amber'],
             'awaiting_verification' => ['label' => 'Waiting for Approval', 'class' => 'amber'],
-            'confirmed'              => ['label' => 'Confirmed', 'class' => 'green'],
-            'done'                   => ['label' => 'Done', 'class' => 'green'],
-            'cancelled'              => ['label' => 'Cancelled', 'class' => 'rose'],
-            default                  => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'amber'],
+            'confirmed'             => ['label' => 'Confirmed', 'class' => 'green'],
+            'done'                  => ['label' => 'Done', 'class' => 'green'],
+            'rejected'              => ['label' => 'Rejected', 'class' => 'rose'],   // ← BAGO
+            'cancelled'             => ['label' => 'Cancelled', 'class' => 'rose'],
+            default                 => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'amber'],
         };
     }
 

@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\SystemLogger;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -75,6 +76,20 @@ class InventoryController extends Controller
 
         $category = DB::table('categories')->where('category_id', $id)->first();
 
+        // LOG: bagong category
+        $this->audit(
+            'category_created',
+            "Added category #{$id}: {$category->category_name} ({$category->zone})",
+            null,
+            [
+                'category_id'      => $id,
+                'category_name'    => $category->category_name,
+                'zone'             => $category->zone,
+                'category_type'    => $category->category_type,
+                'is_stock_tracked' => (int) $category->is_stock_tracked,
+            ]
+        );
+
         return response()->json([
             'status'   => 'success',
             'message'  => 'Category added!',
@@ -101,6 +116,16 @@ class InventoryController extends Controller
             ->orderBy('categories.category_name')
             ->orderBy('products.product_name')
             ->get();
+
+        // LOG: export ng inventory report
+        $this->audit(
+            'inventory_exported',
+            'Exported inventory report (XLSX), ' . $products->count() . ' product(s)',
+            null,
+            null,
+            'info',
+            ['rows' => $products->count()]
+        );
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -233,6 +258,16 @@ class InventoryController extends Controller
 
         fclose($handle);
 
+        // LOG: bulk import (isang linya lang para sa buong file, hindi bawat row)
+        $this->audit(
+            'products_imported',
+            "Imported products from CSV: {$imported} added, {$skipped} skipped",
+            null,
+            null,
+            'info',
+            ['imported' => $imported, 'skipped' => $skipped]
+        );
+
         $message = "Imported {$imported} product(s) successfully!";
         if ($skipped > 0) {
             $message .= " {$skipped} row(s) skipped (zone/category not found).";
@@ -262,6 +297,50 @@ class InventoryController extends Controller
         }
     }
 
+    // ─── SYSTEM LOG HELPER ─────────────────────────────────
+    // Isang lugar lang ang tawag sa SystemLogger::record().
+    // - Session ang gamit ng app (hindi Laravel Auth), kaya manual na
+    //   ipinapasa ang user_id at email para hindi mag-null ang "sino".
+    // - Ang $old at $new ay napupunta sa context['old'] / context['new'].
+    // - Kapag ang event ay nagtatapos sa "_deleted", tinatawag din ang
+    //   checkBulkDelete() para ma-detect ang sunod-sunod na delete.
+    // - Naka-try/catch: hindi masisira ang main action kapag nag-fail ang log.
+    private function audit(
+        string $eventType,
+        string $description,
+        ?array $old = null,
+        ?array $new = null,
+        string $severity = 'info',
+        array $extra = []
+    ): void {
+        try {
+            $sessionId = session('user_id');
+            $userId    = is_numeric($sessionId) ? (int) $sessionId : null;
+            $email     = session('email'); // palitan kung iba ang session key ng email mo
+
+            $context = $extra;
+            if ($old !== null) { $context['old'] = $old; }
+            if ($new !== null) { $context['new'] = $new; }
+
+            SystemLogger::record(
+                $eventType,
+                $description,
+                $severity,
+                $context,
+                false,
+                $userId,
+                $email,
+                'inventory'
+            );
+
+            if (str_ends_with($eventType, '_deleted')) {
+                SystemLogger::checkBulkDelete($userId, 'inventory');
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SystemLogger failed (Inventory): ' . $e->getMessage());
+        }
+    }
+
     // ─── ADD PRODUCT ──────────────────────────────────
     public function store(Request $request)
     {
@@ -284,6 +363,20 @@ class InventoryController extends Controller
             'price'         => $price,
             'status'        => 'active',
         ]);
+
+        // LOG: bagong product
+        $this->audit(
+            'product_created',
+            "Added product #{$id}: {$request->name}",
+            null,
+            [
+                'product_id' => $id,
+                'name'       => $request->name,
+                'category'   => "{$category->category_name} ({$category->zone})",
+                'stock'      => $category->is_stock_tracked ? $stock : null,
+                'price'      => $price,
+            ]
+        );
 
         // Full details ng bagong idinagdag na product
         $details = [
@@ -356,6 +449,46 @@ class InventoryController extends Controller
             }
         }
 
+        // LOG: hiwalay na entry para sa presyo, stock, at iba pang field,
+        // para madaling i-filter sa log page.
+        if ($old) {
+            $ref = "#{$request->id} {$old->product_name}";
+
+            if (number_format((float) $old->price, 2) !== number_format($newPrice, 2)) {
+                $this->audit(
+                    'price_changed',
+                    "Changed price of product {$ref}",
+                    ['price' => (float) $old->price],
+                    ['price' => $newPrice],
+                    'warning'
+                );
+            }
+
+            // Stock log lang kung tracked ang category (kung hindi, laging 0 ang newStock)
+            if ($category->is_stock_tracked && (int) $old->stock !== $newStock) {
+                $this->audit(
+                    'stock_adjusted',
+                    "Adjusted stock of product {$ref} (via edit)",
+                    ['stock' => (int) $old->stock],
+                    ['stock' => $newStock]
+                );
+            }
+
+            $otherOld = [];
+            $otherNew = [];
+            if ((string) $old->product_name !== (string) $request->name) {
+                $otherOld['name'] = $old->product_name;
+                $otherNew['name'] = $request->name;
+            }
+            if ((int) $old->category_id !== (int) $category->category_id) {
+                $otherOld['category'] = "{$old->old_category_name} ({$old->old_zone})";
+                $otherNew['category'] = "{$category->category_name} ({$category->zone})";
+            }
+            if ($otherNew) {
+                $this->audit('product_updated', "Edited product {$ref}", $otherOld, $otherNew);
+            }
+        }
+
         $message = $changes
             ? "{$request->name} was updated:\n" . implode("\n", $changes)
             : "{$request->name} was updated (no field values changed).";
@@ -389,6 +522,21 @@ class InventoryController extends Controller
         DB::table('products')->where('product_id', $request->id)->delete();
 
         if ($product) {
+            // LOG: delete ng product (huling laman ng record ang nilalagay bilang "old")
+            $this->audit(
+                'product_deleted',
+                "Deleted product #{$product->product_id}: {$product->product_name}",
+                [
+                    'product_id' => $product->product_id,
+                    'name'       => $product->product_name,
+                    'category'   => "{$product->category_name} ({$product->zone})",
+                    'stock'      => $product->is_stock_tracked ? (int) $product->stock : null,
+                    'price'      => (float) $product->price,
+                ],
+                null,
+                'warning'
+            );
+
             $details = [
                 "Category: {$product->category_name} ({$product->zone})",
                 "Stock at deletion: " . ($product->is_stock_tracked ? $product->stock : 'Not tracked'),
@@ -416,6 +564,18 @@ class InventoryController extends Controller
         DB::table('products')->where('product_id', $request->id)->increment('stock', $qty);
 
         $newStock = DB::table('products')->where('product_id', $request->id)->value('stock');
+
+        // LOG: stock adjustment (dating bilang → bagong bilang)
+        if ($before) {
+            $this->audit(
+                'stock_adjusted',
+                "Restocked product #{$request->id} {$productName} (+{$qty})",
+                ['stock' => $oldStock],
+                ['stock' => (int) $newStock],
+                'info',
+                ['added' => $qty]
+            );
+        }
 
         $details = [
             "Added: +{$qty}",
