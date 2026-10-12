@@ -73,7 +73,7 @@ trait LogsActivity
                 $context['changes'] = $changes;
             }
 
-            $verb = ['created' => 'Nagdagdag ng', 'updated' => 'Binago ang', 'deleted' => 'Nag-delete ng'][$action];
+            $verb = ['created' => 'Created', 'updated' => 'Updated', 'deleted' => 'Deleted'][$action];
             $severity = $action === 'deleted' ? 'warning' : 'info';
 
             SystemLogger::record(

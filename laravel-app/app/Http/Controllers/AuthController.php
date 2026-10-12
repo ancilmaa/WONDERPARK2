@@ -27,6 +27,16 @@ class AuthController extends Controller
             $uid = $userId ?? $sessionId;
             $uid = is_numeric($uid) ? (int) $uid : null;
 
+            // Customer (website user) activity is NOT recorded: this log is for
+            // staff / POS activity only. A failed login passes no user id, so
+            // fall back to target_user_id from the context (the account that
+            // was targeted, if one was found).
+            $roleCheckId = $uid ?? ($context['target_user_id'] ?? null);
+            if (is_numeric($roleCheckId)
+                && DB::table('users')->where('user_id', (int) $roleCheckId)->value('role') === 'customer') {
+                return;
+            }
+
             SystemLogger::record(
                 $eventType,
                 $description,

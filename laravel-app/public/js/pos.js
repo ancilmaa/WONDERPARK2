@@ -845,7 +845,8 @@ function confirmRef() {
 }
 
 function processCheckout(refNumber = null) {
-  const { gross, vatAmount, total } = calcTotals();
+  const t = calcTotals();
+  const { gross, vatAmount, total } = t;
   const custName = document.getElementById('custName').value.trim() || 'Walk-in Customer';
   const invNum   = document.getElementById('invNum').textContent;
 
@@ -864,6 +865,12 @@ function processCheckout(refNumber = null) {
     discount:         discountAmount.toFixed(2),
     tax:              vatAmount.toFixed(2),
     total:            total.toFixed(2),
+    // Para sa system log: hiwalay ang manual discount at PWD/Senior
+    manual_discount:  t.genericDiscountAmt.toFixed(2),
+    special_discount: t.specialDiscountAmt.toFixed(2),
+    special_type:     specialDiscount ? specialDiscount.type : null,
+    discount_mode:    discountType,
+    discount_value:   discountValue,
     items:            cart
   }, gross, vatAmount, total, custName, invNum, refNumber);
 }
@@ -1743,7 +1750,8 @@ function lookupVoidTransaction() {
   btn.innerHTML = '<i class="ti ti-loader"></i> Looking up...';
   showLoading('Looking up invoice…');
  
-  fetch('/pos/get_transaction?invoice=' + encodeURIComponent(invNum), {
+  // purpose=void: para hindi mabilang na "reprint" sa system log ang lookup na ito
+  fetch('/pos/get_transaction?purpose=void&invoice=' + encodeURIComponent(invNum), {
     headers: {
       'Accept':           'application/json',
       'X-Requested-With': 'XMLHttpRequest',
@@ -2063,4 +2071,4 @@ function loadVoucherToCart() {
   renderCart();
   updateTotals();
   persistCart();
-} 
+}

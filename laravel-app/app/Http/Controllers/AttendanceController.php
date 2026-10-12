@@ -1832,11 +1832,25 @@ class AttendanceController extends Controller
             // period, so the number replaced is recorded. One line for the
             // whole file.
             $uniqueUnmatched = array_values(array_unique($unmatchedNames));
+
+            // Anomaly: may payroll na para sa period na ito, kaya ang import ay
+            // nagpapalit ng datos na pinagbatayan ng sweldo. Ang pagsuri ay hindi
+            // dapat makasira sa import, kaya naka-try/catch.
+            $afterPayroll = false;
+            try {
+                $afterPayroll = Payroll::whereDate('payroll_period_start', $periodStart->format('Y-m-d'))
+                    ->whereDate('payroll_period_end', $periodEnd->format('Y-m-d'))
+                    ->exists();
+            } catch (\Throwable $e) {
+                $afterPayroll = false;
+            }
+
             $this->audit(
                 'attendance_imported',
                 "Bio file imported ({$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}): "
-                    . "{$imported} new record(s), {$replaced} bio record(s) replaced",
-                'info',
+                    . "{$imported} new record(s), {$replaced} bio record(s) replaced"
+                    . ($afterPayroll ? ' — payroll already generated for this period' : ''),
+                $afterPayroll ? 'warning' : 'info',
                 [
                     'period_start'    => $periodStart->format('Y-m-d'),
                     'period_end'      => $periodEnd->format('Y-m-d'),
@@ -1845,8 +1859,9 @@ class AttendanceController extends Controller
                     'replaced_bio'    => (int) $replaced,
                     'qr_preserved'    => $protectedCount,
                     'unmatched_names' => count($uniqueUnmatched),
+                    'payroll_already_generated' => $afterPayroll,
                 ],
-                false,
+                $afterPayroll,
                 'attendance'
             );
 

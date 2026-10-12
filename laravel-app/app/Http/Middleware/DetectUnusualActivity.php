@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SystemLog;
 use App\Services\SystemLogger;
 use Closure;
 use Illuminate\Http\Request;
@@ -10,27 +11,38 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Nagla-log ng 'unauthorized_access' kapag may tinanggihang request
- * (ang EnsureUserHasRole ang nagse-set ng 'access_denied' sa request attributes).
+ * Logs an 'unauthorized_access' event when a request is denied
+ * (EnsureUserHasRole sets 'access_denied' on the request attributes).
  *
- * Dapat ang middleware na ito ay NASA LABAS ng 'auth.session' at 'role:...'
- * (ibig sabihin, mas nauna sa pipeline) para mabasa nito ang attributes pagkatapos.
- * Halimbawa: i-append sa 'web' group sa bootstrap/app.php.
+ * Severity:
+ *  - warning  : normal denied request
+ *  - critical : repeated denied requests from the same IP within a short window
+ *               (see CRITICAL_THRESHOLD / WINDOW_MINUTES). Also flagged as anomaly.
+ *
+ * This middleware must sit OUTSIDE 'auth.session' and 'role:...'
+ * (i.e. run earlier in the pipeline) so it can read the attributes afterwards.
+ * Example: append it to the 'web' group in bootstrap/app.php.
  */
 class DetectUnusualActivity
 {
+    /** Ilang denied requests (kasama ang kasalukuyan) bago maging critical. */
+    private const CRITICAL_THRESHOLD = 5;
+
+    /** Sa loob ng ilang minuto binibilang ang mga denied requests. */
+    private const WINDOW_MINUTES = 10;
+
     public function handle(Request $request, Closure $next): Response
     {
         try {
             $response = $next($request);
         } catch (HttpExceptionInterface $e) {
-            // Ang abort(403) sa EnsureUserHasRole ay nagta-throw, kaya dito natin ito sasalo.
+            // abort(403) in EnsureUserHasRole throws, so it is caught here.
             $this->logIfDenied($request);
 
             throw $e;
         }
 
-        // Para sa JSON 403 response (hindi nagta-throw)
+        // JSON 403 responses do not throw.
         $this->logIfDenied($request);
 
         return $response;
@@ -46,31 +58,50 @@ class DetectUnusualActivity
 
         try {
             $user = $request->attributes->get('auth_user');
-            $required = implode(', ', $denied['required'] ?? []);
+            $role = $denied['role'] ?? null;
+
+            // Ilang beses nang na-deny ang IP na ito kamakailan (hindi pa kasama ang ngayon)
+            $recent = SystemLog::query()
+                ->where('event_type', 'unauthorized_access')
+                ->where('ip_address', $request->ip())
+                ->where('created_at', '>=', now()->subMinutes(self::WINDOW_MINUTES))
+                ->count();
+
+            $isRepeated = ($recent + 1) >= self::CRITICAL_THRESHOLD;
+            $severity = $isRepeated ? 'critical' : 'warning';
+
+            // May role sa description para lumabas sa User column ng System Logs
+            $who = $role ? " ({$role})" : '';
+            $description = "Unauthorized access{$who}: {$request->method()} /{$request->path()}";
+
+            if ($isRepeated) {
+                $description .= ' - repeated attempts (' . ($recent + 1) . ' in ' . self::WINDOW_MINUTES . ' min)';
+            }
 
             SystemLogger::record(
                 'unauthorized_access',
-                "Walang pahintulot ang user #{$denied['user_id']} ({$denied['role']}) sa {$request->method()} /{$request->path()} (kailangan: {$required})",
-                'warning',
+                $description,
+                $severity,
                 [
-                    'user_id'  => $denied['user_id'],
-                    'role'     => $denied['role'],
+                    'user_id'  => $denied['user_id'] ?? null,
+                    'role'     => $role,
                     'required' => $denied['required'] ?? [],
                     'method'   => $request->method(),
                     'path'     => '/' . ltrim($request->path(), '/'),
                     'ip'       => $request->ip(),
+                    'attempts' => $recent + 1,
                 ],
-                false,
-                $denied['user_id'],
+                $isRepeated,
+                $denied['user_id'] ?? null,
                 $user->email ?? null,
                 'security'
             );
         } catch (\Throwable $e) {
-            // Hindi dapat ma-block ang request dahil lang pumalya ang pag-log.
+            // A logging failure must never block the request.
             Log::error('SystemLogger failed (unauthorized_access): ' . $e->getMessage());
         }
 
-        // Iwas doble-log kung dalawang beses tinawag
+        // Avoid double logging if called twice.
         $request->attributes->remove('access_denied');
     }
 }

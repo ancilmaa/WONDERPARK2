@@ -241,18 +241,25 @@ class ReservationController extends Controller
         $nameChanged = $nameBefore !== $this->norm($fresh->customer_name);
 
         if ($newVals || $nameChanged) {
+            // Anomaly: package o pax ang binago pagkatapos mabayaran (puwedeng bumaba ang halaga)
+            $paidStates   = ['confirmed', 'paid', 'awaiting_verification', 'done'];
+            $afterPayment = (isset($newVals['package']) || isset($newVals['pax']))
+                && in_array($reservation->status, $paidStates, true);
+
             $this->audit(
                 'reservation_updated',
                 "Edited reservation #{$reservation->getKey()}: "
-                    . implode(', ', array_merge(array_keys($newVals), $nameChanged ? ['customer_name'] : [])),
-                'info',
+                    . implode(', ', array_merge(array_keys($newVals), $nameChanged ? ['customer_name'] : []))
+                    . ($afterPayment ? ' (package/pax changed after payment)' : ''),
+                $afterPayment ? 'warning' : 'info',
                 [
                     'booking_id'            => $reservation->getKey(),
                     'voucher_code'          => $reservation->voucher_code ?? null,
                     'old'                   => $oldVals,
                     'new'                   => $newVals,
                     'customer_name_changed' => $nameChanged,
-                ]
+                ],
+                $afterPayment
             );
         }
 
@@ -564,17 +571,21 @@ class ReservationController extends Controller
             'package'      => $reservation->package,
             'pax'          => $reservation->pax,
             'date'         => $this->norm($reservation->reservation_date),
+            'redeemed_transaction_id' => $reservation->redeemed_transaction_id ?? null,
         ];
+        $wasRedeemed = !empty($reservation->redeemed_transaction_id);
 
         $reservation->delete();
 
-        // LOG: reservation deleted. Elevated to critical when money was already
-        // paid or a usable voucher existed (confirmed/paid/awaiting_verification).
-        $hadMoney = in_array($old['status'], ['confirmed', 'paid', 'awaiting_verification'], true);
+        // LOG: na-delete ang reservation. Warning kapag may nabayaran na o
+        // may voucher na puwedeng gamitin (confirmed/paid/awaiting_verification).
+        $hadMoney = $wasRedeemed
+            || in_array($old['status'], ['confirmed', 'paid', 'awaiting_verification', 'done'], true);
 
         $this->audit(
             'reservation_deleted',
-            "Deleted reservation #{$old['booking_id']} (status: {$old['status']})",
+            "Deleted reservation #{$old['booking_id']} (status: {$old['status']})"
+                . ($wasRedeemed ? ' — voucher was already redeemed' : ''),
             $hadMoney ? 'critical' : 'warning',
             ['old' => $old],
             $hadMoney

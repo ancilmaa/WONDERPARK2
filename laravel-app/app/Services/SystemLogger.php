@@ -117,7 +117,7 @@ class SystemLogger
         if ($count >= $threshold && Cache::add("syslog:bruteforce:{$ip}", 1, now()->addMinutes($window))) {
             self::anomaly(
                 'brute_force_suspected',
-                "{$count} failed login attempts mula sa IP {$ip} sa loob ng {$window} minuto.",
+                "{$count} failed login attempts from IP {$ip} within {$window} minutes.",
                 'critical',
                 ['attempts' => $count, 'window_minutes' => $window],
                 null,
@@ -145,7 +145,7 @@ class SystemLogger
         if ($count >= $threshold && Cache::add("syslog:bulkdelete:{$userId}", 1, now()->addMinutes($window))) {
             self::anomaly(
                 'bulk_delete',
-                "{$count} records ang na-delete ng iisang user sa loob ng {$window} minuto (huling module: {$module}).",
+                "{$count} records deleted by the same user within {$window} minutes (last module: {$module}).",
                 'critical',
                 ['deleted' => $count, 'window_minutes' => $window],
                 $userId,

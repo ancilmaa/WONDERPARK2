@@ -1840,6 +1840,10 @@
                         <div class="nav-section">
                             <div class="nav-label">System</div>
 
+                            <a href="{{ route('my-account.index') }}" class="{{ request()->routeIs('my-account.*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-user-gear"></i> <span>Account</span>
+                            </a>
+
                             <a href="{{ route('system-logs.index') }}" class="{{ request()->routeIs('system-logs.*') ? 'active' : '' }}">
                                 <i class="fa-solid fa-shield-halved"></i> <span>System Logs</span>
                             </a>

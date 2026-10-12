@@ -22,7 +22,7 @@ class AuthEventSubscriber
 
         SystemLogger::record(
             'login_success',
-            "Matagumpay na login ni {$user->email}.",
+           "Successful login for {$user->email}.",
             'info',
             [],
             false,
@@ -33,7 +33,7 @@ class AuthEventSubscriber
         if ($newIp) {
             SystemLogger::anomaly(
                 'login_new_ip',
-                "Login ni {$user->email} mula sa bagong IP ({$ip}).",
+                "Login by {$user->email} from a new IP ({$ip}).",
                 'warning',
                 ['ip' => $ip],
                 $user->getAuthIdentifier(),
@@ -44,7 +44,7 @@ class AuthEventSubscriber
         if ($offHours) {
             SystemLogger::anomaly(
                 'login_off_hours',
-                "Login ni {$user->email} sa labas ng normal na oras (" . now()->format('h:i A') . ').',
+                "Login by {$user->email} outside normal hours (" . now()->format('h:i A') . ').',
                 'warning',
                 [],
                 $user->getAuthIdentifier(),
@@ -59,7 +59,7 @@ class AuthEventSubscriber
 
         SystemLogger::record(
             'login_failed',
-            'Bigong login attempt' . ($email ? " para sa {$email}." : '.'),
+           'Failed login attempt' . ($email ? " for {$email}." : '.'),
             'warning',
             [],
             false,
@@ -75,7 +75,7 @@ class AuthEventSubscriber
         if ($event->user) {
             SystemLogger::record(
                 'logout',
-                "Nag-logout si {$event->user->email}.",
+             "{$event->user->email} logged out.",
                 'info',
                 [],
                 false,
@@ -89,7 +89,7 @@ class AuthEventSubscriber
     {
         SystemLogger::anomaly(
             'password_reset',
-            "Na-reset ang password ni {$event->user->email}.",
+            "Password reset for {$event->user->email}.",
             'warning',
             [],
             $event->user->getAuthIdentifier(),
