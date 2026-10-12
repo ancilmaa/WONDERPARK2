@@ -120,7 +120,7 @@ html, body { margin: 0; padding: 0; }
     </div>
 
     <div class="waiver-footer">
-        <form method="POST" action="{{ route('user.waiver.store') }}">
+        <form method="POST" action="{{ !empty($bookingId) ? route('user.bookings.waiver.store', $bookingId) : route('user.waiver.store') }}">
             @csrf
 
             <div class="checkline">

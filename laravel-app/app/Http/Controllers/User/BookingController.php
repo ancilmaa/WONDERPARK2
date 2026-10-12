@@ -134,21 +134,62 @@ class BookingController extends Controller
      *
      * GET /user/bookings
      */
-    public function index()
+    public function index(Request $request)
     {
         if (!session()->has('user_id')) {
             return redirect('/login');
         }
 
-        $bookings = Booking::where('user_id', session('user_id'))
+        // Search (?q=...): matches package / attraction names, service,
+        // booking reference (WP-000027), date, status, pax and — only for
+        // approved bookings — the voucher code. Every word typed must match.
+        $q = trim((string) $request->query('q', ''));
+
+        $formatted = Booking::where('user_id', session('user_id'))
             ->where('status', '!=', 'cancelled')
             ->orderByDesc('visit_date')
-            ->paginate(5)
-            ->through(fn ($booking) => $this->formatBooking($booking));
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($booking) {
+                $row      = $this->formatBooking($booking);
+                $approved = in_array($booking->status, ['confirmed', 'done'], true);
+
+                $row['_hay'] = \Illuminate\Support\Str::lower(implode(' ', array_filter([
+                    $row['category'],
+                    $row['package'],
+                    $row['date'],
+                    $booking->visit_date->format('F j Y l'),
+                    'WP-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
+                    $row['status_label'],
+                    $row['pax'] . ' pax',
+                    $approved ? $booking->voucher_code : null,
+                    collect($booking->items ?? [])->pluck('name')->implode(' '),
+                    collect($booking->addons ?? [])->pluck('name')->implode(' '),
+                ])));
+
+                return $row;
+            });
+
+        if ($q !== '') {
+            $terms = preg_split('/\s+/', \Illuminate\Support\Str::lower($q));
+            $formatted = $formatted
+                ->filter(fn ($row) => collect($terms)->every(fn ($t) => str_contains($row['_hay'], $t)))
+                ->values();
+        }
+
+        $perPage = 5;
+        $page    = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
+            $formatted->forPage($page, $perPage)->values(),
+            $formatted->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $stats = $this->bookingStats(session('user_id'));
 
-        return view('user.bookings', compact('bookings', 'stats'));
+        return view('user.bookings', compact('bookings', 'stats', 'q'));
     }
 
     /**
@@ -500,6 +541,9 @@ class BookingController extends Controller
 
         return [
             'id'               => $booking->id,
+            'service'          => $booking->service,
+            'reference'        => 'WP-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
+            'time_label'       => $booking->visit_time ? Carbon::parse($booking->visit_time)->format('g:i A') : null,
             'category'         => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
             'package'          => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
             'date'             => $booking->visit_date->format('M j, Y'),

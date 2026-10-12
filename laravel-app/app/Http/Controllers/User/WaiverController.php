@@ -53,8 +53,16 @@ class WaiverController extends Controller
      *
      * GET /user/waiver
      */
-    public function show()
+    public function show($booking = null)
     {
+        // /app/bookings/{booking}/waiver -> load that booking (must be the
+        // logged-in customer's own) so the right waiver text is shown.
+        if ($booking !== null) {
+            $model = \App\Models\Booking::where('user_id', session('user_id'))->find((int) $booking);
+            abort_if(!$model, 404);
+            session(['booking_service' => $model->service, 'booking_id' => $model->id]);
+        }
+
         // Which service this booking was for (set in BookingController@store).
         // Defaults to Dino Adventure if, for whatever reason, nothing was
         // stored in session (e.g. the customer jumped straight to /user/waiver).
@@ -62,7 +70,9 @@ class WaiverController extends Controller
 
         $waiver = $this->waivers[$service] ?? $this->waivers['dino_adventure'];
 
-        return view('user.waiver', compact('waiver'));
+        $bookingId = session('booking_id');
+
+        return view('user.waiver', compact('waiver', 'bookingId'));
     }
 
     /**
@@ -70,7 +80,7 @@ class WaiverController extends Controller
      *
      * POST /user/waiver
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, $booking = null): RedirectResponse
     {
         $validated = $request->validate([
             'agree' => ['required', 'accepted'],
@@ -90,12 +100,13 @@ class WaiverController extends Controller
         // BookingController@store; if it's somehow missing (e.g. the waiver
         // was reached directly without going through the booking flow first),
         // fall back to the bookings list instead of crashing on route().
-        $bookingId = session('booking_id');
+        $bookingId = $booking ?? session('booking_id');
 
+        // Waiver signed -> back to the booking wizard, opened on the voucher step.
         if ($bookingId) {
             return redirect()
-                ->route('user.bookings.receipt', $bookingId)
-                ->with('success', 'Waiver signed. Your booking is waiting for approval — we\'ll confirm it once your payment is verified.');
+                ->route('user.booking', ['booking' => $bookingId])
+                ->with('success', 'Waiver signed! Your payment is now in review.');
         }
 
         return redirect()

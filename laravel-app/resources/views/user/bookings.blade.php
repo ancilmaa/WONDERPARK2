@@ -17,6 +17,81 @@
 @section('page-subtitle', 'Manage your reservations')
 @section('body-class', 'page-uniform')
 
+@push('styles')
+<style>
+/* My Bookings — same look as the booking wizard's voucher ticket */
+.mt-wrap{ --mt-surface:#fff; --mt-soft:#FBF8FB; --mt-text:var(--ink); --mt-sub:var(--ink-soft); --mt-line:var(--line); }
+[data-theme="dark"] .mt-wrap{ --mt-surface:var(--d-surface); --mt-soft:var(--d-surface-soft); --mt-text:var(--d-text); --mt-sub:var(--d-text-soft); --mt-line:var(--d-border); }
+.mt-hero{ margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:22px 24px; border-radius:24px; color:#fff;
+  background:linear-gradient(135deg,var(--pink-deep),#F2762E); box-shadow:var(--shadow-pop); }
+.mt-hero small{ opacity:.88; font-weight:800; letter-spacing:.1em; font-size:11px; }
+.mt-hero h2{ margin:4px 0 2px; font-size:26px; font-weight:800; letter-spacing:-.01em; color:#fff; }
+.mt-hero p{ margin:0; font-size:13.5px; opacity:.92; color:#fff; }
+.mt-btn{ border:none; cursor:pointer; border-radius:14px; padding:11px 18px; font-weight:800; font-size:13px; font-family:inherit; text-decoration:none; display:inline-block; text-align:center;
+  white-space:nowrap; transition:all .18s var(--ease); }
+.mt-btn:hover{ transform:translateY(-2px); }
+.mt-btn.go{ background:linear-gradient(135deg,var(--pink-deep),#F2762E); color:#fff; box-shadow:0 10px 20px -10px rgba(184,40,80,.7); }
+.mt-btn.white{ background:#fff; color:var(--pink-deep); box-shadow:0 10px 20px -12px rgba(0,0,0,.5); }
+.mt-btn.ghost{ background:var(--mt-soft); color:var(--mt-text); border:2px solid var(--mt-line); }
+.mt-btn.ghost:hover{ border-color:var(--pink-deep); color:var(--pink-deep); }
+.mt-btn.danger{ background:transparent; color:var(--rose-deep); border:2px solid var(--rose-deep); }
+.mt-search{ margin-top:20px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.mt-search input{ flex:1; min-width:220px; padding:13px 18px; font-size:13.5px; font-family:inherit; border-radius:999px; border:2px solid var(--mt-line); background:var(--mt-surface); color:var(--mt-text); outline:none; transition:border-color .18s; }
+.mt-search input:focus{ border-color:var(--pink-deep); box-shadow:0 0 0 3px var(--pink-light); }
+.mt-meta{ margin:10px 4px 0; font-size:12.5px; color:var(--mt-sub); }
+.mt-list{ margin-top:16px; display:flex; flex-direction:column; gap:18px; }
+.mt-ticket{ position:relative; background:var(--mt-surface); color:var(--mt-text); border-radius:24px; border:1px solid var(--mt-line); box-shadow:var(--shadow-card); overflow:hidden; transition:transform .25s var(--ease), box-shadow .25s var(--ease); }
+.mt-ticket:hover{ transform:translateY(-3px); box-shadow:var(--shadow-pop); }
+.mt-top{ padding:18px 22px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; background:linear-gradient(135deg,var(--pink-deep),#F2762E); color:#fff; }
+.mt-top small{ opacity:.9; font-weight:800; letter-spacing:.08em; font-size:11px; text-transform:uppercase; }
+.mt-top h3{ margin:4px 0 0; font-size:21px; color:#fff; }
+.mt-when{ opacity:.92; font-size:13px; margin-top:4px; }
+.mt-pill{ display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:999px; font-weight:800; font-size:12.5px; background:var(--amber-pale); color:var(--amber-deep); }
+.mt-pill::before{ content:""; width:9px; height:9px; border-radius:50%; background:currentColor; animation:mtPulse 1.4s ease-in-out infinite; }
+.mt-pill.ok{ background:var(--teal-pale); color:var(--teal-deep); }
+.mt-pill.ok::before{ animation:none; }
+.mt-pill.bad{ background:var(--rose-pale); color:var(--rose-deep); }
+@keyframes mtPulse{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:.45; transform:scale(.7);} }
+.mt-mid{ padding:14px 22px 16px; font-size:13.5px; }
+.mt-row{ display:flex; justify-content:space-between; gap:12px; padding:4px 0; }
+.mt-row small{ display:block; color:var(--mt-sub); font-size:11.5px; }
+.mt-row.sum{ border-top:2px dashed var(--mt-line); margin-top:8px; padding-top:10px; font-size:17px; font-weight:800; }
+.mt-row.sum span:last-child{ color:var(--pink-deep); }
+.mt-perf{ position:relative; border-top:3px dotted var(--mt-line); margin:0 18px; }
+.mt-perf::before,.mt-perf::after{ content:""; position:absolute; top:-15px; width:26px; height:26px; border-radius:50%; background:var(--bg); }
+.mt-perf::before{ left:-31px; } .mt-perf::after{ right:-31px; }
+[data-theme="dark"] .mt-perf::before,[data-theme="dark"] .mt-perf::after{ background:var(--d-bg); }
+.mt-bot{ padding:16px 22px 20px; display:flex; gap:20px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+.mt-voucher{ min-width:220px; }
+.mt-vlabel{ font-size:11px; font-weight:800; letter-spacing:.12em; color:var(--mt-sub); }
+.mt-vwrap{ position:relative; display:inline-flex; align-items:center; gap:10px; margin-top:6px; }
+.mt-vcode{ font-family:'Courier New',monospace; font-size:22px; font-weight:800; letter-spacing:.18em; padding:8px 14px; border-radius:12px; background:var(--gold-pale); color:#6b3b00; user-select:all; }
+[data-theme="dark"] .mt-vcode{ background:rgba(255,201,72,.12); color:#FFD98A; }
+.mt-vcode.lock{ filter:blur(6px); user-select:none; pointer-events:none; }
+.mt-lock{ position:absolute; left:0; top:6px; width:100%; height:calc(100% - 0px); display:grid; place-items:center; font-size:22px; pointer-events:none; }
+.mt-copy{ border:none; cursor:pointer; border-radius:999px; padding:7px 14px; font-weight:800; font-size:12px; background:var(--teal-pale); color:var(--teal-deep); font-family:inherit; }
+.mt-vnote{ display:block; margin-top:6px; font-size:11.5px; color:var(--mt-sub); }
+.mt-line{ display:flex; align-items:flex-start; justify-content:center; margin:14px 0 2px; }
+.mt-line div{ flex:1; text-align:center; font-size:11.5px; font-weight:700; color:var(--mt-sub); position:relative; }
+.mt-line div::before{ content:""; display:block; width:16px; height:16px; margin:0 auto 6px; border-radius:50%; background:var(--mt-line); position:relative; z-index:1; }
+.mt-line div::after{ content:""; position:absolute; top:7px; left:-50%; width:100%; height:3px; background:var(--mt-line); }
+.mt-line div:first-child::after{ display:none; }
+.mt-line div.on{ color:var(--mt-text); }
+.mt-line div.on::before,.mt-line div.on::after{ background:var(--teal); }
+.mt-line div.cur::before{ background:var(--gold); animation:mtPulse 1.4s ease-in-out infinite; }
+.mt-actions{ display:flex; flex-direction:column; gap:8px; min-width:230px; flex:0 1 300px; }
+.mt-actions p{ margin:0; font-size:12px; line-height:1.5; color:var(--mt-sub); }
+.mt-actions p.err{ color:var(--rose-deep); }
+.mt-actions .mt-pair{ display:flex; gap:8px; }
+.mt-actions .mt-pair > *{ flex:1; }
+.mt-actions .mt-pair form{ display:block; }
+.mt-actions .mt-pair form .mt-btn{ width:100%; }
+.mt-empty{ text-align:center; padding:34px 20px; border-radius:24px; border:2px dashed var(--mt-line); background:var(--mt-surface); color:var(--mt-sub); font-size:14px; }
+.mt-empty b{ display:block; font-size:40px; margin-bottom:6px; }
+.mt-wrap .pg-btn.active{ background:var(--pink-deep); border-color:var(--pink-deep); color:#fff; }
+</style>
+@endpush
+
 @section('content')
 
     @if (isset($stats) && $stats['total_visits'] > 0)
@@ -26,16 +101,13 @@
         </div>
     @endif
 
-    <div class="u-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div class="mt-hero">
         <div>
-            <h4 style="margin:0 0 4px;">My Bookings</h4>
-            <p style="margin:0;">Manage upcoming &amp; past visits</p>
+            <small>&#127903;&#65039; MANAGE YOUR VISITS</small>
+            <h2>My Bookings</h2>
+            <p>Upcoming &amp; past visits</p>
         </div>
-        <a href="{{ route('user.booking') }}"
-           class="u-btn ghost"
-           style="width:auto;padding:9px 16px;font-size:12px;white-space:nowrap;">
-            + New Booking
-        </a>
+        <a href="{{ route('user.booking') }}" class="mt-btn white">+ New Booking &#127905;</a>
     </div>
 
     @if (isset($stats) && $stats['total_visits'] > 0)
@@ -85,104 +157,126 @@
         </div>
     @endif
 
-    <div id="bookingsPanel" class="mb-panel">
-    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
+    <div id="bookingsPanel" class="mb-panel mt-wrap">
+
+    {{-- Search my bookings --}}
+    <form method="GET" action="{{ route('user.bookings') }}" role="search" class="mt-search">
+        <input type="search" name="q" value="{{ $q ?? '' }}"
+               placeholder="&#128269; Search bookings — package, date, status, WP-000027, voucher code…"
+               aria-label="Search bookings" autocomplete="off">
+        <button type="submit" class="mt-btn go">Search</button>
+        @if (!empty($q))
+            <a href="{{ route('user.bookings') }}" class="mt-btn ghost">Clear</a>
+        @endif
+    </form>
+    @if (!empty($q))
+        <p class="mt-meta">
+            {{ $bookings->total() }} result{{ $bookings->total() === 1 ? '' : 's' }} for &ldquo;{{ $q }}&rdquo;
+        </p>
+    @endif
+
+    <div class="mt-list">
         @forelse ($bookings as $booking)
-            <div class="mb-row u-card" style="margin-top:0;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;padding:18px 20px;">
-                <div style="flex:1;min-width:220px;">
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
-                        <span style="font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);">{{ $booking['category'] }}</span>
-                        <span class="tag {{ $booking['status_class'] }}" style="white-space:nowrap;">{{ $booking['status_label'] }}</span>
+            @php
+                $approved = in_array($booking['status'], ['confirmed', 'done'], true);
+                $inReview = $booking['status'] === 'awaiting_verification';
+                $pending  = $booking['status'] === 'pending_payment';
+                $rejected = $pending && !empty($booking['rejection_reason']);
+                $pillCls  = $approved ? 'ok' : ($rejected ? 'bad' : '');
+                $emoji    = ['dino_adventure' => '🦖', 'rollerfever' => '🛼', 'field_of_rides' => '🎡'][$booking['service']] ?? '🎟️';
+                $guests   = $booking['pax'] . ' ' . ((int) $booking['pax'] === 1 ? 'guest' : 'guests');
+                $hasCode  = $approved && !empty($booking['voucher_code']);
+            @endphp
+            <article class="mt-ticket">
+                <div class="mt-top">
+                    <div>
+                        <small>{{ $emoji }} {{ $booking['category'] }}</small>
+                        <h3>{{ $booking['reference'] }}</h3>
+                        <div class="mt-when">📅 {{ $booking['date'] }}{{ $booking['time_label'] ? ' · ' . $booking['time_label'] : '' }} · {{ $guests }}</div>
                     </div>
-                    <h4 style="margin:0 0 4px;">{{ $booking['package'] }}</h4>
-                    <p style="margin:0;font-size:13px;color:var(--muted);">{{ $booking['date'] }} &middot; {{ $booking['pax'] }} pax</p>
+                    <span class="mt-pill {{ $pillCls }}">{{ $booking['status_label'] }}</span>
+                </div>
 
-                    @if ($booking['status_class'] === 'green' && !empty($booking['voucher_code']))
-                        <div style="margin-top:10px;background:var(--bg,#F8FAFC);border-radius:10px;padding:8px 12px;display:inline-block;">
-                            <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:6px;">Voucher Code</span>
-                            <span style="font-family:monospace;font-size:13px;font-weight:700;letter-spacing:.5px;">{{ $booking['voucher_code'] }}</span>
+                <div class="mt-mid">
+                    <div class="mt-row"><span>{{ $booking['package'] }}<small>{{ $guests }}</small></span></div>
+                    <div class="mt-row sum"><span>Total</span><span>{{ $booking['price'] }}</span></div>
+                    @if ($inReview || $approved)
+                        <div class="mt-line">
+                            <div class="on">Submitted</div>
+                            <div class="{{ $approved ? 'on' : 'on cur' }}">In review</div>
+                            <div class="{{ $approved ? 'on' : '' }}">Approved</div>
                         </div>
                     @endif
                 </div>
 
-                <div class="mb-actions" style="min-width:150px;">
-                    @if (in_array($booking['status'], ['confirmed', 'done'], true))
-                        {{-- Approved by the admin: schedule is locked, no more reschedule/cancel --}}
-                        <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--muted);text-align:center;">
-                            @if ($booking['status'] === 'confirmed')
-                                Approved &middot; rescheduling is no longer available
-                            @else
-                                Voucher already used
-                            @endif
-                        </p>
-                    @elseif ($booking['status'] === 'awaiting_verification')
-                        {{-- Proof sent: waiting for the admin. Can still reschedule or cancel until approved. --}}
-                        <div style="display:flex;flex-direction:column;gap:8px;">
-                            <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--muted);">
-                                We're checking your payment. You can still reschedule until it's approved.
+                <div class="mt-perf"></div>
+
+                <div class="mt-bot">
+                    <div class="mt-voucher">
+                        <div class="mt-vlabel">YOUR VOUCHER CODE</div>
+                        @if ($hasCode)
+                            <div class="mt-vwrap">
+                                <span class="mt-vcode">{{ $booking['voucher_code'] }}</span>
+                                <button type="button" class="mt-copy" data-code="{{ $booking['voucher_code'] }}">Copy</button>
+                            </div>
+                        @else
+                            {{-- decorative placeholder only — the real code is never sent until approved --}}
+                            <div class="mt-vwrap">
+                                <span class="mt-vcode lock" aria-hidden="true">{{ strtoupper(\Illuminate\Support\Str::random(8)) }}</span>
+                                <span class="mt-lock">🔒</span>
+                            </div>
+                            <span class="mt-vnote">Unlocks once your payment is approved</span>
+                        @endif
+                    </div>
+
+                    <div class="mt-actions">
+                        @if ($approved)
+                            <p>
+                                @if ($booking['status'] === 'confirmed')
+                                    Approved &middot; rescheduling is no longer available
+                                @else
+                                    Voucher already used
+                                @endif
                             </p>
-                            <div style="display:flex;gap:8px;">
-                                <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}"
-                                   class="u-btn ghost"
-                                   style="flex:1;padding:8px 6px;font-size:11px;font-weight:600;text-align:center;">
-                                    Reschedule
-                                </a>
-
-                                <form method="POST"
-                                      action="{{ route('user.bookings.cancel', $booking['id']) }}"
-                                      style="flex:1;"
+                            <a href="{{ route('user.bookings.receipt', $booking['id']) }}" class="mt-btn ghost">View receipt</a>
+                        @elseif ($inReview)
+                            <p>We're checking your payment. You can still reschedule until it's approved.</p>
+                            <div class="mt-pair">
+                                <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}" class="mt-btn ghost">Reschedule</a>
+                                <form method="POST" action="{{ route('user.bookings.cancel', $booking['id']) }}"
                                       onsubmit="return confirm('Cancel this booking?');">
                                     @csrf
-                                    <button type="submit"
-                                            class="u-btn ghost"
-                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#B3203F;border-color:#B3203F;">
-                                        Cancel
-                                    </button>
+                                    <button type="submit" class="mt-btn danger">Cancel</button>
                                 </form>
                             </div>
-                        </div>
-                    @elseif ($booking['status'] === 'pending_payment')
-                        <div style="display:flex;flex-direction:column;gap:8px;">
-
-                            @if (!empty($booking['rejection_reason']))
-                                <p style="margin:0;font-size:11.5px;line-height:1.5;color:#B3203F;">
-                                    Your payment proof was not accepted: {{ $booking['rejection_reason'] }}. Please upload a new proof.
-                                </p>
+                        @elseif ($pending)
+                            @if ($rejected)
+                                <p class="err">Your payment proof was not accepted: {{ $booking['rejection_reason'] }}. Please upload a new proof.</p>
                             @endif
-
-                            <a href="{{ route('user.bookings.review', $booking['id']) }}"
-                               class="u-btn"
-                               style="width:100%;padding:10px;font-size:12px;font-weight:600;text-align:center;">
-                                {{ !empty($booking['rejection_reason']) ? 'Upload New Proof' : 'Review Booking' }}
+                            <a href="{{ route('user.bookings.review', $booking['id']) }}" class="mt-btn go">
+                                {{ $rejected ? 'Upload New Proof' : 'Review Booking' }}
                             </a>
-
-                            <div style="display:flex;gap:8px;">
-                                <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}"
-                                   class="u-btn ghost"
-                                   style="flex:1;padding:8px 6px;font-size:11px;font-weight:600;text-align:center;">
-                                    Reschedule
-                                </a>
-
-                                <form method="POST"
-                                      action="{{ route('user.bookings.cancel', $booking['id']) }}"
-                                      style="flex:1;"
+                            <div class="mt-pair">
+                                <a href="{{ route('user.bookings.reschedule.edit', $booking['id']) }}" class="mt-btn ghost">Reschedule</a>
+                                <form method="POST" action="{{ route('user.bookings.cancel', $booking['id']) }}"
                                       onsubmit="return confirm('Cancel this booking?');">
                                     @csrf
-                                    <button type="submit"
-                                            class="u-btn ghost"
-                                            style="width:100%;padding:8px 6px;font-size:11px;font-weight:600;color:#B3203F;border-color:#B3203F;">
-                                        Cancel
-                                    </button>
+                                    <button type="submit" class="mt-btn danger">Cancel</button>
                                 </form>
                             </div>
-
-                        </div>
-                    @endif
+                        @endif
+                    </div>
                 </div>
-            </div>
+            </article>
         @empty
-            <div class="u-card" style="margin-top:0;text-align:center;padding:24px 20px;font-size:13px;color:var(--muted);">
-                You don't have any bookings yet.
+            <div class="mt-empty">
+                @if (!empty($q))
+                    <b>&#128269;</b>
+                    No bookings match &ldquo;{{ $q }}&rdquo;. Try a package name, date or status.
+                @else
+                    <b>&#127905;</b>
+                    You don't have any bookings yet.
+                @endif
             </div>
         @endforelse
     </div>
@@ -309,3 +403,15 @@
     </script>
     @endpush
 @endif
+
+@push('scripts')
+<script>
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('.mt-copy');
+        if (!b) return;
+        if (navigator.clipboard) navigator.clipboard.writeText(b.getAttribute('data-code'));
+        b.textContent = 'Copied \u2713';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1600);
+    });
+</script>
+@endpush
