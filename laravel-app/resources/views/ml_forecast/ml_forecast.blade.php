@@ -234,7 +234,7 @@
 
   {{-- CATEGORY --}}
   <div id="tab-category" class="tab-pane">
-    <div class="info-note"><strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, F&amp;B) and by individual category — never combined into one bucket. Percentages are share of total store-wide revenue. <strong>Click any category row</strong> to see which products generated its revenue.</div>
+    <div class="info-note"><strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, Food and Beverage) and by individual category — never combined into one bucket. Percentages are share of total store-wide revenue. <strong>Click any category row</strong> to see which products generated its revenue.</div>
     <div id="categoryByType" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
 
     <div class="fc-grid-2" style="margin-top:24px">

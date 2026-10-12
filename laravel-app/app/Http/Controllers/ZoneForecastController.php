@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
+
 class ZoneForecastController extends Controller
 {
     private const ZONES = ['Roller Fever', 'Field of Rides', 'Dino Adventure'];
@@ -16,7 +17,7 @@ private const ZONE_SERVICES = [
     'Field of Rides' => ['field_of_rides'],
     'Dino Adventure' => ['dino_adventure'],
 ];
-    public function index($zone)
+    public function index(string $zone)
     {
         $zone = $this->resolveZone($zone);
 
@@ -24,13 +25,13 @@ private const ZONE_SERVICES = [
             'zone' => $zone,
         ]);
     }
-public function voucherSummary(Request $request, $zone)
+public function voucherSummary(Request $request, string $zone)
 {
     $zone = $this->resolveZone($zone);
     return response()->json($this->voucherData($request, self::ZONE_SERVICES[$zone] ?? []));
 }
 
-    public function summary(Request $request, $zone)
+    public function summary(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -73,7 +74,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function topProducts(Request $request, $zone)
+    public function topProducts(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -121,7 +122,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function paymentBreakdown(Request $request, $zone)
+    public function paymentBreakdown(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -146,7 +147,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function categoryBreakdown(Request $request, $zone)
+    public function categoryBreakdown(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
         [$dateSql, $dateBindings] = $this->buildDateFilter($request);
@@ -233,7 +234,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function dayOfWeek(Request $request, $zone)
+    public function dayOfWeek(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
 
@@ -276,7 +277,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function hourlyPeaks(Request $request, $zone)
+    public function hourlyPeaks(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
 
@@ -350,22 +351,22 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function nextMonthForecast(Request $request, $zone)
+    public function nextMonthForecast(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
 
-        $rows = DB::select("
+       $rows = DB::select("
             SELECT p.product_id, p.product_name, c.category_name,
-                   DATE(st.created_at) AS sale_date,
-                   SUM(ti.quantity)    AS daily_qty
+                DATE(st.created_at) AS sale_date,
+                SUM(ti.quantity)    AS daily_qty
             FROM transaction_items ti
             JOIN sales_transactions st ON ti.transaction_id = st.transaction_id
             JOIN products p ON ti.product_id = p.product_id
             JOIN categories c ON c.category_id = p.category_id
             WHERE st.transaction_status = 'Completed'
-              AND c.zone = ?
-              AND st.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-            GROUP BY p.product_id, DATE(st.created_at)
+            AND c.zone = ?
+            AND st.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+            GROUP BY p.product_id, p.product_name, c.category_name, DATE(st.created_at)
             ORDER BY p.product_id, sale_date
         ", [$zone]);
 
@@ -395,10 +396,9 @@ public function voucherSummary(Request $request, $zone)
 
             $X = [];
             $Y = $g['qty'];
-            foreach ($g['dates'] as $i => $d) {
-                $X[] = Carbon::parse($d)->diffInDays($minDate);
+            foreach ($g['dates'] as $d) {
+                $X[] = (int) $minDate->diffInDays(Carbon::parse($d));
             }
-
             if (count($X) < 3) continue;
 
             [$slope, $intercept] = $this->linearRegression($X, $Y);
@@ -440,7 +440,7 @@ public function voucherSummary(Request $request, $zone)
         ]);
     }
 
-    public function monthlyTrend(Request $request, $zone)
+    public function monthlyTrend(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
 
@@ -469,7 +469,7 @@ public function voucherSummary(Request $request, $zone)
      * Generates and downloads a PDF report for this zone, scoped to the
      * currently selected date_from / date_to / payment_method filters.
      */
-    public function downloadReport(Request $request, $zone)
+    public function downloadReport(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
         $dateFrom = $request->query('date_from');
@@ -496,7 +496,7 @@ public function voucherSummary(Request $request, $zone)
 
     /* ── Helpers ───────────────────────────────────────────── */
 
-    private function resolveZone($zone): string
+    private function resolveZone(string $zone): string
     {
         $zone = urldecode($zone);
 

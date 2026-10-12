@@ -134,8 +134,11 @@ Route::middleware('auth.session')->group(function () {
 
         Route::get('/booking', [UserBookingController::class, 'create'])->name('booking');
         Route::post('/booking', [UserBookingController::class, 'store'])->name('booking.store');
+        Route::post('/booking/submit', [UserBookingController::class, 'submit'])->name('booking.submit');
+        Route::get('/booking/{booking}/status', [UserBookingController::class, 'status'])->name('booking.status');
 
         Route::get('/my-bookings', [UserBookingController::class, 'index'])->name('bookings');
+        Route::get('/activity', [\App\Http\Controllers\User\ActivityLogController::class, 'index'])->name('activity');
 
         Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{booking}/reschedule', [UserBookingController::class, 'reschedule'])->name('bookings.reschedule');

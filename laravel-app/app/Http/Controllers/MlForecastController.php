@@ -301,18 +301,18 @@ class MlForecastController extends Controller
 
     public function nextMonthForecast()
     {
-        $rows = DB::select("
-            SELECT p.product_id, p.product_name, p.category_name,
-                   DATE(st.created_at) AS sale_date,
-                   SUM(ti.quantity)    AS daily_qty
-            FROM transaction_items ti
-            JOIN sales_transactions st ON ti.transaction_id = st.transaction_id
-            JOIN products p ON ti.product_id = p.product_id
-            WHERE st.transaction_status = 'Completed'
-              AND st.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-            GROUP BY p.product_id, DATE(st.created_at)
-            ORDER BY p.product_id, sale_date
-        ");
+       $rows = DB::select("
+    SELECT p.product_id, p.product_name, p.category_name,
+           DATE(st.created_at) AS sale_date,
+           SUM(ti.quantity)    AS daily_qty
+    FROM transaction_items ti
+    JOIN sales_transactions st ON ti.transaction_id = st.transaction_id
+    JOIN products p ON ti.product_id = p.product_id
+    WHERE st.transaction_status = 'Completed'
+      AND st.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+    GROUP BY p.product_id, p.product_name, p.category_name, DATE(st.created_at)
+    ORDER BY p.product_id, sale_date
+");
 
         if (empty($rows)) {
             return response()->json([
@@ -338,11 +338,11 @@ class MlForecastController extends Controller
             sort($dates);
             $minDate = Carbon::parse($dates[0]);
 
-            $X = [];
-            $Y = $g['qty'];
-            foreach ($g['dates'] as $i => $d) {
-                $X[] = Carbon::parse($d)->diffInDays($minDate);
-            }
+           $X = [];
+        $Y = $g['qty'];
+        foreach ($g['dates'] as $d) {
+            $X[] = (int) $minDate->diffInDays(Carbon::parse($d));
+        }
 
             if (count($X) < 3) continue;
 
