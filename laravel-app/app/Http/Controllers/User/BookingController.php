@@ -297,10 +297,15 @@ class BookingController extends Controller
         return view('user.booking-receipt', [
             'booking' => [
                 'id'             => $bookingModel->id,
+                'service'        => $bookingModel->service,
+                'reference'      => 'WP-' . str_pad((string) $bookingModel->id, 6, '0', STR_PAD_LEFT),
+                'items'          => $bookingModel->items ?? [],
+                'addons'         => $bookingModel->addons ?? [],
+                'discount'       => (float) $bookingModel->discount_total,
                 'service_name'   => $service['name'] ?? ucfirst(str_replace('_', ' ', $bookingModel->service)),
                 'package_name'   => $package['name'] ?? $bookingModel->package,
                 'date'           => $bookingModel->visit_date->format('M j, Y'),
-                'time'           => $bookingModel->visit_time,
+                'time'           => $bookingModel->visit_time ? Carbon::parse($bookingModel->visit_time)->format('g:i A') : null,
                 'pax'            => $bookingModel->tier,
                 'price'          => '₱' . number_format((float) $bookingModel->price, 2),
                 'payment_method' => strtoupper($bookingModel->payment_method ?? ''),

@@ -15,6 +15,7 @@
 @section('title', 'My Bookings')
 @section('page-title', 'My Bookings')
 @section('page-subtitle', 'Manage your reservations')
+@section('hide-page-title', '1')
 @section('body-class', 'page-uniform')
 
 @push('styles')
