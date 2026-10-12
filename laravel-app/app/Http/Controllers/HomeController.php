@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers;
+
 class HomeController extends Controller
 {
     public function index()
@@ -8,8 +10,14 @@ class HomeController extends Controller
             return redirect('/login');
         }
 
-        if (session('role') === 'customer') {
+        $role = strtolower((string) session('role'));
+
+        if ($role === 'customer') {
             return redirect()->route('user.dashboard');
+        }
+
+        if ($role === 'cashier') {
+            return redirect('/inventory');
         }
 
         return view('index');

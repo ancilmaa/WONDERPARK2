@@ -11,8 +11,63 @@
 @section('title', 'Account')
 @section('page-title', 'Account & Profile')
 @section('page-subtitle', 'Manage your WonderPark account')
+@section('hide-page-title', '1')
 
 @section('body-class', 'page-uniform')
+
+@push('styles')
+<style>
+    /* ===== Page hero (identical on every page) ===== */
+    .pg-hero{
+        --pg-a:var(--pink-deep); --pg-b:#F2762E;
+        position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
+        margin:0 0 18px; padding:28px 30px; border-radius:26px; color:#fff; font-family:inherit;
+        background:linear-gradient(135deg,var(--pg-a) 0%,var(--pg-b) 100%);
+        border:1px solid rgba(255,255,255,.18);
+        box-shadow:0 18px 40px -22px var(--pg-a);
+    }
+    [data-theme="dark"] .pg-hero{ --pg-a:#8E2347; --pg-b:#B5501C; }
+    .pg-hero::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.55;
+        background-image:radial-gradient(rgba(255,255,255,.22) 1.4px, transparent 1.6px); background-size:18px 18px;
+        -webkit-mask-image:linear-gradient(115deg, transparent 20%, #000 100%); mask-image:linear-gradient(115deg, transparent 20%, #000 100%); }
+    .pg-hero::after{ content:""; position:absolute; right:-70px; top:-90px; width:260px; height:260px; border-radius:50%;
+        background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), rgba(255,255,255,0) 70%); pointer-events:none; }
+    .pg-hero-glow{ position:absolute; left:-60px; bottom:-110px; width:240px; height:240px; border-radius:50%;
+        background:radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); pointer-events:none; }
+    .pg-deco{ position:absolute; z-index:0; pointer-events:none; user-select:none; line-height:1;
+        filter:drop-shadow(0 6px 10px rgba(0,0,0,.18)); animation:pgFloat 6s ease-in-out infinite; }
+    .pg-deco.d1{ right:32%; top:14px;    font-size:26px; opacity:.45; animation-delay:0s; }
+    .pg-deco.d2{ right:20%; bottom:10px; font-size:34px; opacity:.4;  animation-delay:1.2s; }
+    .pg-deco.d3{ right:44%; bottom:14px; font-size:22px; opacity:.35; animation-delay:2.4s; }
+    @keyframes pgFloat{ 0%,100%{ transform:translateY(0) rotate(-6deg);} 50%{ transform:translateY(-8px) rotate(6deg);} }
+    .pg-hero-text{ position:relative; z-index:1; min-width:0; }
+    .pg-hero-badge{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff;
+        font-weight:800; letter-spacing:.1em; font-size:11px; text-transform:uppercase; backdrop-filter:blur(4px); }
+    .pg-hero h2{ margin:10px 0 4px; font-family:inherit; font-size:30px; font-weight:800; letter-spacing:-.01em; line-height:1.2; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.18); }
+    .pg-hero p{ margin:0; font-family:inherit; font-size:14px; color:rgba(255,255,255,.9); }
+    @media (max-width:720px){
+        .pg-hero{ padding:22px 20px; }
+        .pg-hero h2{ font-size:26px; }
+        .pg-deco.d1{ right:8%; } .pg-deco.d2{ right:4%; } .pg-deco.d3{ display:none; }
+    }
+    /* ===== Theme toggle inside hero ===== */
+    .pg-theme-toggle{
+      position:absolute; z-index:2; top:50%; right:22px; transform:translateY(-50%);
+      width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+      border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.16); color:#fff;
+      font-size:20px; line-height:1; cursor:pointer; backdrop-filter:blur(4px); padding:0;
+      transition:background .2s, transform .2s;
+    }
+    .pg-theme-toggle:hover{ background:rgba(255,255,255,.28); transform:translateY(-50%) scale(1.08); }
+    .pg-theme-toggle:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
+    @media (max-width:720px){
+      .pg-theme-toggle{ top:18px; right:16px; transform:none; width:40px; height:40px; font-size:18px; }
+      .pg-theme-toggle:hover{ transform:scale(1.08); }
+      .pg-hero-text{ padding-right:52px; }
+    }
+    @media (prefers-reduced-motion:reduce){ .pg-deco{ animation:none; } }
+</style>
+@endpush
 
 @section('content')
 
@@ -33,7 +88,25 @@
         $memberSince = optional($user->created_at)->format('M Y');
     @endphp
 
-    {{-- Gradient hero banner --}}
+    {{-- ================= PAGE HERO ================= --}}
+    <div class="pg-hero">
+        <span class="pg-hero-glow" aria-hidden="true"></span>
+        <span class="pg-deco d1" aria-hidden="true">✨</span>
+        <span class="pg-deco d2" aria-hidden="true">🎡</span>
+        <span class="pg-deco d3" aria-hidden="true">🎟️</span>
+
+        <div class="pg-hero-text">
+            <span class="pg-hero-badge">👤 YOUR PROFILE</span>
+            <h2>Account &amp; Profile</h2>
+            <p>Manage your WonderPark account</p>
+        </div>
+
+        <button type="button" class="pg-theme-toggle" id="pgThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <span class="pg-tt-ico" aria-hidden="true">🌙</span>
+        </button>
+    </div>
+
+    {{-- Profile banner (avatar + stats) --}}
     <div class="ap-hero">
         @if ($isVerified)
             <span class="ap-hero-chip">
@@ -290,5 +363,40 @@
         };
         reader.readAsDataURL(file);
     });
+</script>
+@endpush
+
+@push('scripts')
+<script>
+(function () {
+    var btn = document.getElementById('pgThemeToggle');
+    if (!btn) return;
+    var ico = btn.querySelector('.pg-tt-ico');
+    var OLD = '#themeToggle, #theme-toggle, #darkModeToggle, .theme-toggle, .theme-switch, [data-theme-toggle]';
+
+    function themeEl() { return document.querySelector('[data-theme]') || document.documentElement; }
+    function isDark()  { return themeEl().getAttribute('data-theme') === 'dark'; }
+    function paint()   { ico.textContent = isDark() ? '\u2600\uFE0F' : '\uD83C\uDF19'; }
+
+    // Hide the old floating toggle (kept in the DOM so it can still be clicked)
+    document.querySelectorAll(OLD).forEach(function (el) {
+        if (el !== btn) el.style.display = 'none';
+    });
+
+    btn.addEventListener('click', function () {
+        var old = document.querySelector(OLD);
+        if (old && old !== btn) {
+            old.click();
+        } else {
+            var next = isDark() ? 'light' : 'dark';
+            themeEl().setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', next); } catch (e) {}
+        }
+        setTimeout(paint, 50);
+    });
+
+    new MutationObserver(paint).observe(themeEl(), { attributes: true, attributeFilter: ['data-theme'] });
+    paint();
+})();
 </script>
 @endpush

@@ -30,7 +30,7 @@ use App\Http\Controllers\Admin\SystemLogController;
 |--------------------------------------------------------------------------
 | ROLES
 |   customer = online customer
-|   cashier  = POS
+|   cashier  = POS (inventory: view only)
 |   tl       = team leader
 |   manager  = manager
 |   admin    = admin
@@ -163,6 +163,10 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
 
     Route::get('/home', [HomeController::class, 'index']);
 
+    // Inventory — VIEW ONLY page, bukas sa cashier.
+    // Ang lahat ng add/edit/delete/restock/import/export ay nasa LEADS group sa baba.
+    Route::get('/inventory', [InventoryController::class, 'index']);
+
     // POS
     Route::get('/pos', [PosController::class, 'index']);
     Route::get('/pos/get_cashflow', [PosController::class, 'getCashflow']);
@@ -199,8 +203,7 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
 */
 Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () {
 
-    // Inventory
-    Route::get('/inventory', [InventoryController::class, 'index']);
+    // Inventory — mga aksyong nag-e-edit (HINDI pwede sa cashier)
     Route::post('/inventory/add', [InventoryController::class, 'store']);
     Route::post('/inventory/update', [InventoryController::class, 'update']);
     Route::post('/inventory/delete', [InventoryController::class, 'destroy']);

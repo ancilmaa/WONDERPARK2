@@ -4,10 +4,32 @@
            POST /app/booking/submit          -> user.booking.submit   (BookingController@submit)
            GET  /app/booking/{id}/status     -> user.booking.status   (BookingController@status, polled by step 5)
 
-    Steps: 1 Who's coming (solo / couple / group)  2 Pick attractions (Dino Adventure / Field of Rides / RollerFever tabs)
-           3 Date & time   4 Pay by QR Ph + upload proof   5 Voucher (blurred until admin approves)
+    Steps: 1 Who's coming (solo / duo / group / party)
+           2 Pick ONE attraction first (Dino Adventure / Field of Rides / RollerFever), then pick rides
+             from that attraction only + live receipt on the right
+           3 Date & time   4 Pay by QR Ph (QR on the left, receipt on the right) + upload proof   5 Voucher (blurred until admin approves)
 
-    Expects: $catalog (BookingWizard::catalog), $deals (BookingWizard::deals), $resume (wizard summary array or null).
+    Attraction rule (step 2):
+      - The customer must choose exactly ONE attraction before any rides are shown.
+      - Once chosen, only that attraction's rides/passes/add-ons are visible and selectable.
+      - The other two attractions are greyed out; tapping one switches attraction (current picks are cleared after a confirm).
+
+    Party rules:
+      - "Party" in step 1  -> step 2 lets you choose only attractions that have party packages (Dino Adventure, RollerFever);
+                              the others are greyed out and locked. Only party packages (flat-price items) are shown.
+      - Solo / Duo / Group -> party packages are shown greyed out and cannot be clicked.
+
+      - A Party needs at least 10 guests (PARTY_MIN): the guest stepper cannot go below 10.
+
+    Pack rules:
+      - RollerFever shows 4 boxes: 1-hour pass, 2-hour pass, all-day pass and the Group Bundle (P996).
+      - When the guest count reaches an item's "recommend_min" (the Group Bundle = 5+), that box glows,
+        gets a "Recommended" ribbon and a floating "Best for your group" bubble. The attraction card gets a glowing dot too.
+      - Field of Rides has an extra TER box (Try Every Ride): max 10 rides except Viking, shareable, no expiration.
+      - "Pack" items (bundle / TER ticket) are NOT per person: the quantity is the number of bundles / tickets.
+
+    Expects: $catalog (BookingWizard::catalog + BookingController::withExtraItems), $deals (BookingWizard::deals),
+             $resume (wizard summary array or null).
     The previous page is kept as booking-classic.blade.php.
 --}}
 @extends('layouts.user')
@@ -15,10 +37,61 @@
 @section('title', 'Book a Visit')
 @section('page-title', 'Plan your adventure')
 @section('page-subtitle', 'Book your WonderPark day in 5 easy steps')
+@section('hide-page-title', '1')
 @section('body-class', 'page-uniform')
 
 @push('styles')
 <style>
+/* ===== Page hero (identical on every page) ===== */
+.pg-hero{
+  --pg-a:var(--pink-deep); --pg-b:#F2762E;
+  position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  margin:0 0 18px; padding:28px 30px; border-radius:26px; color:#fff; font-family:inherit;
+  background:linear-gradient(135deg,var(--pg-a) 0%,var(--pg-b) 100%);
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 18px 40px -22px var(--pg-a);
+}
+[data-theme="dark"] .pg-hero{ --pg-a:#8E2347; --pg-b:#B5501C; }
+.pg-hero::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.55;
+  background-image:radial-gradient(rgba(255,255,255,.22) 1.4px, transparent 1.6px); background-size:18px 18px;
+  -webkit-mask-image:linear-gradient(115deg, transparent 20%, #000 100%); mask-image:linear-gradient(115deg, transparent 20%, #000 100%); }
+.pg-hero::after{ content:""; position:absolute; right:-70px; top:-90px; width:260px; height:260px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), rgba(255,255,255,0) 70%); pointer-events:none; }
+.pg-hero-glow{ position:absolute; left:-60px; bottom:-110px; width:240px; height:240px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); pointer-events:none; }
+.pg-deco{ position:absolute; z-index:0; pointer-events:none; user-select:none; line-height:1;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.18)); animation:pgFloat 6s ease-in-out infinite; }
+.pg-deco.d1{ right:32%; top:14px;    font-size:26px; opacity:.45; animation-delay:0s; }
+.pg-deco.d2{ right:20%; bottom:10px; font-size:34px; opacity:.4;  animation-delay:1.2s; }
+.pg-deco.d3{ right:44%; bottom:14px; font-size:22px; opacity:.35; animation-delay:2.4s; }
+@keyframes pgFloat{ 0%,100%{ transform:translateY(0) rotate(-6deg);} 50%{ transform:translateY(-8px) rotate(6deg);} }
+.pg-hero-text{ position:relative; z-index:1; min-width:0; }
+.pg-hero-badge{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff;
+  font-weight:800; letter-spacing:.1em; font-size:11px; text-transform:uppercase; backdrop-filter:blur(4px); }
+.pg-hero h2{ margin:10px 0 4px; font-family:inherit; font-size:30px; font-weight:800; letter-spacing:-.01em; line-height:1.2; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.18); }
+.pg-hero p{ margin:0; font-family:inherit; font-size:14px; color:rgba(255,255,255,.9); }
+@media (max-width:720px){
+  .pg-hero{ padding:22px 20px; }
+  .pg-hero h2{ font-size:26px; }
+  .pg-deco.d1{ right:8%; } .pg-deco.d2{ right:4%; } .pg-deco.d3{ display:none; }
+}
+/* ===== Theme toggle inside hero ===== */
+.pg-theme-toggle{
+  position:absolute; z-index:2; top:50%; right:22px; transform:translateY(-50%);
+  width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+  border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.16); color:#fff;
+  font-size:20px; line-height:1; cursor:pointer; backdrop-filter:blur(4px); padding:0;
+  transition:background .2s, transform .2s;
+}
+.pg-theme-toggle:hover{ background:rgba(255,255,255,.28); transform:translateY(-50%) scale(1.08); }
+.pg-theme-toggle:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
+@media (max-width:720px){
+  .pg-theme-toggle{ top:18px; right:16px; transform:none; width:40px; height:40px; font-size:18px; }
+  .pg-theme-toggle:hover{ transform:scale(1.08); }
+  .pg-hero-text{ padding-right:52px; }
+}
+@media (prefers-reduced-motion:reduce){ .pg-deco{ animation:none; } }
+
 .bw{
   --bw-surface:#fff; --bw-soft:#FBF8FB; --bw-text:var(--ink); --bw-sub:var(--ink-soft);
   --bw-line:var(--line); --bw-accent:var(--pink-deep);
@@ -61,7 +134,7 @@
 @keyframes bwWave{ 0%,60%,100%{ transform:rotate(0);} 10%,30%{ transform:rotate(16deg);} 20%,40%{ transform:rotate(-10deg);} 50%{ transform:rotate(8deg);} }
 
 /* ---------- step 1 ---------- */
-.bw-party{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.bw-party{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
 .bw-pcard{ border:2px solid var(--bw-line); background:var(--bw-surface); border-radius:22px; padding:26px 12px 20px; cursor:pointer; text-align:center;
   color:var(--bw-text); transition:transform .25s var(--ease), box-shadow .25s var(--ease), border-color .2s; position:relative; overflow:hidden; }
 .bw-pcard:hover{ transform:translateY(-6px) rotate(-1deg); box-shadow:var(--shadow-pop); }
@@ -88,16 +161,33 @@
 [data-theme="dark"] .bw-chip:hover,[data-theme="dark"] .bw-chip.on{ background:rgba(184,40,80,.2); }
 .bw-hint{ margin-top:10px; font-size:13px; color:var(--bw-sub); }
 
+/* ---------- step 2: choose ONE attraction ---------- */
+.bw-choices{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+.bw-choice{ position:relative; display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:18px; cursor:pointer; text-align:left;
+  border:2px solid var(--bw-line); background:var(--bw-surface); color:var(--bw-text); transition:all .2s var(--ease); }
+.bw-choice em{ font-style:normal; font-size:34px; line-height:1; flex-shrink:0; }
+.bw-choice-t{ display:flex; flex-direction:column; min-width:0; }
+.bw-choice-t b{ font-size:15px; font-weight:800; line-height:1.2; }
+.bw-choice-t small{ margin-top:3px; font-size:12px; font-weight:600; color:var(--bw-sub); }
+.bw-choice:hover:not(.locked){ transform:translateY(-3px); box-shadow:var(--shadow-pop); }
+.bw-choice.on{ color:#fff; border-color:transparent; background:var(--tab-grad,var(--pink-deep)); box-shadow:0 12px 24px -12px rgba(0,0,0,.5); }
+.bw-choice.on .bw-choice-t small{ color:rgba(255,255,255,.9); }
+/* an attraction is already chosen: the other ones are greyed out (tap to switch) */
+.bw-choice.dim{ filter:grayscale(1); opacity:.55; }
+.bw-choice.dim:hover{ filter:grayscale(.4); opacity:.85; }
+/* party mode: this attraction has no party packages */
+.bw-choice.locked{ filter:grayscale(1); opacity:.4; cursor:not-allowed; }
+.bw-choice .bw-count{ margin-left:auto; min-width:22px; height:22px; border-radius:11px; background:var(--gold); color:#4a2f00; font-size:12px; font-weight:800; display:none; place-items:center; padding:0 6px; }
+.bw-choice .bw-count.show{ display:grid; animation:bwPop .3s var(--ease); }
+/* glowing dot on an attraction that holds a recommended item for the current guest count */
+.bw-choice.has-rec::after{ content:""; position:absolute; top:8px; right:10px; width:11px; height:11px; border-radius:50%; background:#FFC948;
+  box-shadow:0 0 0 0 rgba(255,201,72,.7); animation:bwDot 1.6s ease-out infinite; }
+@keyframes bwDot{ 0%{ box-shadow:0 0 0 0 rgba(255,201,72,.75);} 100%{ box-shadow:0 0 0 12px rgba(255,201,72,0);} }
+.bw-choose-hint{ text-align:center; padding:34px 14px; border-radius:20px; background:var(--bw-surface); border:2px dashed var(--pink-light); color:var(--bw-sub); font-size:14px; }
+.bw-choose-hint b{ display:block; font-size:38px; margin-bottom:6px; }
+.bw-choose-hint[hidden]{ display:none; }
+
 /* ---------- step 2 ---------- */
-.bw-tabs{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; scrollbar-width:none; }
-.bw-tabs::-webkit-scrollbar{ display:none; }
-.bw-tab{ flex:1 0 auto; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border-radius:16px; cursor:pointer;
-  border:2px solid var(--bw-line); background:var(--bw-surface); color:var(--bw-text); font-weight:800; font-size:14px; position:relative; transition:all .2s var(--ease); white-space:nowrap; }
-.bw-tab em{ font-style:normal; font-size:20px; }
-.bw-tab:hover{ transform:translateY(-2px); }
-.bw-tab.on{ color:#fff; border-color:transparent; background:var(--tab-grad,var(--pink-deep)); box-shadow:0 10px 22px -10px rgba(0,0,0,.45); }
-.bw-tab .bw-count{ min-width:22px; height:22px; border-radius:11px; background:var(--gold); color:#4a2f00; font-size:12px; display:none; place-items:center; padding:0 6px; }
-.bw-tab .bw-count.show{ display:grid; animation:bwPop .3s var(--ease); }
 .bw-banner{ margin:6px 0 16px; padding:12px 16px; border-radius:14px; font-size:13.5px; font-weight:600;
   background:linear-gradient(90deg,var(--gold-pale),var(--pink-pale)); color:#6b3b00; border:1px solid var(--gold); }
 [data-theme="dark"] .bw-banner{ background:rgba(255,201,72,.12); color:#FFD98A; border-color:rgba(255,201,72,.35); }
@@ -116,10 +206,33 @@
 .bw-ribbon{ position:absolute; top:10px; left:-1px; padding:4px 12px 4px 10px; font-size:11px; font-weight:800; color:#fff; border-radius:0 999px 999px 0;
   background:linear-gradient(90deg,#F2762E,#E24B4A); box-shadow:0 4px 10px -4px rgba(0,0,0,.4); z-index:2; }
 .bw-ribbon.gold{ background:linear-gradient(90deg,#FFC948,#F2A03E); color:#4a2f00; }
+.bw-ribbon.lock{ background:#6b6b76; color:#fff; }
+.bw-ribbon.rec{ background:linear-gradient(90deg,#FFC948,#F2762E); color:#3d2500; animation:bwRibbon 1.6s ease-in-out infinite; }
+@keyframes bwRibbon{ 0%,100%{ transform:translateX(0);} 50%{ transform:translateX(4px);} }
 .bw-tick{ position:absolute; top:10px; right:10px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.85); border:2px solid #fff;
   display:grid; place-items:center; color:transparent; font-weight:800; z-index:2; transition:all .25s var(--ease); }
 .bw-card.sel{ border-color:var(--pink-deep); box-shadow:0 0 0 3px var(--pink-light), 0 16px 30px -14px rgba(184,40,80,.55); }
 .bw-card.sel .bw-tick{ background:var(--pink-deep); color:#fff; animation:bwPop .35s var(--ease); }
+
+/* Recommended item (e.g. Group Bundle when guests >= 5): glowing card + floating bubble */
+.bw-card.rec{ border-color:#FFC948; animation:bwGlow 1.8s ease-in-out infinite; }
+.bw-card.rec.sel{ border-color:var(--pink-deep); animation:none; }
+@keyframes bwGlow{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,201,72,0), 0 12px 24px -16px rgba(242,118,46,.5); }
+  50%{ box-shadow:0 0 0 6px rgba(255,201,72,.38), 0 0 30px 4px rgba(255,201,72,.55); }
+}
+.bw-rec-pop{ position:absolute; left:50%; bottom:8px; transform:translateX(-50%); white-space:nowrap; z-index:2; font-style:normal;
+  padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:800; color:#3d2500;
+  background:#fff; border:2px solid #FFC948; box-shadow:0 8px 16px -8px rgba(0,0,0,.45); animation:bwPopBob 1.8s ease-in-out infinite; }
+@keyframes bwPopBob{ 0%,100%{ transform:translateX(-50%) translateY(0);} 50%{ transform:translateX(-50%) translateY(-5px);} }
+.bw-card.rec.sel .bw-rec-pop{ display:none; }
+
+/* Party packages while Solo / Duo / Group is selected: greyed out, not clickable */
+.bw-card.locked{ filter:grayscale(1); opacity:.5; cursor:not-allowed; }
+.bw-card.locked:hover{ transform:none; box-shadow:none; }
+.bw-card.locked:hover .bw-media span{ transform:none; }
+.bw-card.locked .bw-price{ color:var(--bw-sub); }
+
 .bw-qty{ display:none; align-items:center; justify-content:space-between; gap:8px; padding:8px 14px; border-top:1px dashed var(--bw-line); background:var(--bw-soft); font-size:12px; font-weight:700; }
 .bw-card.sel .bw-qty{ display:flex; }
 .bw-mini{ display:inline-flex; align-items:center; gap:8px; }
@@ -131,6 +244,23 @@
 .bw-extra{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--bw-line); font-size:13.5px; }
 .bw-extra:first-of-type{ border-top:none; }
 .bw-extra small{ color:var(--bw-sub); }
+
+/* ---------- step 2: layout with live receipt ---------- */
+.bw-pick{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+.bw-pick[hidden]{ display:none; }
+.bw-pick-main{ min-width:0; }
+.bw-pick-main .bw-banner{ margin-top:0; }
+.bw-live{ position:sticky; top:16px; display:flex; flex-direction:column; min-height:520px; background:var(--bw-surface); border:1px solid var(--bw-line); border-radius:20px; padding:18px 18px 16px; }
+.bw-live-body{ flex:1; }
+.bw-live .bw-row.sum{ margin-top:14px; }
+.bw-grp{ display:flex; align-items:center; gap:6px; margin:14px 0 2px; font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--bw-sub); }
+.bw-grp:first-child{ margin-top:0; }
+.bw-row small.bw-d{ margin-top:2px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.bw-live h4{ margin:0 0 2px; font-size:15px; }
+.bw-live .bw-live-guests{ font-size:12px; color:var(--bw-sub); margin-bottom:8px; }
+.bw-live .bw-row span:last-child{ white-space:nowrap; font-weight:700; }
+.bw-live-empty{ text-align:center; color:var(--bw-sub); font-size:13px; padding:26px 6px 18px; }
+.bw-live-empty b{ display:block; font-size:34px; margin-bottom:6px; }
 
 /* ---------- step 3 ---------- */
 .bw-when{ display:grid; grid-template-columns:1.05fr 1fr; gap:18px; }
@@ -249,20 +379,95 @@
 @keyframes bwShake{ 0%,100%{ transform:none;} 25%{ transform:translateX(-7px);} 75%{ transform:translateX(7px);} }
 
 @media (min-width:960px){ .bw-bar{ bottom:16px; } }
+@media (max-width:960px){
+  .bw-pick{ grid-template-columns:1fr; }
+  .bw-live{ position:static; min-height:0; }
+}
 @media (max-width:720px){
-  .bw-party{ gap:8px; } .bw-pcard{ padding:18px 6px 14px; border-radius:18px; } .bw-pcard .bw-big{ font-size:38px; } .bw-pcard b{ font-size:14px; } .bw-pcard small{ font-size:11px; }
+  .bw-party{ grid-template-columns:repeat(2,1fr); gap:8px; }
+  .bw-pcard{ padding:18px 6px 14px; border-radius:18px; } .bw-pcard .bw-big{ font-size:38px; } .bw-pcard b{ font-size:14px; } .bw-pcard small{ font-size:11px; }
+  .bw-choices{ grid-template-columns:1fr; gap:8px; }
   .bw-when,.bw-pay{ grid-template-columns:1fr; }
+  .bw-pay .bw-receipt{ order:-1; }
   .bw-grid{ grid-template-columns:repeat(2,1fr); gap:10px; } .bw-media{ height:92px; font-size:38px; }
+  .bw-rec-pop{ font-size:10px; padding:4px 8px; }
   .bw-h{ font-size:20px; } .bw-node span{ font-size:10px; } .bw-node i{ width:42px; height:42px; font-size:18px; } .bw-track::before,.bw-track-fill{ top:19px; }
   .bw-vcode{ font-size:24px; }
 }
 @media (prefers-reduced-motion:reduce){ .bw *{ animation:none!important; transition:none!important; } }
 .bw-btn.go.dim{ opacity:.5; box-shadow:none; }
+
+/* ============ DARK MODE FIXES ============ */
+/* text colours that must never depend on layout defaults */
+.bw-h, .bw-extras h4, .bw-live h4, .bw-receipt h4, .bw-groupbox b, .bw-drop b, .bw-body b, .bw-stepper output{ color:var(--bw-text); }
+.bw-ticket-top, .bw-ticket-top h3, .bw-ticket-top small{ color:#fff; }
+
+[data-theme="dark"] .bw{
+  --bw-surface:var(--d-surface,#1D1930);
+  --bw-soft:var(--d-surface-soft,#262140);
+  --bw-text:var(--d-text,#F4EEF8);
+  --bw-sub:var(--d-text-soft,#BDB2CC);
+  --bw-line:var(--d-border,rgba(255,255,255,.16));
+  --bw-accent:#FF8FAE;
+  --bw-ok:#4FE0D2;
+}
+/* pink text on dark surfaces -> lighter pink */
+[data-theme="dark"] .bw .bw-price,
+[data-theme="dark"] .bw .bw-amount,
+[data-theme="dark"] .bw .bw-row.sum span:last-child,
+[data-theme="dark"] .bw .bw-inc-btn,
+[data-theme="dark"] .bw .bw-day.wk,
+[data-theme="dark"] .bw .bw-chip:hover,
+[data-theme="dark"] .bw .bw-chip.on,
+[data-theme="dark"] .bw .bw-mini button:hover,
+[data-theme="dark"] .bw .bw-btn.ghost{ color:var(--bw-accent); }
+[data-theme="dark"] .bw .bw-card.locked .bw-price{ color:var(--bw-sub); }
+[data-theme="dark"] .bw .bw-day:hover:not(:disabled){ background:rgba(255,143,174,.16); color:var(--bw-accent); }
+[data-theme="dark"] .bw .bw-day.sel{ color:#fff!important; }
+[data-theme="dark"] .bw .bw-chip:hover,
+[data-theme="dark"] .bw .bw-chip.on{ border-color:var(--bw-accent); }
+[data-theme="dark"] .bw .bw-btn.ghost{ border-color:rgba(255,143,174,.45); }
+[data-theme="dark"] .bw .bw-btn.ghost:hover{ background:rgba(255,143,174,.14); }
+[data-theme="dark"] .bw .bw-btn.go{ color:#fff; }
+[data-theme="dark"] .bw .bw-row.disc,
+[data-theme="dark"] .bw .bw-drop .bw-fname{ color:var(--bw-ok); }
+/* status pills + error box */
+[data-theme="dark"] .bw .bw-pill{ background:rgba(255,201,72,.16); color:#FFD98A; }
+[data-theme="dark"] .bw .bw-pill.ok{ background:rgba(18,181,166,.2); color:#5EE8DA; }
+[data-theme="dark"] .bw .bw-pill.bad{ background:rgba(226,75,74,.22); color:#FF9C9B; }
+[data-theme="dark"] .bw .bw-err{ color:#FF9C9B; }
+/* misc surfaces */
+[data-theme="dark"] .bw .bw-node.done i{ background:rgba(255,201,72,.14); }
+[data-theme="dark"] .bw .bw-ribbon.lock{ background:#57536A; color:#fff; }
+[data-theme="dark"] .bw .bw-slot{ color:var(--bw-text); }
+[data-theme="dark"] .bw .bw-day{ color:var(--bw-text); }
+[data-theme="dark"] .bw .bw-day.wk{ color:var(--bw-accent); }
+[data-theme="dark"] .bw .bw-day:disabled{ opacity:.35; }
+[data-theme="dark"] .bw .bw-choice.on,
+[data-theme="dark"] .bw .bw-choice.on .bw-choice-t b{ color:#fff; }
 </style>
 @endpush
 
 @section('content')
 <div class="bw" id="bw">
+
+    {{-- ================= PAGE HERO ================= --}}
+    <div class="pg-hero">
+        <span class="pg-hero-glow" aria-hidden="true"></span>
+        <span class="pg-deco d1" aria-hidden="true">🎟️</span>
+        <span class="pg-deco d2" aria-hidden="true">🎡</span>
+        <span class="pg-deco d3" aria-hidden="true">🛼</span>
+
+        <div class="pg-hero-text">
+            <span class="pg-hero-badge">🎟️ PLAN YOUR VISIT</span>
+            <h2>Plan your adventure</h2>
+            <p>Book your WonderPark day in 5 easy steps</p>
+        </div>
+
+        <button type="button" class="pg-theme-toggle" id="pgThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <span class="pg-tt-ico" aria-hidden="true">🌙</span>
+        </button>
+    </div>
 
     <ol class="bw-track" aria-label="Booking progress">
         <div class="bw-track-fill"></div>
@@ -282,34 +487,41 @@
             <div class="bw-party">
                 <button type="button" class="bw-pcard" data-party="solo"><span class="bw-big">&#128587;</span><b>Solo</b><small>1 person</small></button>
                 <button type="button" class="bw-pcard" data-party="couple"><span class="bw-big">&#129489;&#8205;&#129309;&#8205;&#129489;</span><b>Duo</b><small>2 people</small></button>
-                <button type="button" class="bw-pcard" data-party="group"><span class="bw-big">&#127881;</span><b>Group</b><small>3 or more people</small></button>
+                <button type="button" class="bw-pcard" data-party="group"><span class="bw-big">&#128106;</span><b>Group</b><small>3 or more people</small></button>
+                <button type="button" class="bw-pcard" data-party="party"><span class="bw-big">&#127881;</span><b>Party</b><small>Birthdays &amp; celebrations</small></button>
             </div>
             <div class="bw-groupbox" id="bwGroupBox" hidden>
-                <b>How many are you?</b>
+                <b id="bwGroupTitle">How many are you?</b>
                 <div style="margin-top:10px" class="bw-stepper">
                     <button type="button" id="bwGroupMinus" aria-label="Fewer guests">−</button>
                     <output id="bwGroupN">5</output>
                     <button type="button" id="bwGroupPlus" aria-label="More guests">+</button>
                 </div>
-                <div class="bw-chips">
-                    <button type="button" class="bw-chip" data-n="5">5</button>
-                    <button type="button" class="bw-chip" data-n="8">8</button>
-                    <button type="button" class="bw-chip" data-n="10">10</button>
-                    <button type="button" class="bw-chip" data-n="15">15</button>
-                    <button type="button" class="bw-chip" data-n="20">20</button>
-                </div>
-                <p class="bw-hint">Groups of 5+ unlock special deals</p>
+                <div class="bw-chips" id="bwChips"></div>
+                <p class="bw-hint" id="bwGroupHint">Groups of 5+ unlock special deals</p>
             </div>
         </section>
 
         {{-- STEP 2 --}}
         <section class="bw-step" data-step="2">
-            <h3 class="bw-h">Choose your attractions <span class="bw-wave">&#127914;</span></h3>
-            <p class="bw-sub">Tap to pick as many as you like — prices are per person.</p>
-            <div class="bw-tabs" id="bwTabs"></div>
-            <div class="bw-banner" id="bwBanner" hidden></div>
-            <div class="bw-grid" id="bwGrid"></div>
-            <div class="bw-extras" id="bwExtras" hidden></div>
+            <h3 class="bw-h" id="bwS2Title">Choose your attraction <span class="bw-wave">&#127914;</span></h3>
+            <p class="bw-sub" id="bwS2Sub">First, choose one attraction. Then pick your rides.</p>
+
+            {{-- choose ONE attraction (the other two get greyed out) --}}
+            <div class="bw-choices" id="bwTabs"></div>
+
+            <div class="bw-choose-hint" id="bwChooseHint"><b>&#128070;</b>Choose an attraction above to see its rides.</div>
+
+            <div class="bw-pick" id="bwPick" hidden>
+                <div class="bw-pick-main">
+                    <div class="bw-banner" id="bwBanner" hidden></div>
+                    <div class="bw-grid" id="bwGrid"></div>
+                    <div class="bw-extras" id="bwExtras" hidden></div>
+                </div>
+
+                {{-- live receipt: updates every time a pick or quantity changes --}}
+                <aside class="bw-live" id="bwLive" aria-live="polite"></aside>
+            </div>
         </section>
 
         {{-- STEP 3 --}}
@@ -330,12 +542,11 @@
             </div>
         </section>
 
-        {{-- STEP 4 --}}
+        {{-- STEP 4: QR on the left, receipt on the right --}}
         <section class="bw-step" data-step="4">
             <h3 class="bw-h">Scan, pay &amp; send proof</h3>
             <p class="bw-sub">Pay online with QR Ph, then upload your screenshot. Our team will review it.</p>
             <div class="bw-pay">
-                <div class="bw-receipt" id="bwReceipt"></div>
                 <div class="bw-panel bw-qr">
                     <div class="bw-qr-frame"><img src="{{ asset('images/instapay-qr.png') }}" alt="QR Ph payment code"></div>
                     <p>Scan with GCash, Maya or any banking app</p>
@@ -345,6 +556,7 @@
                     <div class="bw-err" id="bwErr" hidden></div>
                     <div class="bw-note">After you submit, your booking goes to <b>In review</b>. Your voucher unlocks once it's approved.</div>
                 </div>
+                <div class="bw-receipt" id="bwReceipt"></div>
             </div>
         </section>
 
@@ -403,8 +615,20 @@ window.BW = {
     TABS[t].extras.forEach(function (e) { EXTRA[e.key] = e; });
   });
 
+  /* Party packages = flat-price items. The biggest party size any package can fit: */
+  var PARTY_MIN = 10, HAS_PARTY = false, PARTY_MAX = 0;
+  Object.keys(ITEM).forEach(function (k) {
+    var it = ITEM[k];
+    if (it.flat && it.tiers && it.tiers.length) {
+      HAS_PARTY = true;
+      PARTY_MAX = Math.max(PARTY_MAX, it.tiers[it.tiers.length - 1].pax);
+    }
+  });
+  if (!PARTY_MAX) PARTY_MAX = 100;
+
+  /* state.tab = the ONE attraction the customer chose in step 2 (null until they choose) */
   var state = {
-    step: 1, party: null, guests: 0, tab: TAB_KEYS[0],
+    step: 1, party: null, guests: 0, tab: null,
     items: {}, extras: {}, date: null, time: null,
     month: firstOfMonth(new Date()), file: null, booking: null, busy: false, poll: null
   };
@@ -418,6 +642,7 @@ window.BW = {
   function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
   function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
   function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+  function isParty() { return state.party === 'party'; }
   function dayBlocked(cell) {
     return Object.keys(state.items).some(function (k) {
       var it = ITEM[k]; if (!it || !it.flat || !it.days) return false;
@@ -425,6 +650,42 @@ window.BW = {
     });
   }
   function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+
+  /* ---------- "pack" items (Group Bundle, TER) and recommendations ----------
+     Normal passes are per person (qty = guests riding).
+     Pack items are NOT per person:
+       - covers = N  -> one pack covers N guests (Group Bundle covers 5), qty = number of bundles
+       - no covers   -> shareable ticket (TER), qty = number of tickets, default 1
+  */
+  function defQty(it, g) {
+    g = (g == null) ? state.guests : g;
+    if (it.pack) return it.covers ? Math.max(1, Math.ceil(g / it.covers)) : 1;
+    return g;
+  }
+  function maxQty(it, g) {
+    g = (g == null) ? state.guests : g;
+    if (it.pack && it.covers) return Math.max(1, Math.ceil(g / it.covers));
+    return Math.max(1, g);
+  }
+  /* Recommended when the guest count reaches the item's recommend_min (Group Bundle = 5). Not in Party mode. */
+  function isRec(it) {
+    return !isParty() && !it.flat && !!it.recommend_min && state.guests >= it.recommend_min;
+  }
+  function unitText(it) {
+    if (it.pack) return '/ ' + esc(it.unit || 'pack') + (it.covers ? ' \u00B7 covers ' + it.covers + ' guests' : ' \u00B7 shareable');
+    return '/ person';
+  }
+
+  /* Attractions the customer may choose in step 2: in Party mode only the ones that have party packages. */
+  function visibleTabs() {
+    if (!isParty()) return TAB_KEYS;
+    var list = TAB_KEYS.filter(function (t) { return TABS[t].items.some(function (i) { return i.flat; }); });
+    return list.length ? list : TAB_KEYS;
+  }
+  /* Guest limits for the stepper in step 1. */
+  function limits() {
+    return isParty() ? { min: PARTY_MIN, max: Math.max(PARTY_MIN, PARTY_MAX) } : { min: 3, max: 100 };
+  }
 
   /* ---------------- pricing (mirror of BookingWizard::price) ---------------- */
   function dealApplies(it) {
@@ -444,7 +705,7 @@ window.BW = {
   function partyTooBig(it) {
     var top = it.tiers[it.tiers.length - 1].pax;
     btnNext.classList.remove('bw-shake'); void btnNext.offsetWidth; btnNext.classList.add('bw-shake');
-    barInfo.innerHTML = '<b style="color:var(--pink-deep)">Too many guests</b>This package fits up to ' + top + ' guests';
+    barInfo.innerHTML = '<b style="color:var(--bw-accent)">Too many guests</b>This package fits up to ' + top + ' guests';
     clearTimeout(hintTimer); hintTimer = setTimeout(renderBar, 2600);
   }
   function incHTML(it) {
@@ -458,9 +719,13 @@ window.BW = {
   function gridHTML(items) {
     var pass = items.filter(function (i) { return !i.flat; }), party = items.filter(function (i) { return i.flat; });
     var h = '';
-    if (party.length && pass.length) h += '<div class="bw-sec">Per-person passes</div>';
+    if (isParty()) {
+      /* Party mode: party packages only */
+      return party.length ? '<div class="bw-sec">Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('') : '';
+    }
+    if (party.length && pass.length) h += '<div class="bw-sec">Passes &amp; bundles</div>';
     h += pass.map(cardHTML).join('');
-    if (party.length) h += '<div class="bw-sec">Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('');
+    if (party.length) h += '<div class="bw-sec">Party packages<small>\uD83D\uDD12 Choose \u201CParty\u201D in step 1 to unlock</small></div>' + party.map(cardHTML).join('');
     return h;
   }
   function price() {
@@ -490,6 +755,53 @@ window.BW = {
   }
   function selectedCount() { return Object.keys(state.items).length; }
 
+  /* ---------------- order rows (grouped by attraction) + live receipt ---------------- */
+  function orderRowsHTML(p) {
+    var h = '', groups = {}, order = [];
+    p.lines.forEach(function (l) {
+      var s = l.it.service;
+      if (!groups[s]) { groups[s] = []; order.push(s); }
+      groups[s].push(l);
+    });
+    order.forEach(function (s) {
+      var t = TABS[s] || {};
+      h += '<div class="bw-grp"><span>' + (t.emoji || '') + '</span>' + esc(t.label || s) + '</div>';
+      groups[s].forEach(function (l) {
+        var sub = l.it.flat
+          ? (l.tier ? 'Up to ' + l.tier.pax + ' guests' : '')
+          : l.qty + ' \u00D7 ' + money(l.it.unit_price) + (l.free ? ' \u00B7 \uD83C\uDF81 ' + l.free + ' free' : '');
+        h += '<div class="bw-row"><span>' + esc(l.it.name) + '<small>' + sub + '</small>' +
+          (l.it.desc ? '<small class="bw-d">' + esc(l.it.desc) + '</small>' : '') +
+          '</span><span>' + money(l.gross) + '</span></div>';
+      });
+    });
+    if (p.extras.length) {
+      h += '<div class="bw-grp"><span>\u2795</span>Add-ons</div>';
+      p.extras.forEach(function (x) {
+        h += '<div class="bw-row"><span>' + esc(x.e.name) + '<small>' + x.qty + ' \u00D7 ' + money(x.e.unit_price) + '</small></span><span>' + money(x.total) + '</span></div>';
+      });
+    }
+    return h;
+  }
+  function discountRowsHTML(p) {
+    var h = '';
+    if (p.bundle) h += '<div class="bw-row disc"><span>\uD83C\uDF81 Buy 4, get 1 free</span><span>\u2212' + money(p.bundle) + '</span></div>';
+    if (p.groupDisc) h += '<div class="bw-row disc"><span>\uD83C\uDF89 Group deal (' + p.pct + '%)</span><span>\u2212' + money(p.groupDisc) + '</span></div>';
+    return h;
+  }
+  function renderLive() {
+    var box = $('#bwLive'); if (!box) return;
+    var p = price(), h = '<h4>\uD83E\uDDFE Your order</h4>';
+    if (!p.lines.length && !p.extras.length) {
+      box.innerHTML = h + '<div class="bw-live-body"><div class="bw-live-empty"><b>\uD83D\uDED2</b>Pick a ride and it will show up here.</div></div>';
+      return;
+    }
+    h += '<div class="bw-live-guests">' + plural(state.guests, 'guest') + (isParty() ? ' \u00B7 \uD83C\uDF89 Party' : '') + '</div>';
+    h += '<div class="bw-live-body">' + orderRowsHTML(p) + discountRowsHTML(p) + '</div>';
+    h += '<div class="bw-row sum"><span>Total</span><span>' + money(p.total) + '</span></div>';
+    box.innerHTML = h;
+  }
+
   /* ---------------- navigation ---------------- */
   var stepEls = $$('.bw-step');
   var bar = $('#bwBar'), btnBack = $('#bwBack'), btnNext = $('#bwNext'), barInfo = $('#bwBarInfo');
@@ -518,15 +830,16 @@ window.BW = {
   }
   function canNext() {
     if (state.step === 1) return state.guests >= 1 && !!state.party;
-    if (state.step === 2) return selectedCount() > 0;
+    if (state.step === 2) return !!state.tab && selectedCount() > 0;
     if (state.step === 3) return !!(state.date && state.time);
     if (state.step === 4) return !!state.file;
     return false;
   }
   var HINT = {
-    1: 'Pick who is coming first \uD83D\uDC46', 2: 'Pick at least one attraction \uD83C\uDFAA',
+    1: 'Pick who is coming first \uD83D\uDC46', 2: 'Pick at least one ride \uD83C\uDFAA',
     3: 'Choose a date and a time slot \uD83D\uDCC5', 4: 'Upload your payment screenshot \uD83D\uDCF8'
   };
+  var PARTY_LABEL = { solo: 'Me time ', couple: 'Duo day ', group: 'Group adventure ', party: 'Party time  ' };
   var hintTimer = null;
   function renderBar() {
     bar.hidden = state.step === 5;
@@ -536,25 +849,30 @@ window.BW = {
     btnNext.disabled = state.busy;
     var t = '';
     if (state.step === 1) {
-      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure ' : (state.party === 'couple' ? 'Duo day ' : 'Me time ')) : '<b>Who is coming?</b>Pick one above';
+      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (PARTY_LABEL[state.party] || '') : '<b>Who is coming?</b>Pick one above';
+    } else if (state.step === 2 && !state.tab) {
+      t = '<b>' + plural(state.guests, 'guest') + '</b>Choose an attraction';
     } else if (state.step === 4) {
-      t = '<b>' + money(price().total) + '</b>Total to pay via QR Ph';
+      t = '<b>Almost done</b>Upload your payment proof to submit';
     } else {
-      var p = price();
-      t = '<b>' + money(p.total) + '</b>' + plural(state.guests, 'guest') + ' \u00B7 ' + plural(selectedCount(), 'pick');
+      t = '<b>' + plural(state.guests, 'guest') + '</b>' + plural(selectedCount(), 'pick');
       if (state.step === 3 && state.date) {
         t += state.time ? ' \u00B7 ' + dateLabel(state.date) + ' ' + timeLabel(state.time) : ' \u00B7 ' + dateLabel(state.date);
       }
     }
     barInfo.innerHTML = t;
+    if (state.step === 2) renderLive();   // keep the live receipt in sync with every pick / quantity change
   }
   function flashHint() {
     btnNext.classList.remove('bw-shake'); void btnNext.offsetWidth; btnNext.classList.add('bw-shake');
-    var old = barInfo.innerHTML;
-    barInfo.innerHTML = '<b style="color:var(--pink-deep)">Almost there!</b>' + HINT[state.step];
+    var msg = HINT[state.step];
+    if (state.step === 2) {
+      if (!state.tab) msg = 'Choose an attraction first \uD83D\uDC46';
+      else if (isParty()) msg = 'Pick a party package \uD83C\uDF89';
+    }
+    barInfo.innerHTML = '<b style="color:var(--bw-accent)">Almost there!</b>' + msg;
     clearTimeout(hintTimer);
     hintTimer = setTimeout(renderBar, 2600);
-    void old;
   }
   btnBack.addEventListener('click', function () { if (state.step > 1) go(state.step - 1, 'back'); });
   $$('.bw-node').forEach(function (el, i) {
@@ -577,77 +895,174 @@ window.BW = {
     go(state.step + 1, 'fwd');
   });
 
-  /* ---------------- step 1: party ---------------- */
+  /* ---------------- step 1: who's coming ---------------- */
+  function clampGuests(n) { var l = limits(); return Math.min(Math.max(n, l.min), l.max); }
+
   function setGuests(n) {
     var prev = state.guests;
     state.guests = n;
     Object.keys(state.items).forEach(function (k) {
-      if (state.items[k] === prev || state.items[k] > n) state.items[k] = n;
+      var it = ITEM[k];
+      if (!it || it.flat) return;   // party packages are not per-person
+      // Follow the guest count while the quantity was still at its default (or is now too high).
+      if (state.items[k] === defQty(it, prev) || state.items[k] > maxQty(it, n)) state.items[k] = defQty(it, n);
     });
+    var l = limits();
     var out = $('#bwGroupN'); if (out) out.textContent = n;
-    $$('.bw-chip').forEach(function (c) { c.classList.toggle('on', +c.getAttribute('data-n') === n && state.party === 'group'); });
-    $('#bwGroupMinus').disabled = n <= 3;
-    $('#bwGroupPlus').disabled = n >= 100;
+    $$('.bw-chip').forEach(function (c) { c.classList.toggle('on', +c.getAttribute('data-n') === n); });
+    $('#bwGroupMinus').disabled = n <= l.min;
+    $('#bwGroupPlus').disabled = n >= l.max;
   }
+  /* Titles, hint and quick-pick chips of the guest box change between Group and Party */
+  function configGuestBox() {
+    var party = isParty(), l = limits();
+    $('#bwGroupTitle').textContent = party ? 'How many guests at your party?' : 'How many are you?';
+    $('#bwGroupHint').textContent = party
+      ? 'Parties start at ' + PARTY_MIN + ' guests. Party packages have a flat price by guest count (up to ' + PARTY_MAX + ' guests).'
+      : 'Groups of 5+ unlock special deals and a recommended bundle';
+    var list = (party ? [10, 15, 20, 30, 50] : [5, 8, 10, 15, 20]).filter(function (n) { return n >= l.min && n <= l.max; });
+    $('#bwChips').innerHTML = list.map(function (n) { return '<button type="button" class="bw-chip" data-n="' + n + '">' + n + '</button>'; }).join('');
+  }
+
   $$('.bw-pcard').forEach(function (c) {
     c.addEventListener('click', function () {
-      var p = c.getAttribute('data-party');
+      var p = c.getAttribute('data-party'), prev = state.party;
+
+      /* Switching into or out of Party mode: the old picks no longer apply */
+      if ((p === 'party') !== (prev === 'party')) { state.items = {}; state.extras = {}; }
+
       state.party = p;
       $$('.bw-pcard').forEach(function (x) { x.classList.toggle('sel', x === c); });
-      $('#bwGroupBox').hidden = p !== 'group';
-      setGuests(p === 'solo' ? 1 : p === 'couple' ? 2 : Math.max(state.guests > 2 ? state.guests : 5, 3));
+
+      var multi = p === 'group' || p === 'party';
+      $('#bwGroupBox').hidden = !multi;
+      if (multi) configGuestBox();
+
+      var n;
+      if (p === 'solo') n = 1;
+      else if (p === 'couple') n = 2;
+      else if (p === 'party') n = clampGuests(prev === 'party' ? state.guests : 10);
+      else n = Math.max(state.guests > 2 && prev !== 'party' ? state.guests : 5, 3);
+
+      setGuests(n);
       renderBar();
     });
   });
-  $('#bwGroupMinus').addEventListener('click', function () { setGuests(Math.max(3, state.guests - 1)); renderBar(); });
-  $('#bwGroupPlus').addEventListener('click', function () { setGuests(Math.min(100, state.guests + 1)); renderBar(); });
-  $$('.bw-chip').forEach(function (c) {
-    c.addEventListener('click', function () { setGuests(+c.getAttribute('data-n')); renderBar(); });
+  $('#bwGroupMinus').addEventListener('click', function () { setGuests(clampGuests(state.guests - 1)); renderBar(); });
+  $('#bwGroupPlus').addEventListener('click', function () { setGuests(clampGuests(state.guests + 1)); renderBar(); });
+  $('#bwChips').addEventListener('click', function (ev) {
+    var c = ev.target.closest('.bw-chip'); if (!c) return;
+    setGuests(clampGuests(+c.getAttribute('data-n'))); renderBar();
   });
+  /* No party packages in the catalog? Hide the Party card. */
+  if (!HAS_PARTY) { var pc = $('[data-party="party"]'); if (pc) pc.hidden = true; }
 
-  /* ---------------- step 2: rides ---------------- */
+  /* ---------------- step 2: ONE attraction, then its rides ---------------- */
   function bannerText() {
+    if (isParty()) {
+      return '\uD83C\uDF89 <b>Party mode</b> \u2014 showing party packages for ' + plural(state.guests, 'guest') + '. Prices are flat per package.';
+    }
     var g = state.guests, tiers = D.group_tiers.slice().sort(function (a, b) { return a.min_guests - b.min_guests; });
     var hit = null, next = null;
     tiers.forEach(function (t) { if (g >= t.min_guests) hit = t; else if (!next) next = t; });
     var msg = '';
     if (hit) msg = '\uD83C\uDF89 <b>Group deal unlocked!</b> ' + hit.pct + '% off your attractions.';
     else if (next) msg = '\uD83D\uDCA1 Bring ' + plural(next.min_guests - g, 'more friend') + ' and get <b>' + next.pct + '% off</b> (groups of ' + next.min_guests + '+).';
-    var hasDeal = false; // banner removed; the card ribbons already show the deal
-    if (hasDeal) {
-      var m = D.four_plus_one.min_qty;
-      msg += (msg ? '<br>' : '') + '\uD83C\uDF81 <b>Buy ' + (m - 1) + ', get 1 free</b> on these passes when ' + m + '+ guests skate together.';
+
+    /* Recommendation on the chosen attraction */
+    var rec = state.tab ? TABS[state.tab].items.filter(isRec)[0] : null;
+    if (rec) {
+      msg += (msg ? '<br>' : '') + '\u2728 <b>Recommended for your group of ' + g + ':</b> ' + esc(rec.name) + ' \u2014 ' + money(rec.unit_price) + (rec.covers ? ' for ' + rec.covers + ' guests' : '') + '.';
+    }
+
+    var tabHasParty = state.tab && TABS[state.tab].items.some(function (i) { return i.flat; });
+    if (tabHasParty) {
+      msg += (msg ? '<br>' : '') + '\uD83D\uDD12 Party packages are greyed out \u2014 choose <b>Party</b> in step 1 to book one.';
     }
     return msg;
   }
   function cardHTML(it) {
-    var sel = state.items[it.key] != null, qty = state.items[it.key] || state.guests;
+    var locked = !!it.flat && !isParty();
+    var sel = !locked && state.items[it.key] != null, qty = state.items[it.key] || defQty(it);
+    var rec = !locked && isRec(it);
     var bg = it.image ? 'background-image:linear-gradient(0deg,rgba(0,0,0,.28),rgba(0,0,0,0)),url(\'' + BW.imgBase + esc(it.image) + '\');' : '';
-    var rib = false /* deal ribbon removed */ ? '<span class="bw-ribbon">\uD83C\uDF81 ' + esc(it.deal) + '</span>' : (it.badge ? '<span class="bw-ribbon gold">\u2B50 ' + esc(it.badge) + '</span>' : '');
-    return '<div class="bw-card' + (sel ? ' sel' : '') + '" role="button" tabindex="0" data-key="' + esc(it.key) + '">' +
-      rib + '<span class="bw-tick">\u2713</span>' +
-      '<div class="bw-media" style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + '</div>' +
+    var pop = rec ? '<i class="bw-rec-pop">\u2728 Best for your group of ' + state.guests + '</i>' : '';
+    var media = '<div class="bw-media" style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + pop + '</div>';
+
+    if (locked) {
+      /* Party package while Solo / Duo / Group is selected: visible, but greyed out and not clickable */
+      return '<div class="bw-card locked" aria-disabled="true" data-key="' + esc(it.key) + '">' +
+        '<span class="bw-ribbon lock">\uD83D\uDD12 Party only</span>' + media +
+        '<div class="bw-body"><b>' + esc(it.name) + '</b><p>' + esc(it.desc) + '</p>' +
+        '<div class="bw-price">From ' + money(it.tiers[0].price) + ' <small>party package</small></div></div></div>';
+    }
+
+    var rib = rec ? '<span class="bw-ribbon rec">\u2B50 Recommended</span>'
+      : (it.badge ? '<span class="bw-ribbon gold">\u2B50 ' + esc(it.badge) + '</span>' : '');
+    var showQty = !it.flat && (it.pack || state.guests > 1);
+    var qtyLabel = it.pack ? esc(it.unit_label || 'Quantity') : 'Guests riding';
+    return '<div class="bw-card' + (sel ? ' sel' : '') + (rec ? ' rec' : '') + '" role="button" tabindex="0" data-key="' + esc(it.key) + '">' +
+      rib + '<span class="bw-tick">\u2713</span>' + media +
       '<div class="bw-body"><b>' + esc(it.name) + '</b><p>' + esc(it.desc) + '</p>' +
-      '<div class="bw-price">' + (it.flat ? partyPrice(it) : money(it.unit_price) + ' <small>/ person</small>') + '</div>' + incHTML(it) + '</div>' +
-      (state.guests > 1 && !it.flat ? '<div class="bw-qty"><span>Guests riding</span><span class="bw-mini"><button type="button" data-d="-1">\u2212</button><span data-q>' + qty + '</span><button type="button" data-d="1">+</button></span></div>' : '') +
+      '<div class="bw-price">' + (it.flat ? partyPrice(it) : money(it.unit_price) + ' <small>' + unitText(it) + '</small>') + '</div>' + incHTML(it) + '</div>' +
+      (showQty ? '<div class="bw-qty"><span>' + qtyLabel + '</span><span class="bw-mini"><button type="button" data-d="-1">\u2212</button><span data-q>' + qty + '</span><button type="button" data-d="1">+</button></span></div>' : '') +
       '</div>';
   }
-  function renderStep2() {
-    Object.keys(state.items).forEach(function (k) { var o = ITEM[k]; if (o && o.flat && !tierFor(o, state.guests)) delete state.items[k]; });
-    var tabs = $('#bwTabs');
-    tabs.innerHTML = TAB_KEYS.map(function (k) {
-      return '<button type="button" class="bw-tab' + (k === state.tab ? ' on' : '') + '" data-tab="' + k + '" style="--tab-grad:' + GRAD[k] + '">' +
-        '<em>' + TABS[k].emoji + '</em>' + esc(TABS[k].label) + '<span class="bw-count" data-count="' + k + '"></span></button>';
+  function renderChoices() {
+    var party = isParty(), vt = visibleTabs();
+    $('#bwTabs').innerHTML = TAB_KEYS.map(function (k) {
+      var on = k === state.tab;
+      var locked = vt.indexOf(k) === -1;                 // party mode and this attraction has no party packages
+      var dim = !!state.tab && !on && !locked;           // another attraction is already chosen -> grey this one out
+      var hasRec = !party && !locked && TABS[k].items.some(isRec);
+      var sub = locked ? '\uD83D\uDD12 No party packages' : on ? '\u2713 Selected' : state.tab ? 'Tap to switch' : 'Tap to choose';
+      return '<button type="button" class="bw-choice' + (on ? ' on' : '') + (dim ? ' dim' : '') + (locked ? ' locked' : '') + (hasRec ? ' has-rec' : '') +
+        '" data-tab="' + k + '" style="--tab-grad:' + GRAD[k] + '"' + (locked ? ' aria-disabled="true"' : '') + ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<em>' + TABS[k].emoji + '</em><span class="bw-choice-t"><b>' + esc(TABS[k].label) + '</b><small>' + sub + '</small></span>' +
+        '<span class="bw-count" data-count="' + k + '"></span></button>';
     }).join('');
-    $$('.bw-tab', tabs).forEach(function (b) {
-      b.addEventListener('click', function () { state.tab = b.getAttribute('data-tab'); renderStep2(); });
+  }
+  function renderStep2() {
+    var party = isParty();
+
+    /* Titles */
+    $('#bwS2Title').innerHTML = party ? 'Choose your party attraction <span class="bw-wave">&#127881;</span>' : 'Choose your attraction <span class="bw-wave">&#127914;</span>';
+    $('#bwS2Sub').textContent = !state.tab
+      ? 'First, choose one attraction. Then pick your rides.'
+      : (party ? 'Party packages are a flat price based on how many guests are coming.'
+               : 'Tap to pick as many rides as you like \u2014 passes are per person, bundles and tickets are per pack.');
+
+    /* The chosen attraction must still be allowed in this mode (e.g. Field of Rides has no party packages) */
+    if (state.tab && visibleTabs().indexOf(state.tab) === -1) { state.tab = null; state.items = {}; state.extras = {}; }
+
+    /* Drop picks that don't belong to the chosen attraction / mode, or don't fit the party size */
+    Object.keys(state.items).forEach(function (k) {
+      var o = ITEM[k];
+      if (!o || !state.tab || o.service !== state.tab || party !== !!o.flat || (o.flat && !tierFor(o, state.guests))) delete state.items[k];
     });
+    Object.keys(state.extras).forEach(function (k) {
+      var ok = state.tab && (TABS[state.tab].extras || []).some(function (e) { return e.key === k; });
+      if (!ok) delete state.extras[k];
+    });
+
+    renderChoices();
+
+    var pick = $('#bwPick'), hint = $('#bwChooseHint');
+    if (!state.tab) {
+      pick.hidden = true; hint.hidden = false;
+      updateCounts();
+      return;
+    }
+    pick.hidden = false; hint.hidden = true;
+
     var t = TABS[state.tab];
     var bn = bannerText(); var el = $('#bwBanner'); el.innerHTML = bn; el.hidden = !bn;
+
+    var shown = party ? t.items.filter(function (i) { return i.flat; }) : t.items;
     var grid = $('#bwGrid');
     grid.style.setProperty('--tab-grad', GRAD[state.tab]);
-    grid.innerHTML = t.items.length ? gridHTML(t.items) : '<div class="bw-empty"><b>\uD83D\uDEA7</b>Nothing to book here yet.</div>';
-    renderExtras(); updateCounts();
+    grid.innerHTML = shown.length ? gridHTML(shown) : '<div class="bw-empty"><b>\uD83D\uDEA7</b>Nothing to book here yet.</div>';
+    renderExtras(); updateCounts(); renderLive();
   }
   function updateCounts() {
     TAB_KEYS.forEach(function (k) {
@@ -657,7 +1072,7 @@ window.BW = {
     });
   }
   function renderExtras() {
-    var box = $('#bwExtras'), ex = TABS[state.tab].extras;
+    var box = $('#bwExtras'), ex = state.tab ? TABS[state.tab].extras : [];
     if (!ex.length) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
     box.innerHTML = '<h4>Add-ons <small style="font-weight:500;color:var(--bw-sub)">(optional)</small></h4>' + ex.map(function (e) {
@@ -666,6 +1081,21 @@ window.BW = {
         '<span class="bw-mini" data-ex="' + esc(e.key) + '"><button type="button" data-d="-1">\u2212</button><span>' + q + '</span><button type="button" data-d="1">+</button></span></div>';
     }).join('');
   }
+
+  /* Choose / switch the ONE attraction */
+  $('#bwTabs').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-tab]'); if (!b) return;
+    if (b.classList.contains('locked')) return;           // party mode: attraction without party packages
+    var k = b.getAttribute('data-tab');
+    if (k === state.tab) return;
+    if (state.tab && (selectedCount() || Object.keys(state.extras).length)) {
+      if (!window.confirm('Switch to ' + TABS[k].label + '? Your current picks will be cleared.')) return;
+    }
+    state.items = {}; state.extras = {};                  // only ONE attraction per booking
+    state.tab = k;
+    renderStep2(); renderBar();
+  });
+
   $('#bwGrid').addEventListener('click', function (ev) {
     var incBtn = ev.target.closest('[data-inc]');
     if (incBtn) {
@@ -676,32 +1106,35 @@ window.BW = {
     }
     if (ev.target.closest('.bw-inc')) return;
     var card = ev.target.closest('.bw-card'); if (!card) return;
+    if (card.classList.contains('locked')) return;   // greyed-out party package: not clickable
     var key = card.getAttribute('data-key'), step = ev.target.closest('[data-d]');
     if (step) {
       ev.stopPropagation();
-      var q = (state.items[key] || state.guests) + (+step.getAttribute('data-d'));
-      state.items[key] = Math.max(1, Math.min(state.guests, q));
+      var cur = ITEM[key];
+      var q = (state.items[key] || defQty(cur)) + (+step.getAttribute('data-d'));
+      state.items[key] = Math.max(1, Math.min(maxQty(cur), q));
       card.querySelector('[data-q]').textContent = state.items[key];
     } else {
       if (state.items[key] != null) { delete state.items[key]; }
       else {
         var it0 = ITEM[key];
+        if (it0.service !== state.tab) return;       // safety: only the chosen attraction can be picked
         if (it0.flat && !tierFor(it0, state.guests)) { return partyTooBig(it0); }
         var clash = false;
         Object.keys(state.items).forEach(function (k) {
           var o = ITEM[k];
           if (o && o.service === it0.service && (it0.flat || o.flat)) { delete state.items[k]; clash = true; }
         });
-        state.items[key] = it0.flat ? 1 : state.guests;
+        state.items[key] = it0.flat ? 1 : defQty(it0);
         if (clash) { renderStep2(); renderBar(); return; }
       }
       card.classList.toggle('sel', state.items[key] != null);
-      var qe = card.querySelector('[data-q]'); if (qe) qe.textContent = state.items[key] || state.guests;
+      var qe = card.querySelector('[data-q]'); if (qe) qe.textContent = state.items[key] || defQty(ITEM[key]);
     }
     updateCounts(); renderBar();
   });
   $('#bwGrid').addEventListener('keydown', function (ev) {
-    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('bw-card')) { ev.preventDefault(); ev.target.click(); }
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('bw-card') && !ev.target.classList.contains('locked')) { ev.preventDefault(); ev.target.click(); }
   });
   $('#bwExtras').addEventListener('click', function (ev) {
     var b = ev.target.closest('[data-d]'); if (!b) return;
@@ -722,7 +1155,7 @@ window.BW = {
     for (var k in state.items) {
       var it = ITEM[k]; if (!it) continue;
       if (it.package === 'walkin_allday') return null;
-      if (it.package === 'walkin_2hour' || it.package === 'group_bundle_2hour') d = Math.max(d, 2);
+      if (it.package === 'walkin_2hour' || it.package === 'group_bundle_2hour' || it.package === 'group_bundle_996') d = Math.max(d, 2);
       if (it.flat) d = Math.max(d, 3);
     }
     return d;
@@ -784,15 +1217,8 @@ window.BW = {
   /* ---------------- step 4: pay ---------------- */
   function renderStep4() {
     var p = price(), h = '<h4>\uD83E\uDDFE Your adventure</h4>';
-    h += '<div class="bw-row"><span>\uD83D\uDCC5 ' + esc(dateLabel(state.date)) + ' \u00B7 ' + esc(timeLabel(state.time)) + '<small>' + plural(state.guests, 'guest') + '</small></span><span></span></div>';
-    p.lines.forEach(function (l) {
-      h += '<div class="bw-row"><span>' + esc(l.it.name) + '<small>' + (l.it.flat ? (l.tier ? 'Up to ' + l.tier.pax + ' guests' : '') : l.qty + ' \u00D7 ' + money(l.it.unit_price)) + (l.free ? ' \u00B7 \uD83C\uDF81 ' + l.free + ' free' : '') + '</small></span><span>' + money(l.gross) + '</span></div>';
-    });
-    p.extras.forEach(function (x) {
-      h += '<div class="bw-row"><span>' + esc(x.e.name) + '<small>' + x.qty + ' \u00D7 ' + money(x.e.unit_price) + '</small></span><span>' + money(x.total) + '</span></div>';
-    });
-    if (p.bundle) h += '<div class="bw-row disc"><span>\uD83C\uDF81 Buy 4, get 1 free</span><span>\u2212' + money(p.bundle) + '</span></div>';
-    if (p.groupDisc) h += '<div class="bw-row disc"><span>\uD83C\uDF89 Group deal (' + p.pct + '%)</span><span>\u2212' + money(p.groupDisc) + '</span></div>';
+    h += '<div class="bw-row"><span>\uD83D\uDCC5 ' + esc(dateLabel(state.date)) + ' \u00B7 ' + esc(timeLabel(state.time)) + '<small>' + plural(state.guests, 'guest') + (isParty() ? ' \u00B7 \uD83C\uDF89 Party' : '') + '</small></span><span></span></div>';
+    h += orderRowsHTML(p) + discountRowsHTML(p);
     h += '<div class="bw-row sum"><span>Total</span><span>' + money(p.total) + '</span></div>';
     $('#bwReceipt').innerHTML = h;
     $('#bwAmount').textContent = money(p.total);
@@ -815,7 +1241,7 @@ window.BW = {
     drop.innerHTML = html; renderBar();
   }
   function submit() {
-    var p = price(), fd = new FormData();
+    var fd = new FormData();
     fd.append('party_type', state.party); fd.append('guests', state.guests);
     fd.append('items', JSON.stringify(Object.keys(state.items).map(function (k) { return { key: k, qty: state.items[k] }; })));
     fd.append('extras', JSON.stringify(Object.keys(state.extras).map(function (k) { return { key: k, qty: state.extras[k] }; })));
@@ -835,7 +1261,6 @@ window.BW = {
         window.location.href = BW.urls.bookingWaiver.replace('__ID__', res.j.booking.id);
       })
       .catch(function () { state.busy = false; showErr('Network problem \u2014 please check your connection and try again.'); renderBar(); });
-    void p;
   }
 
   /* ---------------- step 5: voucher ---------------- */
@@ -844,7 +1269,7 @@ window.BW = {
   function renderStep5() {
     var b = state.booking; if (!b) return;
     var rows = b.items.map(function (i) {
-      return '<div class="bw-row"><span>' + esc(i.name) + '<small>' + plural(i.qty, 'guest') + (i.free ? ' \u00B7 \uD83C\uDF81 ' + i.free + ' free' : '') + '</small></span><span>' + money(i.total) + '</span></div>';
+      return '<div class="bw-row"><span>' + esc(i.name) + '<small>' + plural(i.qty, i.unit || 'guest') + (i.free ? ' \u00B7 \uD83C\uDF81 ' + i.free + ' free' : '') + '</small></span><span>' + money(i.total) + '</span></div>';
     }).join('') + b.extras.map(function (e) {
       return '<div class="bw-row"><span>' + esc(e.name) + '<small>\u00D7 ' + e.qty + '</small></span><span>' + money(e.total) + '</span></div>';
     }).join('');
@@ -867,7 +1292,6 @@ window.BW = {
     var pill = $('#bwPill'), msg = $('#bwMsg'), code = $('#bwCode'), lock = $('#bwLock');
     if (!pill) return;
     var l2 = $('#bwL2'), l3 = $('#bwL3'), acts = $('#bwActions');
-    var waiver = '<a class="bw-btn go" href="' + BW.urls.waiver + '">\u270D\uFE0F Sign your waiver</a>';
     var mine = '<a class="bw-btn ghost" href="' + BW.urls.bookings + '">My bookings</a>';
     var again = '<a class="bw-btn ghost" href="' + BW.urls.booking + '">Book another \uD83C\uDFA1</a>';
     l2.className = ''; l3.className = '';
@@ -924,6 +1348,41 @@ window.BW = {
   /* ---------------- boot ---------------- */
   renderTrack(); renderBar();
   if (BW.resume) { state.booking = BW.resume; state.step = 5; go(5, 'fwd'); }
+})();
+</script>
+@endpush
+
+@push('scripts')
+<script>
+(function () {
+    var btn = document.getElementById('pgThemeToggle');
+    if (!btn) return;
+    var ico = btn.querySelector('.pg-tt-ico');
+    var OLD = '#themeToggle, #theme-toggle, #darkModeToggle, .theme-toggle, .theme-switch, [data-theme-toggle]';
+
+    function themeEl() { return document.querySelector('[data-theme]') || document.documentElement; }
+    function isDark()  { return themeEl().getAttribute('data-theme') === 'dark'; }
+    function paint()   { ico.textContent = isDark() ? '\u2600\uFE0F' : '\uD83C\uDF19'; }
+
+    // Hide the old floating toggle (kept in the DOM so it can still be clicked)
+    document.querySelectorAll(OLD).forEach(function (el) {
+        if (el !== btn) el.style.display = 'none';
+    });
+
+    btn.addEventListener('click', function () {
+        var old = document.querySelector(OLD);
+        if (old && old !== btn) {
+            old.click();
+        } else {
+            var next = isDark() ? 'light' : 'dark';
+            themeEl().setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', next); } catch (e) {}
+        }
+        setTimeout(paint, 50);
+    });
+
+    new MutationObserver(paint).observe(themeEl(), { attributes: true, attributeFilter: ['data-theme'] });
+    paint();
 })();
 </script>
 @endpush

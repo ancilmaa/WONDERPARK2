@@ -19,6 +19,9 @@
   .toolbar-actions select{padding:9px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:12.5px;font-family:'Inter',sans-serif;color:var(--ink-soft);background:var(--bg);cursor:pointer;}
   .toolbar-actions input[type="text"]:focus, .toolbar-actions select:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-light);}
 
+  /* View-only chip (cashier) */
+  .view-only-chip{display:inline-flex;align-items:center;gap:6px;background:var(--amber-light);color:var(--amber);padding:8px 14px;border-radius:999px;font-size:.74rem;font-weight:700;white-space:nowrap;}
+
   #uploadBtn{padding:11px 18px!important;background:#fff!important;color:var(--ink)!important;border:1px solid var(--line-strong)!important;border-radius:10px!important;cursor:pointer;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;white-space:nowrap;transition:background .15s ease, border-color .15s ease;}
   #uploadBtn:hover{background:var(--bg)!important;border-color:var(--pink)!important;}
   #openImportBtn{padding:11px 18px;background:#fff;color:var(--ink);border:1px solid var(--line-strong);border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;white-space:nowrap;transition:background .15s ease, border-color .15s ease;}
@@ -179,9 +182,25 @@
     .stats-row{grid-template-columns:1fr;}
   }
 </style>
+
+{{-- VIEW-ONLY MODE (cashier): itinatago ang mga edit controls.
+     Nasa DOM pa rin ang mga element para hindi mag-error ang js/inventory.js. --}}
+@php
+  $canManage = in_array(strtolower((string) session('role')), ['admin', 'tl', 'manager']);
+@endphp
+@unless($canManage)
+<style>
+  .manage-only{display:none!important;}
+</style>
+@endunless
 @endsection
 
 @section('content')
+
+  @php
+    // Sino ang pwedeng mag-edit. Cashier = view only.
+    $canManage = in_array(strtolower((string) session('role')), ['admin', 'tl', 'manager']);
+  @endphp
 
   <div class="toolbar no-print">
     <div>
@@ -190,6 +209,10 @@
     </div>
 
     <div class="toolbar-actions">
+      @unless($canManage)
+        <span class="view-only-chip"><i class="fas fa-eye"></i> View only</span>
+      @endunless
+
       <input type="text" id="searchInput" placeholder="Search products…">
 
       <select id="zoneFilter">
@@ -210,16 +233,16 @@
         @endforeach
       </select>
 
-      <form id="exportForm" method="post" action="{{ route('inventory.export') }}" style="margin:0;">
+      <form id="exportForm" class="manage-only" method="post" action="{{ route('inventory.export') }}" style="margin:0;">
         @csrf
         <input type="hidden" name="action" value="export_products">
         <button type="submit" id="uploadBtn"><i class="fas fa-file-export"></i> Export</button>
       </form>
 
       <input type="file" id="importFileInput" accept=".csv" style="display:none">
-      <button id="openImportBtn" type="button"><i class="fas fa-file-import"></i> Import CSV</button>
+      <button id="openImportBtn" type="button" class="manage-only"><i class="fas fa-file-import"></i> Import CSV</button>
 
-      <button id="openAddBtn" type="button" class="print-btn"><i class="fas fa-plus"></i> Add Product</button>
+      <button id="openAddBtn" type="button" class="print-btn manage-only"><i class="fas fa-plus"></i> Add Product</button>
     </div>
   </div>
 
@@ -251,7 +274,7 @@
   </div>
 
   <!-- ══ ADD MODAL ══════════════════════════════════════════ -->
-  <div id="addProductModal" class="modal">
+  <div id="addProductModal" class="modal manage-only">
     <div class="modal-content">
       <div class="modal-header">
         <h2><i class="fas fa-plus-circle" style="color:var(--pink)"></i> Add New Product</h2>
@@ -294,7 +317,7 @@
   </div>
 
   <!-- ══ EDIT MODAL ═════════════════════════════════════════ -->
-  <div id="editProductModal" class="modal">
+  <div id="editProductModal" class="modal manage-only">
     <div class="modal-content">
       <div class="modal-header">
         <h2><i class="fas fa-edit" style="color:#7C5CE0"></i> Edit Product</h2>
@@ -338,7 +361,7 @@
   </div>
 
   <!-- ══ ADD CATEGORY MODAL ═════════════════════════════════ -->
-  <div id="addCategoryModal" class="modal">
+  <div id="addCategoryModal" class="modal manage-only">
     <div class="modal-content" style="max-width:400px">
       <div class="modal-header">
         <h2><i class="fas fa-tags" style="color:var(--pink)"></i> Add New Category</h2>
@@ -382,7 +405,7 @@
   </div>
 
   <!-- ══ DELETE CONFIRM MODAL ═══════════════════════════════ -->
-  <div id="deleteConfirmModal" class="modal">
+  <div id="deleteConfirmModal" class="modal manage-only">
     <div class="modal-content" style="max-width:380px">
       <div class="modal-header">
         <h2>🗑️ Confirm Delete</h2>
@@ -415,7 +438,9 @@
             <th>Stock</th>
             <th>Price</th>
             <th>Status</th>
-            <th>Actions</th>
+            @if($canManage)
+              <th>Actions</th>
+            @endif
           </tr>
         </thead>
         <tbody>
@@ -445,8 +470,8 @@
                   {{ $isNoStock ? 'N/A' : ($isLow ? 'Low Stock' : 'In Stock') }}
                 </span>
               </td>
-              <td>
-                @if(in_array(strtolower(session('role')), ['admin', 'tl', 'manager']))
+              @if($canManage)
+                <td>
                   <div class="row-actions">
                     @if(!$isNoStock)
                       <button type="button" class="action-btn restock-btn" data-action="restock" data-tip="Restock" aria-label="Restock {{ $p->product_name }}"><i class="fas fa-plus-circle"></i></button>
@@ -454,8 +479,8 @@
                     <button type="button" class="action-btn edit-btn" data-action="edit" data-tip="Edit product" aria-label="Edit {{ $p->product_name }}"><i class="fas fa-pen"></i></button>
                     <button type="button" class="action-btn delete-btn" data-action="delete" data-tip="Delete product" aria-label="Delete {{ $p->product_name }}"><i class="fas fa-trash-can"></i></button>
                   </div>
-                @endif
-              </td>
+                </td>
+              @endif
             </tr>
           @endforeach
         </tbody>
@@ -466,7 +491,7 @@
   </div>
 
   <!-- ══ RESTOCK MODAL ══════════════════════════════════════ -->
-  <div id="restockModal" class="modal">
+  <div id="restockModal" class="modal manage-only">
     <div class="modal-content" style="max-width:380px">
       <div class="modal-header">
         <h2><i class="fas fa-plus-circle" style="color:var(--amber)"></i> Restock Product</h2>

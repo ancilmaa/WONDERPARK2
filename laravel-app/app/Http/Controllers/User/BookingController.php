@@ -17,6 +17,25 @@ use Illuminate\Support\Facades\Mail;
 class BookingController extends Controller
 {
     /**
+     * ------------------------------------------------------------------
+     * Wizard catalog additions
+     * ------------------------------------------------------------------
+     * RollerFever Group Bundle: PHP 996 flat, covers 5 guests (4 + 1 free),
+     *   shown as the 4th box next to the 1-hour, 2-hour and all-day passes.
+     *   It is flagged "recommended" in the wizard once the group is 5+.
+     *
+     * Field of Rides "Try Every Ride": the card that already exists in the
+     *   catalog (PHP 600 per person) is kept as is, and its "What's included"
+     *   list is replaced with the full details below. TER_PRICE is only used
+     *   as a fallback if no Try Every Ride card exists in the catalog.
+     */
+    protected const BUNDLE_PRICE = 996;
+    protected const BUNDLE_PACKAGE = 'group_bundle_996';
+    protected const TER_PRICE = 600;
+    protected const TER_PACKAGE = 'try_every_ride';
+    protected const PARTY_MIN_GUESTS = 10;   // a Party booking needs at least 10 guests (same as PARTY_MIN in the wizard JS)
+
+    /**
      * Services, packages, add-ons and inclusions — pulled from
      * App\Support\BookingCatalog with any admin-saved price overrides
      * (App\Support\BookingPricingOverrides) layered on top, so this
@@ -39,6 +58,151 @@ class BookingController extends Controller
     }
 
     /**
+     * Human-readable package name. Uses the catalog name when it exists,
+     * then special cases for packages added in withExtraItems(), then a
+     * cleaned-up version of the raw key (group_bundle_996 -> Group Bundle 996).
+     */
+    private function packageLabel(?string $service, ?string $package): string
+    {
+        $package = (string) $package;
+        $name = $this->packages[$service][$package]['name'] ?? null;
+        if ($name) {
+            return $name;
+        }
+
+        $special = [
+            self::BUNDLE_PACKAGE => 'Group Bundle 996',
+            self::TER_PACKAGE    => 'Try Every Ride',
+        ];
+
+        return $special[$package] ?? ucwords(str_replace('_', ' ', $package));
+    }
+
+    /**
+     * Receipt lines for a booking (name, qty, unit price, free units, total).
+     * Old bookings without items fall back to a single package line.
+     */
+    private function bookingLines(Booking $booking): array
+    {
+        $lines = collect($booking->items ?? [])->map(function ($i) {
+            $name = ($i['package'] ?? '') === self::BUNDLE_PACKAGE
+                ? 'Group Bundle 996'
+                : (string) ($i['name'] ?? '');
+
+            return [
+                'name'       => $name,
+                'qty'        => (int) ($i['qty'] ?? 1),
+                'unit_price' => (float) ($i['unit_price'] ?? 0),
+                'free'       => (int) ($i['free_units'] ?? 0),
+                'total'      => (float) ($i['line_total'] ?? 0),
+            ];
+        })->values()->all();
+
+        if (!count($lines)) {
+            $lines = [[
+                'name'       => $this->packageLabel($booking->service, $booking->package),
+                'qty'        => (int) $booking->tier,
+                'unit_price' => (float) $booking->price / max(1, (int) $booking->tier),
+                'free'       => 0,
+                'total'      => (float) $booking->price,
+            ]];
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Adjusts the wizard catalog:
+     *   - rollerfever    : Group Bundle (P996) replaces any old group_bundle_2hour card, so the tab shows
+     *                      exactly 4 boxes (1 hr, 2 hrs, all day, bundle)
+     *   - field_of_rides : full "What's included" details on the Try Every Ride card
+     * Used by BOTH create() (what the customer sees) and submit() (what the server validates and prices),
+     * so the two can never disagree.
+     */
+    private function withExtraItems(array $catalog): array
+    {
+        if (isset($catalog['rollerfever']['items']) && is_array($catalog['rollerfever']['items'])) {
+            $items = array_values(array_filter(
+                $catalog['rollerfever']['items'],
+                fn ($i) => !in_array($i['package'] ?? null, ['group_bundle_2hour', self::BUNDLE_PACKAGE], true)
+            ));
+
+            $items[] = [
+                'key'           => 'rollerfever_' . self::BUNDLE_PACKAGE,
+                'service'       => 'rollerfever',
+                'package'       => self::BUNDLE_PACKAGE,
+                'name'          => 'Group Bundle',
+                'desc'          => '2 hours of skating for 5 guests. Buy 4, get 1 free.',
+                'emoji'         => "\u{1F6FC}",
+                'image'         => null,
+                'badge'         => null,
+                'unit_price'    => (float) self::BUNDLE_PRICE,
+                'flat'          => false,
+                'tiers'         => [],
+                'days'          => null,
+                'inclusions'    => [
+                    '2-hour skate pass for 5 guests',
+                    'Buy 4, get 1 free',
+                ],
+                // pack settings used by the wizard
+                'pack'          => true,
+                'unit'          => 'bundle',
+                'unit_label'    => 'Bundles',
+                'covers'        => 5,
+                'recommend_min' => 5,
+            ];
+
+            $catalog['rollerfever']['items'] = $items;
+        }
+
+        // Field of Rides: complete the existing "Try Every Ride" card (matched by name).
+        if (isset($catalog['field_of_rides']['items']) && is_array($catalog['field_of_rides']['items'])) {
+            $terDesc = "Try every ride \u{2014} up to 10 rides, except Viking. Shareable, no expiration.";
+            $terInclusions = [
+                "Try every ride \u{2014} maximum of 10 rides, except Viking",
+                'Shareable',
+                'No expiration',
+                'One ride each on every attraction listed on the price board',
+                'Minimum height requirement applies per ride (posted at each attraction)',
+                "Guests under 4ft must be accompanied by a paying guardian \u{2014} no chaperone-only riders",
+                'Riders must be free from motion sickness, heart conditions, or other health restrictions listed at the ticket booth',
+                'Management reserves the right to refuse service to guests who do not follow safety guidelines',
+            ];
+
+            $found = false;
+            foreach ($catalog['field_of_rides']['items'] as $idx => $i) {
+                if (stripos((string) ($i['name'] ?? ''), 'try every ride') !== false) {
+                    $catalog['field_of_rides']['items'][$idx]['desc']       = $terDesc;
+                    $catalog['field_of_rides']['items'][$idx]['inclusions'] = $terInclusions;
+                    $found = true;
+                    break;
+                }
+            }
+
+            // Fallback: no Try Every Ride card in the catalog yet, so add one (per person, like the other passes).
+            if (!$found && self::TER_PRICE > 0) {
+                $catalog['field_of_rides']['items'][] = [
+                    'key'        => 'field_of_rides_' . self::TER_PACKAGE,
+                    'service'    => 'field_of_rides',
+                    'package'    => self::TER_PACKAGE,
+                    'name'       => "Try Every Ride \u{2014} All Access Pass",
+                    'desc'       => $terDesc,
+                    'emoji'      => "\u{1F3A2}",
+                    'image'      => null,
+                    'badge'      => null,
+                    'unit_price' => (float) self::TER_PRICE,
+                    'flat'       => false,
+                    'tiers'      => [],
+                    'days'       => null,
+                    'inclusions' => $terInclusions,
+                ];
+            }
+        }
+
+        return $catalog;
+    }
+
+    /**
      * Show the booking form (date + package selection).
      *
      * GET /user/booking
@@ -53,7 +217,7 @@ class BookingController extends Controller
 
         // Step-by-step wizard data (cards, deal rules) + optional resume of a
         // submitted booking: /app/booking?booking=ID opens straight on the voucher step.
-        $catalog = BookingWizard::catalog($packages, $addons, $services);
+        $catalog = $this->withExtraItems(BookingWizard::catalog($packages, $addons, $services));
         $deals   = BookingWizard::deals();
         $resume  = null;
 
@@ -163,7 +327,7 @@ class BookingController extends Controller
                     $row['status_label'],
                     $row['pax'] . ' pax',
                     $approved ? $booking->voucher_code : null,
-                    collect($booking->items ?? [])->pluck('name')->implode(' '),
+                    collect($row['lines'])->pluck('name')->implode(' '),
                     collect($booking->addons ?? [])->pluck('name')->implode(' '),
                 ])));
 
@@ -217,7 +381,7 @@ class BookingController extends Controller
 
         if ($favoritePackageKey) {
             [$favService, $favPackage] = explode('|', $favoritePackageKey, 2);
-            $favoritePackageName = $this->packages[$favService][$favPackage]['name'] ?? $favPackage;
+            $favoritePackageName = $this->packageLabel($favService, $favPackage);
             $favoritePackageCount = $counted->filter(
                 fn ($booking) => $booking->service === $favService && $booking->package === $favPackage
             )->count();
@@ -292,7 +456,6 @@ class BookingController extends Controller
         abort_if(!$bookingModel, 404);
 
         $service = $this->services[$bookingModel->service] ?? null;
-        $package = $this->packages[$bookingModel->service][$bookingModel->package] ?? null;
 
         return view('user.booking-receipt', [
             'booking' => [
@@ -303,7 +466,7 @@ class BookingController extends Controller
                 'addons'         => $bookingModel->addons ?? [],
                 'discount'       => (float) $bookingModel->discount_total,
                 'service_name'   => $service['name'] ?? ucfirst(str_replace('_', ' ', $bookingModel->service)),
-                'package_name'   => $package['name'] ?? $bookingModel->package,
+                'package_name'   => $this->packageLabel($bookingModel->service, $bookingModel->package),
                 'date'           => $bookingModel->visit_date->format('M j, Y'),
                 'time'           => $bookingModel->visit_time ? Carbon::parse($bookingModel->visit_time)->format('g:i A') : null,
                 'pax'            => $bookingModel->tier,
@@ -396,7 +559,7 @@ class BookingController extends Controller
 
         $methodLabel = ['qrph' => 'QR Ph', 'gcash' => 'GCash', 'maya' => 'Maya'][$method] ?? strtoupper($method);
         $serviceName = $this->services[$booking->service]['name'] ?? ucwords(str_replace('_', ' ', (string) $booking->service));
-        $packageName = $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package;
+        $packageName = $this->packageLabel($booking->service, $booking->package);
         $when        = $booking->visit_date->format('F j, Y') . ($booking->visit_time ? ' at ' . $booking->visit_time : '');
         $price       = '₱' . number_format((float) $booking->price, 2);
         $name        = $user->fullname ?? 'there';
@@ -474,7 +637,7 @@ class BookingController extends Controller
                 ->with('error', $this->rescheduleBlockedMessage($bookingModel->status));
         }
 
-        $packageLabel = $this->packages[$bookingModel->service][$bookingModel->package]['name'] ?? $bookingModel->package;
+        $packageLabel = $this->packageLabel($bookingModel->service, $bookingModel->package);
 
         return view('user.reschedule', ['booking' => $bookingModel, 'packageLabel' => $packageLabel]);
     }
@@ -550,7 +713,7 @@ class BookingController extends Controller
             'reference'        => 'WP-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
             'time_label'       => $booking->visit_time ? Carbon::parse($booking->visit_time)->format('g:i A') : null,
             'category'         => $this->services[$booking->service]['name'] ?? ucfirst(str_replace('_', ' ', $booking->service)),
-            'package'          => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
+            'package'          => $this->packageLabel($booking->service, $booking->package),
             'date'             => $booking->visit_date->format('M j, Y'),
             'time'             => $booking->visit_time,
             'pax'              => $booking->tier,
@@ -562,7 +725,17 @@ class BookingController extends Controller
             'can_reschedule'   => $this->canReschedule($booking->status),
             'rejection_reason' => $booking->status === 'pending_payment' ? $booking->payment_rejection_reason : null,
 
-            // ── BAGO: para sa clickable "Rejected" popup sa My Bookings ──
+            // Itemized receipt lines shown on the My Bookings tickets
+            'lines'            => $this->bookingLines($booking),
+            'extras'           => collect($booking->addons ?? [])->map(fn ($e) => [
+                'name'       => $e['name'] ?? '',
+                'qty'        => (int) ($e['qty'] ?? 1),
+                'unit_price' => (float) ($e['unit_price'] ?? 0),
+                'total'      => (float) ($e['line_total'] ?? 0),
+            ])->values()->all(),
+            'discount'         => (float) $booking->discount_total,
+
+            // Used by the clickable "Rejected" popup on My Bookings
             'approval_status'  => $booking->approval_status,
             'reject_reason'    => $booking->reject_reason,
             'reject_note'      => $booking->reject_note,
@@ -586,7 +759,7 @@ class BookingController extends Controller
             'awaiting_verification' => ['label' => 'Waiting for Approval', 'class' => 'amber'],
             'confirmed'             => ['label' => 'Confirmed', 'class' => 'green'],
             'done'                  => ['label' => 'Done', 'class' => 'green'],
-            'rejected'              => ['label' => 'Rejected', 'class' => 'rose'],   // ← BAGO
+            'rejected'              => ['label' => 'Rejected', 'class' => 'rose'],
             'cancelled'             => ['label' => 'Cancelled', 'class' => 'rose'],
             default                 => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'amber'],
         };
@@ -599,6 +772,16 @@ class BookingController extends Controller
      * admin to review. Prices are recomputed here from the server catalog;
      * nothing price-related is trusted from the browser.
      *
+     * Party rules (enforced here as well as in the UI):
+     *   - party_type "party"                  -> party packages (flat price) ONLY
+     *   - party_type solo / couple / group    -> per-person passes ONLY, no party packages
+     *
+     * Pack rules (Group Bundle): qty is the number of bundles, not the number of
+     * guests. A bundle covers 5 guests, so qty may not exceed ceil(guests / 5).
+     *
+     * NOTE: if the bookings.party_type column is an ENUM, add 'party' to it
+     * (see the migration note that comes with this file).
+     *
      * POST /app/booking/submit   (multipart, expects JSON back)
      */
     public function submit(Request $request)
@@ -608,7 +791,7 @@ class BookingController extends Controller
         }
 
         $validated = $request->validate([
-            'party_type' => ['required', 'in:solo,couple,group'],
+            'party_type' => ['required', 'in:solo,couple,group,party'],
             'guests'     => ['required', 'integer', 'min:1', 'max:100'],
             'items'      => ['required', 'string'],
             'extras'     => ['nullable', 'string'],
@@ -622,12 +805,16 @@ class BookingController extends Controller
         ]);
 
         $guests = (int) $validated['guests'];
+        $isParty = $validated['party_type'] === 'party';
         $expected = ['solo' => 1, 'couple' => 2];
         if (isset($expected[$validated['party_type']]) && $guests !== $expected[$validated['party_type']]) {
             return response()->json(['message' => 'Guest count does not match the party type.'], 422);
         }
         if ($validated['party_type'] === 'group' && $guests < 3) {
             return response()->json(['message' => 'A group needs at least 3 guests.'], 422);
+        }
+        if ($validated['party_type'] === 'party' && $guests < self::PARTY_MIN_GUESTS) {
+            return response()->json(['message' => 'A party needs at least ' . self::PARTY_MIN_GUESTS . ' guests.'], 422);
         }
 
         // Opening hours: 9AM weekdays / 10AM weekends, last start 8:30PM.
@@ -641,7 +828,8 @@ class BookingController extends Controller
             return response()->json(['message' => 'That time has already passed today.'], 422);
         }
 
-        $catalog = BookingWizard::catalog($this->packages, $this->addons, $this->services);
+        // Same catalog the wizard showed (incl. Group Bundle and TER), so lookups and prices match.
+        $catalog = $this->withExtraItems(BookingWizard::catalog($this->packages, $this->addons, $this->services));
         $lookup  = BookingWizard::lookup($catalog);
 
         $rawItems  = json_decode($validated['items'], true);
@@ -657,6 +845,10 @@ class BookingController extends Controller
             $item = $lookup['items'][$key] ?? null;
             if (!$item || $qty < 1 || (empty($item['flat']) && $qty > $guests)) {
                 return response()->json(['message' => 'One of the selected attractions is no longer available. Please review your picks.'], 422);
+            }
+            // Pack items (Group Bundle): one bundle covers N guests, so you never need more than ceil(guests / N).
+            if (!empty($item['pack']) && !empty($item['covers']) && $qty > (int) ceil($guests / (int) $item['covers'])) {
+                return response()->json(['message' => $item['name'] . ' covers ' . (int) $item['covers'] . ' guests per bundle. Please lower the quantity.'], 422);
             }
             if (!empty($item['flat'])) {
                 // Party package: flat price for the tier that fits the party size.
@@ -678,6 +870,17 @@ class BookingController extends Controller
                 continue;
             }
             $lines[$key] = ['qty' => $qty] + $item;
+        }
+
+        // Party bookings may only contain party packages; every other party
+        // type may only contain per-person passes.
+        $hasPartyPackage = collect($lines)->contains(fn ($l) => !empty($l['flat']));
+        $hasPersonalPass = collect($lines)->contains(fn ($l) => empty($l['flat']));
+        if ($isParty && $hasPersonalPass) {
+            return response()->json(['message' => 'A Party booking can only include party packages. Please remove the per-person passes.'], 422);
+        }
+        if (!$isParty && $hasPartyPackage) {
+            return response()->json(['message' => 'Party packages can only be booked with the Party option. Please go back and choose Party.'], 422);
         }
 
         // A party package already includes play/skate access: one per service, no per-person passes with it.
@@ -786,16 +989,24 @@ class BookingController extends Controller
         $meta     = $this->statusMeta($booking->status, $booking->payment_rejection_reason);
         $approved = in_array($booking->status, ['confirmed', 'done'], true);
 
+        // The Group Bundle is counted in bundles, not guests.
+        $unitByPackage = [
+            self::BUNDLE_PACKAGE => 'bundle',
+        ];
+
         $items = collect($booking->items ?? [])->map(fn ($i) => [
-            'name' => $i['name'], 'qty' => $i['qty'], 'free' => $i['free_units'] ?? 0,
+            'name' => (($i['package'] ?? '') === self::BUNDLE_PACKAGE) ? 'Group Bundle 996' : $i['name'],
+            'qty'  => $i['qty'], 'free' => $i['free_units'] ?? 0,
             'total' => (float) $i['line_total'],
+            'unit'  => $unitByPackage[$i['package'] ?? ''] ?? null,
         ])->values()->all();
 
         // Bookings made with the old form have no items — fall back to the package.
         if (!count($items)) {
             $items = [[
-                'name'  => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
+                'name'  => $this->packageLabel($booking->service, $booking->package),
                 'qty'   => (int) $booking->tier, 'free' => 0, 'total' => (float) $booking->price,
+                'unit'  => null,
             ]];
         }
 
@@ -827,7 +1038,7 @@ class BookingController extends Controller
     {
         return [
             'service_name' => $this->services[$service]['name'] ?? ucfirst(str_replace('_', ' ', $service)),
-            'package_name' => $this->packages[$service][$package]['name'] ?? $package,
+            'package_name' => $this->packageLabel($service, $package),
         ];
     }
 
