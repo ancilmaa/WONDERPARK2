@@ -298,7 +298,7 @@
                     <button type="button" class="bw-chip" data-n="15">15</button>
                     <button type="button" class="bw-chip" data-n="20">20</button>
                 </div>
-                <p class="bw-hint">Groups of 5+ unlock special deals 🎁</p>
+                <p class="bw-hint">Groups of 5+ unlock special deals</p>
             </div>
         </section>
 
@@ -535,7 +535,7 @@ window.BW = {
     btnNext.disabled = state.busy;
     var t = '';
     if (state.step === 1) {
-      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure \uD83C\uDF89' : (state.party === 'couple' ? 'Duo day \uD83E\uDD1D' : 'Me time \uD83D\uDE0E')) : '<b>Who is coming?</b>Pick one above';
+      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure ' : (state.party === 'couple' ? 'Duo day ' : 'Me time ')) : '<b>Who is coming?</b>Pick one above';
     } else if (state.step === 4) {
       t = '<b>' + money(price().total) + '</b>Total to pay via QR Ph';
     } else {

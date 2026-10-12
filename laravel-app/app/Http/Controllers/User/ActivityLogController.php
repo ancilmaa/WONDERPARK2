@@ -25,7 +25,20 @@ class ActivityLogController extends Controller
             ->orderByDesc('id');
 
         if (in_array($group, $allowed, true)) {
-            $query->where('action', 'like', $group . '.%');
+           $query->where(function ($q) use ($group) {
+    $prefixes = [
+        'auth'     => ['auth', 'login', 'logout', '2fa'],
+        'booking'  => ['booking', 'reservation', 'payment'],
+        'waiver'   => ['waiver'],
+        'account'  => ['account', 'profile', 'password'],
+        'security' => ['security', 'anomaly'],
+    ][$group] ?? [$group];
+
+    foreach ($prefixes as $p) {
+        $q->orWhere('event_type', 'like', $p . '.%')
+          ->orWhere('event_type', 'like', $p . '\_%');
+    }
+});
         } else {
             $group = '';
         }
