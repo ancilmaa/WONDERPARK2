@@ -1,1309 +1,912 @@
 {{--
-    resources/views/user/booking.blade.php
-    Route: GET  /user/booking  ->  user.booking
-           POST /user/booking  ->  user.booking.store
-    Controller: App\Http\Controllers\User\BookingController@create / store
+    resources/views/user/booking.blade.php  —  step-by-step booking wizard
+    Route: GET  /app/booking                 -> user.booking          (BookingController@create)
+           POST /app/booking/submit          -> user.booking.submit   (BookingController@submit)
+           GET  /app/booking/{id}/status     -> user.booking.status   (BookingController@status, polled by step 5)
 
-    Expects from the controller:
-      $packages -> array keyed by service, then by package code, each
-        ['name','desc','image','badge','category','tiers'] — already
-        sorted ascending by starting price (lowest tier first) via
-        BookingController::sortedPackages().
-      $packageCategories -> ['solo' => 'Solo', 'bundle' => 'Bundle', 'packages' => 'Packages']
+    Steps: 1 Who's coming (solo / couple / group)  2 Pick attractions (Dino Adventure / Field of Rides / RollerFever tabs)
+           3 Date & time   4 Pay by QR Ph + upload proof   5 Voucher (blurred until admin approves)
 
-    Layout: two-column 50/50 split.
-      - LEFT  column: service switch + package cards, filterable by
-        category (Solo / Bundle / Packages) and paginated, plus the
-        "+ Booking" submit button at the bottom. Packages are already
-        price-sorted ascending, so the cheapest option in the active
-        filter always shows first.
-      - RIGHT column: a big, always-visible (no popup) calendar + time
-        slots, so the visit date/time being booked is clearly visible
-        at all times.
-
-    Date & time are picked straight from the inline calendar (built client
-    side in JS, always reflects the real current date/month). Visit duration
-    depends on the selected package (see PACKAGE_DURATIONS in the script
-    below) instead of a flat 3 hours:
-      - Weekdays (Mon-Fri): open 9:00 AM  - 9:00 PM
-      - Weekends (Sat-Sun): open 10:00 AM - 9:00 PM
+    Expects: $catalog (BookingWizard::catalog), $deals (BookingWizard::deals), $resume (wizard summary array or null).
+    The previous page is kept as booking-classic.blade.php.
 --}}
 @extends('layouts.user')
 
-@section('title', 'Booking')
-@section('page-title', 'Booking')
-@section('page-subtitle', 'Pick a date and package')
+@section('title', 'Book a Visit')
+@section('page-title', 'Plan your adventure')
+@section('page-subtitle', 'Book your WonderPark day in 5 easy steps')
 @section('body-class', 'page-uniform')
 
 @push('styles')
-    <style>
-        @media (max-width: 768px) {
-    #bookingForm > .booking-submit-btn {
-        width: 100%;
-        margin-top: 24px;
-    }
+<style>
+.bw{
+  --bw-surface:#fff; --bw-soft:#FBF8FB; --bw-text:var(--ink); --bw-sub:var(--ink-soft);
+  --bw-line:var(--line); --bw-accent:var(--pink-deep);
+  max-width:1080px; margin:0 auto; color:var(--bw-text); position:relative; padding-bottom:96px;
 }
-        /* loading state for the booking submit button */
-        .booking-submit-btn.is-loading {
-            opacity: .75;
-            cursor: not-allowed;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
+[data-theme="dark"] .bw{
+  --bw-surface:var(--d-surface); --bw-soft:var(--d-surface-soft); --bw-text:var(--d-text);
+  --bw-sub:var(--d-text-soft); --bw-line:var(--d-border);
+}
+.bw *{ box-sizing:border-box; }
+.bw button{ font-family:inherit; }
 
-        .btn-spinner {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, .4);
-            border-top-color: #fff;
-            display: inline-block;
-            animation: btnSpin .7s linear infinite;
-        }
+/* ---------- progress track ---------- */
+.bw-track{ list-style:none; margin:0 0 22px; padding:0; display:flex; position:relative; }
+.bw-track::before{ content:""; position:absolute; left:10%; right:10%; top:22px; height:6px; border-radius:6px; background:var(--bw-line); }
+.bw-track-fill{ position:absolute; left:10%; top:22px; height:6px; border-radius:6px; width:0; max-width:80%;
+  background:linear-gradient(90deg,#FFC948,#F2762E,var(--pink-deep)); transition:width .6s var(--ease); }
+.bw-node{ flex:1; text-align:center; position:relative; z-index:1; }
+.bw-node i{ width:50px; height:50px; margin:0 auto; border-radius:50%; display:grid; place-items:center; font-style:normal; font-size:22px;
+  background:var(--bw-surface); border:3px solid var(--bw-line); filter:grayscale(1); opacity:.7; transition:all .35s var(--ease); }
+.bw-node span{ display:block; margin-top:7px; font-size:11.5px; font-weight:700; color:var(--bw-sub); }
+.bw-node.done i{ filter:none; opacity:1; border-color:#FFC948; background:var(--gold-pale); }
+.bw-node.now i{ filter:none; opacity:1; border-color:var(--pink-deep); transform:scale(1.14); animation:bwBob 1.6s ease-in-out infinite;
+  box-shadow:0 8px 18px -6px rgba(184,40,80,.55); }
+.bw-node.now span{ color:var(--bw-accent); }
+@keyframes bwBob{ 0%,100%{ transform:scale(1.14) translateY(0);} 50%{ transform:scale(1.14) translateY(-5px);} }
 
-        @keyframes btnSpin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+/* ---------- stage / steps ---------- */
+.bw-stage{ position:relative; }
+.bw-step{ display:none; }
+.bw-step.is-active{ display:block; animation:bwInR .45s var(--ease); }
+.bw-step.from-left.is-active{ animation-name:bwInL; }
+@keyframes bwInR{ from{ opacity:0; transform:translateX(36px);} to{ opacity:1; transform:none;} }
+@keyframes bwInL{ from{ opacity:0; transform:translateX(-36px);} to{ opacity:1; transform:none;} }
+.bw-h{ margin:0 0 4px; font-size:24px; font-weight:800; letter-spacing:-.01em; }
+.bw-sub{ margin:0 0 20px; color:var(--bw-sub); font-size:14px; }
+.bw-wave{ display:inline-block; transform-origin:70% 70%; animation:bwWave 2.2s ease-in-out infinite; }
+@keyframes bwWave{ 0%,60%,100%{ transform:rotate(0);} 10%,30%{ transform:rotate(16deg);} 20%,40%{ transform:rotate(-10deg);} 50%{ transform:rotate(8deg);} }
 
-        /* ---------- overall page rhythm ---------- */
-       .booking-split {
-    gap: 32px !important;
-    align-items: flex-start; /* bago — para di na mag stretch */
-}
-.booking-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .55);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-}
-.booking-modal-overlay.active {
-    display: flex;
-}
-.booking-modal {
-    background: #fff;
-    border-radius: 16px;
-    padding: 30px 26px;
-    width: 90%;
-    max-width: 380px;
-    text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,.25);
-    animation: bookingModalPop .18s ease;
-}
-@keyframes bookingModalPop {
-    from { transform: scale(.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-.booking-modal-icon {
-    width: 52px;
-    height: 52px;
-    margin: 0 auto 14px;
-    border-radius: 50%;
-    background: var(--pink-pale, #ffe6ee);
-    color: var(--pink-deep, #b82850);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.booking-modal h3 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: #1a1523;
-}
-.booking-modal-sub {
-    font-size: .85rem;
-    color: #635c72;
-    margin-bottom: 18px;
-}
-.booking-modal-summary {
-    background: #f8f6f9;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-    text-align: left;
-}
-.booking-modal-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: .82rem;
-    padding: 5px 0;
-}
-.booking-modal-row span {
-    color: #9c94ab;
-}
-.booking-modal-row b {
-    color: #1a1523;
-    text-align: right;
-}
-.booking-modal-actions {
-    display: flex;
-    gap: 10px;
-}
-.booking-modal-actions button {
-    flex: 1;
-    padding: 11px 16px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: .86rem;
-    border: none;
-    cursor: pointer;
-}
-.btn-cancel {
-    background: #f1eef2;
-    color: #635c72;
-}
-.btn-cancel:hover {
-    background: #e5e0e8;
-}
-.btn-confirm {
-    background: var(--pink-deep, #b82850);
-    color: #fff;
-}
-.btn-confirm:hover {
-    background: var(--pink-dark, #d63e63);
-}
+/* ---------- step 1 ---------- */
+.bw-party{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.bw-pcard{ border:2px solid var(--bw-line); background:var(--bw-surface); border-radius:22px; padding:26px 12px 20px; cursor:pointer; text-align:center;
+  color:var(--bw-text); transition:transform .25s var(--ease), box-shadow .25s var(--ease), border-color .2s; position:relative; overflow:hidden; }
+.bw-pcard:hover{ transform:translateY(-6px) rotate(-1deg); box-shadow:var(--shadow-pop); }
+.bw-pcard .bw-big{ font-size:54px; display:block; line-height:1; transition:transform .3s var(--ease); }
+.bw-pcard:hover .bw-big{ transform:scale(1.18) rotate(-6deg); }
+.bw-pcard b{ display:block; margin-top:12px; font-size:17px; }
+.bw-pcard small{ display:block; margin-top:3px; color:var(--bw-sub); font-size:12.5px; }
+.bw-pcard.sel{ border-color:var(--pink-deep); background:linear-gradient(160deg,var(--pink-pale),var(--gold-pale)); box-shadow:0 14px 30px -14px rgba(184,40,80,.5); }
+[data-theme="dark"] .bw-pcard.sel{ background:linear-gradient(160deg,rgba(184,40,80,.22),rgba(255,201,72,.12)); }
+.bw-pcard.sel::after{ content:"✓"; position:absolute; top:10px; right:12px; width:26px; height:26px; border-radius:50%; background:var(--pink-deep);
+  color:#fff; font-size:14px; display:grid; place-items:center; animation:bwPop .35s var(--ease); }
+@keyframes bwPop{ from{ transform:scale(0);} to{ transform:scale(1);} }
+.bw-groupbox{ margin-top:18px; background:var(--bw-surface); border:2px dashed var(--pink-light); border-radius:20px; padding:20px; text-align:center; animation:bwInR .4s var(--ease); }
+.bw-groupbox[hidden]{ display:none; }
+.bw-stepper{ display:inline-flex; align-items:center; gap:14px; }
+.bw-stepper button{ width:42px; height:42px; border-radius:50%; border:none; cursor:pointer; font-size:22px; font-weight:800; color:#fff;
+  background:var(--pink-deep); transition:transform .15s; }
+.bw-stepper button:active{ transform:scale(.88); }
+.bw-stepper button:disabled{ opacity:.35; cursor:not-allowed; }
+.bw-stepper output{ min-width:70px; font-size:40px; font-weight:800; display:inline-block; }
+.bw-chips{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+.bw-chip{ border:1px solid var(--bw-line); background:var(--bw-soft); color:var(--bw-text); border-radius:999px; padding:6px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+.bw-chip:hover,.bw-chip.on{ border-color:var(--pink-deep); color:var(--pink-deep); background:var(--pink-pale); }
+[data-theme="dark"] .bw-chip:hover,[data-theme="dark"] .bw-chip.on{ background:rgba(184,40,80,.2); }
+.bw-hint{ margin-top:10px; font-size:13px; color:var(--bw-sub); }
 
-/* pagination controls */
-.promo-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding-top: 4px;
-}
-.promo-pagination[hidden] { display: none; }
-.promo-pagination button {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1.5px solid var(--border, #eee);
-    background: #fff;
-    color: var(--ink-soft);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background .15s var(--ease), color .15s var(--ease);
-}
-.promo-pagination button:hover:not(:disabled) {
-    background: var(--pink-deep);
-    color: #fff;
-    border-color: var(--pink-deep);
-}
-.promo-pagination button:disabled { opacity: .35; cursor: not-allowed; }
-.promo-pagination button.active {
-    background: var(--pink-deep);
-    color: #fff;
-    border-color: var(--pink-deep);
-}
-.promo-pagination .promo-page-info {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--muted);
-    min-width: 46px;
-    text-align: center;
-}
-        .booking-col-pkg {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-        .service-packages {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .service-packages[hidden] { display: none; }
+/* ---------- step 2 ---------- */
+.bw-tabs{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; scrollbar-width:none; }
+.bw-tabs::-webkit-scrollbar{ display:none; }
+.bw-tab{ flex:1 0 auto; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border-radius:16px; cursor:pointer;
+  border:2px solid var(--bw-line); background:var(--bw-surface); color:var(--bw-text); font-weight:800; font-size:14px; position:relative; transition:all .2s var(--ease); white-space:nowrap; }
+.bw-tab em{ font-style:normal; font-size:20px; }
+.bw-tab:hover{ transform:translateY(-2px); }
+.bw-tab.on{ color:#fff; border-color:transparent; background:var(--tab-grad,var(--pink-deep)); box-shadow:0 10px 22px -10px rgba(0,0,0,.45); }
+.bw-tab .bw-count{ min-width:22px; height:22px; border-radius:11px; background:var(--gold); color:#4a2f00; font-size:12px; display:none; place-items:center; padding:0 6px; }
+.bw-tab .bw-count.show{ display:grid; animation:bwPop .3s var(--ease); }
+.bw-banner{ margin:6px 0 16px; padding:12px 16px; border-radius:14px; font-size:13.5px; font-weight:600;
+  background:linear-gradient(90deg,var(--gold-pale),var(--pink-pale)); color:#6b3b00; border:1px solid var(--gold); }
+[data-theme="dark"] .bw-banner{ background:rgba(255,201,72,.12); color:#FFD98A; border-color:rgba(255,201,72,.35); }
+.bw-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
+.bw-card{ position:relative; border:2px solid var(--bw-line); background:var(--bw-surface); border-radius:20px; overflow:hidden; cursor:pointer; text-align:left;
+  padding:0; color:var(--bw-text); display:flex; flex-direction:column; transition:transform .25s var(--ease), box-shadow .25s var(--ease), border-color .2s; }
+.bw-card:hover{ transform:translateY(-5px); box-shadow:var(--shadow-pop); }
+.bw-media{ height:118px; background:var(--tab-grad,var(--pink-deep)) center/cover no-repeat; display:grid; place-items:center; font-size:48px; position:relative; }
+.bw-media span{ filter:drop-shadow(0 4px 6px rgba(0,0,0,.3)); transition:transform .3s var(--ease); }
+.bw-card:hover .bw-media span{ transform:scale(1.2) rotate(-8deg); }
+.bw-body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
+.bw-body b{ font-size:14.5px; line-height:1.25; }
+.bw-body p{ margin:0; font-size:12px; color:var(--bw-sub); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.bw-price{ margin-top:auto; padding-top:6px; font-size:19px; font-weight:800; color:var(--pink-deep); }
+.bw-price small{ font-size:11.5px; font-weight:600; color:var(--bw-sub); }
+.bw-ribbon{ position:absolute; top:10px; left:-1px; padding:4px 12px 4px 10px; font-size:11px; font-weight:800; color:#fff; border-radius:0 999px 999px 0;
+  background:linear-gradient(90deg,#F2762E,#E24B4A); box-shadow:0 4px 10px -4px rgba(0,0,0,.4); z-index:2; }
+.bw-ribbon.gold{ background:linear-gradient(90deg,#FFC948,#F2A03E); color:#4a2f00; }
+.bw-tick{ position:absolute; top:10px; right:10px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.85); border:2px solid #fff;
+  display:grid; place-items:center; color:transparent; font-weight:800; z-index:2; transition:all .25s var(--ease); }
+.bw-card.sel{ border-color:var(--pink-deep); box-shadow:0 0 0 3px var(--pink-light), 0 16px 30px -14px rgba(184,40,80,.55); }
+.bw-card.sel .bw-tick{ background:var(--pink-deep); color:#fff; animation:bwPop .35s var(--ease); }
+.bw-qty{ display:none; align-items:center; justify-content:space-between; gap:8px; padding:8px 14px; border-top:1px dashed var(--bw-line); background:var(--bw-soft); font-size:12px; font-weight:700; }
+.bw-card.sel .bw-qty{ display:flex; }
+.bw-mini{ display:inline-flex; align-items:center; gap:8px; }
+.bw-mini button{ width:26px; height:26px; border-radius:50%; border:1px solid var(--bw-line); background:var(--bw-surface); color:var(--bw-text); font-weight:800; cursor:pointer; line-height:1; }
+.bw-mini button:hover{ border-color:var(--pink-deep); color:var(--pink-deep); }
+.bw-mini span{ min-width:18px; text-align:center; font-weight:800; }
+.bw-extras{ margin-top:20px; padding:16px; border-radius:18px; background:var(--bw-surface); border:1px solid var(--bw-line); }
+.bw-extras h4{ margin:0 0 10px; font-size:14px; }
+.bw-extra{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--bw-line); font-size:13.5px; }
+.bw-extra:first-of-type{ border-top:none; }
+.bw-extra small{ color:var(--bw-sub); }
 
-        /* ---------- category filter tabs (All / Solo / Bundle / Packages) ---------- */
-        /* ---------- category filter tabs (All / Solo / Bundle / Packages) ---------- */
-.cat-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 5px;
-    background: var(--bg);
-    border: 1px solid var(--line, #eee);
-    border-radius: 14px;
-}
-.cat-filter button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 16px;
-    border-radius: 10px;
-    border: 1.5px solid transparent;
-    background: #fd81d8ee;
-    color: var(--ink-deep);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .01em;
-    cursor: pointer;
-    transition: background .15s var(--ease), color .15s var(--ease),
-                box-shadow .15s var(--ease), transform .1s var(--ease),
-                border-color .15s var(--ease);
-}
-.cat-filter button svg {
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    opacity: .7;
-    transition: opacity .15s var(--ease);
-}
-.cat-filter button .cat-count {
-    font-size: 10px;
-    font-weight: 800;
-    color: var(--muted);
-    background: var(--bg);
-    border-radius: 999px;
-    padding: 1px 6px;
-    line-height: 1.4;
-}
-.cat-filter button:hover {
-    background: var(--pink-pale, #ffe6ee);
-    color: var(--pink-dark);
-    border-color: var(--pink-deep);
-    box-shadow: var(--shadow-card);
-    transform: translateY(-1px);
-}
-.cat-filter button:hover svg { opacity: 1; }
-.cat-filter button:hover .cat-count {
-    background: #fff;
-    color: var(--pink-dark);
-}
-.cat-filter button.active {
-    background: var(--pink-deep);
-    color: #fff;
-    border-color: var(--red-deep);
-    box-shadow: 0 6px 16px -8px rgba(184,40,80,.55);
-    transform: translateY(-1px);
-}
-.cat-filter button.active svg { opacity: 1; }
-.cat-filter button.active .cat-count {
-    background: rgba(255,255,255,.22);
-    color: #fff;
-}
+/* ---------- step 3 ---------- */
+.bw-when{ display:grid; grid-template-columns:1.05fr 1fr; gap:18px; }
+.bw-panel{ background:var(--bw-surface); border:1px solid var(--bw-line); border-radius:20px; padding:18px; }
+.bw-cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.bw-cal-head b{ font-size:16px; }
+.bw-cal-head button{ width:34px; height:34px; border-radius:50%; border:1px solid var(--bw-line); background:var(--bw-soft); color:var(--bw-text); cursor:pointer; font-size:16px; }
+.bw-cal-head button:disabled{ opacity:.3; cursor:not-allowed; }
+.bw-dow,.bw-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; }
+.bw-dow span{ font-size:11px; font-weight:700; color:var(--bw-sub); padding-bottom:4px; }
+.bw-day{ aspect-ratio:1; border-radius:50%; border:none; background:transparent; color:var(--bw-text); font-weight:700; font-size:14px; cursor:pointer; transition:all .18s var(--ease); }
+.bw-day:hover:not(:disabled){ background:var(--pink-pale); color:var(--pink-deep); transform:scale(1.12); }
+.bw-day:disabled{ opacity:.25; cursor:not-allowed; }
+.bw-day.today{ box-shadow:inset 0 0 0 2px var(--gold); }
+.bw-day.wk{ color:var(--pink-deep); }
+.bw-day.sel{ background:var(--pink-deep)!important; color:#fff!important; transform:scale(1.12); box-shadow:0 8px 16px -6px rgba(184,40,80,.6); }
+.bw-slots-h{ font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--bw-sub); margin:14px 0 8px; }
+.bw-slots-h:first-child{ margin-top:0; }
+.bw-slots{ display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+.bw-slot{ padding:10px 4px; border-radius:12px; border:2px solid var(--bw-line); background:var(--bw-soft); color:var(--bw-text); font-weight:700; font-size:13px; cursor:pointer; transition:all .18s var(--ease); }
+.bw-slot:hover{ border-color:var(--pink-deep); transform:translateY(-2px); }
+.bw-slot.sel{ background:var(--pink-deep); border-color:var(--pink-deep); color:#fff; }
+.bw-empty{ text-align:center; color:var(--bw-sub); padding:34px 10px; font-size:14px; }
+.bw-empty b{ display:block; font-size:38px; margin-bottom:6px; }
+.bw-sec{ grid-column:1/-1; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--bw-sub); margin:10px 0 -2px; }
+.bw-sec small{ font-weight:500; text-transform:none; letter-spacing:0; margin-left:6px; }
+.bw-inc{ padding:0 14px 12px; }
+.bw-inc-btn{ background:none; border:0; padding:0; font:inherit; font-size:12.5px; font-weight:700; color:var(--pink-deep); cursor:pointer; display:flex; gap:6px; align-items:center; }
+.bw-inc ul{ margin:8px 0 0; padding-left:18px; font-size:12.5px; color:var(--bw-sub); line-height:1.5; text-align:left; cursor:default; }
+.bw-inc ul[hidden]{ display:none; }
 
-[data-theme="dark"] .cat-filter {
-    background: var(--d-surface-soft);
-    border-color: var(--d-border);
+/* ---------- step 4 ---------- */
+.bw-pay{ display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+.bw-receipt{ position:relative; background:var(--bw-surface); border:1px solid var(--bw-line); border-radius:20px; padding:20px 20px 16px; }
+.bw-receipt::after{ content:""; position:absolute; left:0; right:0; bottom:-8px; height:8px;
+  background:radial-gradient(circle at 8px 0,var(--bw-surface) 7px,transparent 8px) 0 0/16px 8px repeat-x; filter:drop-shadow(0 1px 0 var(--bw-line)); }
+.bw-receipt h4{ margin:0 0 10px; font-size:15px; }
+.bw-row{ display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:13.5px; }
+.bw-row small{ display:block; color:var(--bw-sub); font-size:11.5px; }
+.bw-row.disc{ color:#0C8B80; font-weight:700; }
+.bw-row.sum{ border-top:2px dashed var(--bw-line); margin-top:8px; padding-top:12px; font-size:18px; font-weight:800; }
+.bw-row.sum span:last-child{ color:var(--pink-deep); }
+.bw-qr{ text-align:center; }
+.bw-qr-frame{ background:#fff; border-radius:18px; padding:14px; display:inline-block; border:3px solid var(--pink-light); position:relative; }
+.bw-qr-frame img{ width:100%; max-width:250px; aspect-ratio:1; object-fit:contain; display:block; }
+.bw-qr-frame::before{ content:""; position:absolute; left:14px; right:14px; height:3px; border-radius:3px; top:14px;
+  background:linear-gradient(90deg,transparent,var(--pink-deep),transparent); animation:bwScan 2.4s ease-in-out infinite; }
+@keyframes bwScan{ 0%,100%{ top:14px; opacity:.2;} 50%{ top:calc(100% - 16px); opacity:1;} }
+.bw-qr p{ font-size:13px; color:var(--bw-sub); margin:10px 0 4px; }
+.bw-amount{ font-size:26px; font-weight:800; color:var(--pink-deep); }
+.bw-drop{ margin-top:14px; border:2px dashed var(--pink-light); border-radius:18px; padding:18px; text-align:center; cursor:pointer; background:var(--bw-soft); transition:all .2s; }
+.bw-drop:hover,.bw-drop.over{ border-color:var(--pink-deep); background:var(--pink-pale); }
+[data-theme="dark"] .bw-drop:hover,[data-theme="dark"] .bw-drop.over{ background:rgba(184,40,80,.16); }
+.bw-drop b{ display:block; font-size:14px; }
+.bw-drop small{ color:var(--bw-sub); font-size:12px; }
+.bw-drop img{ max-height:120px; border-radius:10px; margin-top:10px; }
+.bw-drop .bw-fname{ display:block; margin-top:8px; font-weight:700; font-size:13px; color:#0C8B80; }
+.bw-note{ margin-top:12px; font-size:12.5px; color:var(--bw-sub); background:var(--bw-soft); border-radius:12px; padding:10px 12px; }
+.bw-err{ margin-top:12px; padding:10px 14px; border-radius:12px; background:var(--rose-pale); color:var(--rose-deep); font-weight:600; font-size:13px; }
+[data-theme="dark"] .bw-err{ background:rgba(226,75,74,.16); }
+
+/* ---------- step 5 ---------- */
+.bw-done{ max-width:560px; margin:0 auto; text-align:center; }
+.bw-ticket{ position:relative; text-align:left; background:var(--bw-surface); border-radius:24px; border:1px solid var(--bw-line); box-shadow:var(--shadow-pop); overflow:hidden; }
+.bw-ticket-top{ padding:22px 22px 18px; background:linear-gradient(135deg,var(--pink-deep),#F2762E); color:#fff; }
+.bw-ticket-top small{ opacity:.85; font-weight:700; letter-spacing:.08em; font-size:11px; }
+.bw-ticket-top h3{ margin:4px 0 0; font-size:22px; }
+.bw-ticket-mid{ padding:16px 22px; font-size:13.5px; }
+.bw-perf{ position:relative; border-top:3px dotted var(--bw-line); margin:0 18px; }
+.bw-perf::before,.bw-perf::after{ content:""; position:absolute; top:-15px; width:26px; height:26px; border-radius:50%; background:var(--bg); }
+.bw-perf::before{ left:-31px; } .bw-perf::after{ right:-31px; }
+[data-theme="dark"] .bw-perf::before,[data-theme="dark"] .bw-perf::after{ background:var(--d-bg); }
+.bw-ticket-bot{ padding:18px 22px 24px; text-align:center; }
+.bw-vlabel{ font-size:11px; font-weight:800; letter-spacing:.12em; color:var(--bw-sub); }
+.bw-vwrap{ position:relative; margin:10px auto 4px; display:inline-block; }
+.bw-vcode{ font-family:'Courier New',monospace; font-size:34px; font-weight:800; letter-spacing:.2em; padding:10px 18px; border-radius:14px;
+  background:var(--gold-pale); color:#6b3b00; border:2px dashed var(--gold); filter:blur(9px); transition:filter 1.1s var(--ease); user-select:none; }
+[data-theme="dark"] .bw-vcode{ background:rgba(255,201,72,.12); color:#FFD98A; }
+.bw-vcode.reveal{ filter:blur(0); user-select:all; animation:bwReveal 1.1s var(--ease); }
+@keyframes bwReveal{ 0%{ transform:scale(.8) rotate(-3deg);} 55%{ transform:scale(1.12) rotate(2deg);} 100%{ transform:none;} }
+.bw-lock{ position:absolute; inset:0; display:grid; place-items:center; font-size:30px; pointer-events:none; transition:opacity .5s; }
+.bw-lock.gone{ opacity:0; }
+.bw-pill{ display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:999px; font-weight:800; font-size:13px; margin:10px 0 4px; background:var(--amber-pale); color:var(--amber-deep); }
+.bw-pill::before{ content:""; width:9px; height:9px; border-radius:50%; background:currentColor; animation:bwPulse 1.4s ease-in-out infinite; }
+.bw-pill.ok{ background:var(--teal-pale); color:var(--teal-deep); }
+.bw-pill.ok::before{ animation:none; }
+.bw-pill.bad{ background:var(--rose-pale); color:var(--rose-deep); }
+@keyframes bwPulse{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.7); opacity:.35;} }
+.bw-line{ display:flex; align-items:flex-start; justify-content:center; margin:18px 0 6px; }
+.bw-line div{ flex:1; text-align:center; font-size:11.5px; font-weight:700; color:var(--bw-sub); position:relative; }
+.bw-line div::before{ content:""; display:block; width:16px; height:16px; margin:0 auto 6px; border-radius:50%; background:var(--bw-line); position:relative; z-index:1; }
+.bw-line div::after{ content:""; position:absolute; top:7px; left:-50%; width:100%; height:3px; background:var(--bw-line); }
+.bw-line div:first-child::after{ display:none; }
+.bw-line div.on{ color:var(--bw-text); }
+.bw-line div.on::before,.bw-line div.on::after{ background:var(--teal); }
+.bw-line div.cur::before{ background:var(--gold); animation:bwPulse 1.4s ease-in-out infinite; }
+.bw-actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:18px; }
+.bw-confetti{ position:fixed; inset:0; pointer-events:none; z-index:60; }
+
+/* ---------- bottom action bar ---------- */
+.bw-bar{ position:sticky; bottom:84px; z-index:15; margin-top:22px; display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:20px;
+  background:var(--bw-surface); border:1px solid var(--bw-line); box-shadow:var(--shadow-pop); }
+.bw-bar[hidden]{ display:none; }
+.bw-bar-info{ flex:1; min-width:0; font-size:12.5px; color:var(--bw-sub); line-height:1.35; }
+.bw-bar-info b{ display:block; font-size:19px; color:var(--bw-text); }
+.bw-btn{ border:none; cursor:pointer; border-radius:14px; padding:13px 22px; font-weight:800; font-size:14px; transition:all .18s var(--ease); white-space:nowrap; text-decoration:none; display:inline-block; }
+.bw-btn.go{ background:linear-gradient(135deg,var(--pink-deep),#F2762E); color:#fff; box-shadow:0 10px 20px -10px rgba(184,40,80,.7); }
+.bw-btn.go:hover:not(:disabled){ transform:translateY(-2px); }
+.bw-btn.go:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; }
+.bw-btn.back{ background:var(--bw-soft); color:var(--bw-text); border:1px solid var(--bw-line); }
+.bw-btn.ghost{ background:transparent; color:var(--pink-deep); border:2px solid var(--pink-light); }
+.bw-btn.ghost:hover{ background:var(--pink-pale); }
+.bw-spin{ display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:bwSpin .7s linear infinite; vertical-align:-2px; margin-right:8px; }
+@keyframes bwSpin{ to{ transform:rotate(360deg);} }
+.bw-shake{ animation:bwShake .4s; }
+@keyframes bwShake{ 0%,100%{ transform:none;} 25%{ transform:translateX(-7px);} 75%{ transform:translateX(7px);} }
+
+@media (min-width:960px){ .bw-bar{ bottom:16px; } }
+@media (max-width:720px){
+  .bw-party{ gap:8px; } .bw-pcard{ padding:18px 6px 14px; border-radius:18px; } .bw-pcard .bw-big{ font-size:38px; } .bw-pcard b{ font-size:14px; } .bw-pcard small{ font-size:11px; }
+  .bw-when,.bw-pay{ grid-template-columns:1fr; }
+  .bw-grid{ grid-template-columns:repeat(2,1fr); gap:10px; } .bw-media{ height:92px; font-size:38px; }
+  .bw-h{ font-size:20px; } .bw-node span{ font-size:10px; } .bw-node i{ width:42px; height:42px; font-size:18px; } .bw-track::before,.bw-track-fill{ top:19px; }
+  .bw-vcode{ font-size:24px; }
 }
-[data-theme="dark"] .cat-filter button {
-    background: var(--d-surface);
-    color: var(--d-text-soft);
-    border-color: transparent;
-}
-[data-theme="dark"] .cat-filter button .cat-count {
-    background: var(--d-surface-soft);
-    color: var(--d-muted);
-}
-[data-theme="dark"] .cat-filter button:hover {
-    background: rgba(184,40,80,.16);
-    color: #fff;
-    border-color: var(--pink-deep);
-}
-[data-theme="dark"] .cat-filter button:hover .cat-count {
-    background: rgba(255,255,255,.14);
-    color: #fff;
-}
-[data-theme="dark"] .cat-filter button.active {
-    background: var(--pink-deep);
-    color: #fff;
-}
-
-        .promo-empty-filter {
-            font-size: 12.5px;
-            color: var(--muted);
-            text-align: center;
-            padding: 28px 0;
-            margin: 0;
-        }
-
-        /* give the promo grid + pkgSummary/service-switch breathing room
-           without relying on scattered margin-top values */
-        #pkgSummary { margin: 0; }
-        #serviceSwitch { margin: 0; }
-        .promo-grid { margin: 0 !important; }
-
-        /* calendar column: consistent gap instead of ad hoc margins on
-           the summary bar / hidden inputs / submit button */
-        #calSelectedBar { margin: 0; }
-        #bookingSubmitBtn { margin: 0; }
-
-      @media (max-width: 768px) {
-    #bookingForm > .booking-submit-btn {
-        width: 100%;
-        margin-top: 24px;
-    }
-    .booking-col-cal {
-        position: static;
-        top: auto;
-    }
-}
-
-        /* ===== Mobile: calendar floats over the packages as a bottom sheet ===== */
-        .cal-sheet-head, .cal-sheet-done, .cal-sheet-backdrop, .cal-open-btn { display: none; }
-
-        @media (max-width: 768px) {
-            .booking-split .booking-col-cal {
-                position: fixed;
-                left: 0; right: 0; bottom: 0; top: auto;
-                z-index: 80;                      /* above bottom nav (20) and chat button (25-30) */
-                max-height: 88vh;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                background: #fff;
-                border-radius: 22px 22px 0 0;
-                box-shadow: 0 -18px 40px -12px rgba(26,21,35,.35);
-                padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
-                transform: translateY(105%);
-                visibility: hidden;
-                transition: transform .28s ease, visibility 0s linear .28s;
-            }
-            .booking-split .booking-col-cal.sheet-open {
-                transform: translateY(0);
-                visibility: visible;
-                transition: transform .28s ease, visibility 0s;
-            }
-            .booking-col-cal .cal-embed { box-shadow: none; border: 0; }
-            .booking-col-cal #calSelectedBar { margin-top: 8px; }
-
-            .cal-sheet-head {
-                display: flex; align-items: center; justify-content: space-between;
-                position: sticky; top: 0; z-index: 2; background: #fff;
-                padding: 14px 2px 8px;
-            }
-            .cal-sheet-head::before {
-                content: ""; position: absolute; top: 6px; left: 50%;
-                width: 40px; height: 4px; margin-left: -20px;
-                border-radius: 4px; background: var(--line, #e5e0ea);
-            }
-            .cal-sheet-title { font-weight: 800; font-size: 15px; color: var(--ink, #1a1523); }
-            .cal-sheet-close {
-                width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--line, #e5e0ea);
-                background: #fff; color: var(--ink-soft, #555); font-size: 18px; line-height: 1; cursor: pointer;
-            }
-            .cal-sheet-done {
-                display: block; width: 100%; margin-top: 10px; padding: 13px 16px;
-                border: 0; border-radius: 14px; cursor: pointer;
-                font-weight: 700; font-size: 14px; color: #fff;
-                background: linear-gradient(120deg, var(--pink-dark, #d63e63), var(--pink-deep, #b82850));
-            }
-            .cal-sheet-done:disabled { opacity: .45; cursor: not-allowed; }
-
-            .cal-sheet-backdrop {
-                display: block; position: fixed; inset: 0; z-index: 70;
-                background: rgba(26,21,35,.45);
-                opacity: 0; pointer-events: none; transition: opacity .25s ease;
-            }
-            .cal-sheet-backdrop.show { opacity: 1; pointer-events: auto; }
-
-            /* shortcut button under "Selected: ..." to reopen the calendar */
-            .cal-open-btn {
-                display: flex; align-items: center; gap: 8px; width: 100%;
-                margin: 8px 0 0; padding: 11px 14px; border-radius: 14px; cursor: pointer;
-                border: 1.5px dashed var(--pink-deep, #b82850); background: #fff;
-                color: var(--pink-deep, #b82850); font-weight: 700; font-size: 13px; text-align: left;
-            }
-            .cal-open-btn[hidden] { display: none; }
-            .cal-open-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-            body.cal-sheet-lock { overflow: hidden; }
-        }
-    </style>
+@media (prefers-reduced-motion:reduce){ .bw *{ animation:none!important; transition:none!important; } }
+.bw-btn.go.dim{ opacity:.5; box-shadow:none; }
+</style>
 @endpush
 
 @section('content')
+<div class="bw" id="bw">
 
-    <form method="POST" action="{{ route('user.booking.store') }}" id="bookingForm">
-        @csrf
+    <ol class="bw-track" aria-label="Booking progress">
+        <div class="bw-track-fill"></div>
+        <li class="bw-node now"><i>🎟️</i><span>Who's coming</span></li>
+        <li class="bw-node"><i>&#127914;</i><span>Pick attractions</span></li>
+        <li class="bw-node"><i>📅</i><span>Date &amp; time</span></li>
+        <li class="bw-node"><i>📱</i><span>Pay</span></li>
+        <li class="bw-node"><i>🎁</i><span>Voucher</span></li>
+    </ol>
 
-        <div class="booking-split">
+    <div class="bw-stage">
 
-            {{-- ================= LEFT: experience + filterable packages ================= --}}
-            <div class="booking-col booking-col-pkg">
-                <div class="service-switch" id="serviceSwitch">
-                    @foreach ($services as $svcCode => $svc)
-                        <button type="button" class="service-tab {{ $loop->first ? 'active' : '' }}" data-service="{{ $svcCode }}">
-                            <img src="{{ asset('images/'.$svc['image']) }}" alt="{{ $svc['name'] }}">
-                            <span>
-                                <b>{{ $svc['name'] }}</b>
-                                <small>{{ $svc['tagline'] }}</small>
-                            </span>
-                        </button>
-                    @endforeach
+        {{-- STEP 1 --}}
+        <section class="bw-step is-active" data-step="1">
+            <h3 class="bw-h">Who's coming to play? <span class="bw-wave">👋</span></h3>
+            <p class="bw-sub">How many are coming? Pick one to get started.</p>
+            <div class="bw-party">
+                <button type="button" class="bw-pcard" data-party="solo"><span class="bw-big">&#128587;</span><b>Solo</b><small>1 person</small></button>
+                <button type="button" class="bw-pcard" data-party="couple"><span class="bw-big">&#129489;&#8205;&#129309;&#8205;&#129489;</span><b>Duo</b><small>2 people</small></button>
+                <button type="button" class="bw-pcard" data-party="group"><span class="bw-big">&#127881;</span><b>Group</b><small>3 or more people</small></button>
+            </div>
+            <div class="bw-groupbox" id="bwGroupBox" hidden>
+                <b>How many are you?</b>
+                <div style="margin-top:10px" class="bw-stepper">
+                    <button type="button" id="bwGroupMinus" aria-label="Fewer guests">−</button>
+                    <output id="bwGroupN">5</output>
+                    <button type="button" id="bwGroupPlus" aria-label="More guests">+</button>
                 </div>
-
-                <div class="booking-info-banner">
-                    <span class="booking-info-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    </span>
-                    <p>Please choose your preferred pass and session slot below to begin reservation.</p>
+                <div class="bw-chips">
+                    <button type="button" class="bw-chip" data-n="5">5</button>
+                    <button type="button" class="bw-chip" data-n="8">8</button>
+                    <button type="button" class="bw-chip" data-n="10">10</button>
+                    <button type="button" class="bw-chip" data-n="15">15</button>
+                    <button type="button" class="bw-chip" data-n="20">20</button>
                 </div>
+                <p class="bw-hint">Groups of 5+ unlock special deals 🎁</p>
+            </div>
+        </section>
 
-                <div id="pkgSummary" class="promo-selection-summary empty">
-                    No package selected yet
-                </div>
-                <button type="button" class="cal-open-btn" id="calOpenBtn" hidden>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path></svg>
-                    <span id="calOpenBtnText">Pick date &amp; time</span>
-                </button>
-                <input type="hidden" name="service" id="serviceInput" value="{{ array_key_first($services) }}" required>
-                <input type="hidden" name="package" id="packageInput" required>
-                <input type="hidden" name="tier" id="tierInput" required>
+        {{-- STEP 2 --}}
+        <section class="bw-step" data-step="2">
+            <h3 class="bw-h">Choose your attractions <span class="bw-wave">&#127914;</span></h3>
+            <p class="bw-sub">Tap to pick as many as you like — prices are per person.</p>
+            <div class="bw-tabs" id="bwTabs"></div>
+            <div class="bw-banner" id="bwBanner" hidden></div>
+            <div class="bw-grid" id="bwGrid"></div>
+            <div class="bw-extras" id="bwExtras" hidden></div>
+        </section>
 
-                @foreach ($packages as $svcCode => $servicePackages)
-                @php
-                    $categoriesInService = collect($servicePackages)->pluck('category')->unique()->values()->all();
-                @endphp
-                <div class="promo-panel service-packages" data-service-group="{{ $svcCode }}" {{ $loop->first ? '' : 'hidden' }}>
-
-                    @if (count($categoriesInService) > 1)
-                        @php
-                            $catIcons = [
-                                'all' => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
-                                'solo' => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"></path></svg>',
-                                'bundle' => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3.2"></circle><circle cx="16" cy="9" r="3.2"></circle><path d="M2.5 20c0-3.4 2.7-6 5.5-6s5.5 2.6 5.5 6M10.5 20c0-3.4 2.7-6 5.5-6s5.5 2.6 5.5 6"></path></svg>',
-                                'packages' => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8l9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path></svg>',];
-                                 @endphp
-                        <div class="cat-filter" data-cat-filter>
-                            <button type="button" class="active" data-cat="all">
-                                {!! $catIcons['all'] !!}
-                                All
-                                <span class="cat-count">{{ count($servicePackages) }}</span>
-                            </button>
-                            @foreach ($categoriesInService as $cat)
-                                <button type="button" data-cat="{{ $cat }}">
-                                    {!! $catIcons[$cat] ?? '' !!}
-                                    {{ $packageCategories[$cat] ?? ucfirst($cat) }}
-                                    <span class="cat-count">{{ collect($servicePackages)->where('category', $cat)->count() }}</span>
-                                </button>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    <div class="promo-grid" data-promo-grid>
-                    @foreach ($servicePackages as $code => $package)
-                        <div class="promo-card" id="promoCard-{{ $svcCode }}-{{ $code }}" data-code="{{ $code }}" data-category="{{ $package['category'] }}">
-                            <div class="promo-media">
-                                <img src="{{ asset('images/'.$package['image']) }}" alt="{{ $package['name'] }}" loading="lazy">
-                                <span class="promo-badge">{{ $package['badge'] }}</span>
-                            </div>
-                            <div class="promo-body">
-                                @php
-                                    $pkgTitle = $package['name'];
-                                    $pkgSub = null;
-                                    if (preg_match('/^(.*?)\s*\((.*)\)\s*$/', $pkgTitle, $m)) {
-                                        $pkgTitle = $m[1];
-                                        $pkgSub = $m[2];
-                                    }
-                                @endphp
-                                <h4>{{ $pkgTitle }}</h4>
-                                @if ($pkgSub)
-                                    <span class="promo-subtitle">{{ $pkgSub }}</span>
-                                @endif
-                                <p>{{ $package['desc'] }}</p>
-
-                                <div class="promo-price-row">
-                                    <div>
-                                        <span class="promo-price-label">Starts at</span>
-                                        <span class="promo-price">₱{{ number_format(min($package['tiers'])) }}</span>
-                                    </div>
-                                    <button type="button" class="u-btn promo-select-btn" data-toggle="{{ $svcCode }}-{{ $code }}">Select package</button>
-                                </div>
-
-                                <button type="button" class="promo-details-link" data-toggle="{{ $svcCode }}-{{ $code }}">View pax options &amp; inclusions ›</button>
-
-                                <div class="promo-tiers" id="promoTiers-{{ $svcCode }}-{{ $code }}" hidden>
-                                    <p class="promo-tiers-title">{{ $pkgTitle }}</p>
-                                    @foreach ($package['tiers'] as $pax => $price)
-                                        <label class="promo-tier">
-                                            <span style="display:flex;align-items:center;gap:8px;">
-                                                <input type="radio" name="tier_choice" value="{{ $svcCode }}|{{ $code }}|{{ $pax }}" data-pkg-name="{{ $package['name'] }}" data-pax="{{ $pax }}" data-price="{{ $price }}">
-                                                {{ $pax }} PAX
-                                            </span>
-                                            <b>₱{{ number_format($price) }}</b>
-                                        </label>
-                                    @endforeach
-
-                                    <div class="promo-inclusions">
-                                        <p class="promo-inclusions-title">What's included</p>
-                                        <ul class="promo-inclusions-list" data-inclusions-list>
-                                            @foreach (($inclusions[$svcCode][$code] ?? []) as $i => $item)
-                                                <li {{ $i >= 3 ? 'data-extra hidden' : '' }}>{{ $item }}</li>
-                                            @endforeach
-                                        </ul>
-                                        @if (count($inclusions[$svcCode][$code] ?? []) > 3)
-                                            <button type="button" class="promo-seemore-btn" data-seemore>See more ({{ count($inclusions[$svcCode][$code]) - 3 }}) ›</button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+        {{-- STEP 3 --}}
+        <section class="bw-step" data-step="3">
+            <h3 class="bw-h">When are you visiting? <span class="bw-wave">📅</span></h3>
+            <p class="bw-sub">Open Mon–Fri 9 AM–9 PM · Sat–Sun 10 AM–9 PM.</p>
+            <div class="bw-when">
+                <div class="bw-panel">
+                    <div class="bw-cal-head">
+                        <button type="button" id="bwPrev" aria-label="Previous month">‹</button>
+                        <b id="bwMonth"></b>
+                        <button type="button" id="bwNextM" aria-label="Next month">›</button>
                     </div>
-
-                    <p class="promo-empty-filter" data-promo-empty hidden>No packages match this filter.</p>
-                    <div class="promo-pagination" data-promo-pagination hidden></div>
+                    <div class="bw-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+                    <div class="bw-days" id="bwDays"></div>
                 </div>
-                @endforeach
-
+                <div class="bw-panel" id="bwSlots"></div>
             </div>
+        </section>
 
-            {{-- ================= RIGHT: big inline calendar ================= --}}
-            <div class="booking-col booking-col-cal" id="calSheet">
-                <div class="cal-sheet-head">
-                    <span class="cal-sheet-title">Pick date &amp; time</span>
-                    <button type="button" class="cal-sheet-close" id="calSheetClose" aria-label="Close">&times;</button>
-                </div>
-                <div class="cal-embed" id="calEmbed">
-                    <div class="cal-embed-inner">
-                        <div class="cal-month">
-                            <div class="cal-month-head">
-                                <button type="button" id="calPrev" aria-label="Previous month">&lsaquo;</button>
-                                <span id="calMonthLabel"></span>
-                                <button type="button" id="calNext" aria-label="Next month">&rsaquo;</button>
-                            </div>
-                            <div class="cal-weekdays">
-                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-                            </div>
-                            <div class="cal-days" id="calDays"></div>
-                        </div>
-
-                        <div class="cal-times">
-                            <div class="cal-times-head">
-                                <span id="calSelectedDayLabel">Pick a date</span>
-                                <div class="cal-fmt-toggle">
-                                    <button type="button" data-fmt="12" class="active">12h</button>
-                                    <button type="button" data-fmt="24">24h</button>
-                                </div>
-                            </div>
-                            <div class="cal-slots" id="calSlots">
-                                <p class="cal-slots-empty">Select a date first</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calSelectedBar" class="promo-selection-summary empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
-                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-                        <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
-                    </svg>
-                    <span id="dateTimeLabel" style="flex:1;">No date &amp; time selected yet</span>
-                    <span id="dateTimeAvailableTag" class="tag green" style="display:none;white-space:nowrap;">Available</span>
-                </div>
-                <input type="hidden" name="visit_date" id="visitDateInput" required>
-                <input type="hidden" name="visit_time" id="visitTimeInput" required>
-                <button type="button" class="cal-sheet-done" id="calSheetDone" disabled>Done</button>
-            </div>
-
-        </div>
-    </form>
-
-    <div class="cal-sheet-backdrop" id="calSheetBackdrop"></div>
-
-    <!-- Booking Confirmation Modal -->
-    <div class="booking-modal-overlay" id="bookingModalOverlay">
-        <div class="booking-modal">
-            <div class="booking-modal-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;">
-                    <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-                    <path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path>
-                </svg>
-            </div>
-            <h3>Confirm Your Booking</h3>
-            <p class="booking-modal-sub">Are you sure you want to book this package?</p>
-
-            <div class="booking-modal-summary">
-                <div class="booking-modal-row">
-                    <span>Package</span>
-                    <b id="confirmPackageText">—</b>
-                </div>
-                <div class="booking-modal-row">
-                    <span>Date &amp; Time</span>
-                    <b id="confirmDateTimeText">—</b>
+        {{-- STEP 4 --}}
+        <section class="bw-step" data-step="4">
+            <h3 class="bw-h">Scan, pay &amp; send proof <span class="bw-wave">📱</span></h3>
+            <p class="bw-sub">Pay online with QR Ph, then upload your screenshot. Our team will review it.</p>
+            <div class="bw-pay">
+                <div class="bw-receipt" id="bwReceipt"></div>
+                <div class="bw-panel bw-qr">
+                    <div class="bw-qr-frame"><img src="{{ asset('images/instapay-qr.png') }}" alt="QR Ph payment code"></div>
+                    <p>Scan with GCash, Maya or any banking app</p>
+                    <div class="bw-amount" id="bwAmount"></div>
+                    <div class="bw-drop" id="bwDrop"><b>📸 Upload payment screenshot</b><small>Tap or drag a file here · JPG, PNG, WEBP or PDF · max 5MB</small></div>
+                    <input type="file" id="bwFile" accept="image/*,application/pdf" hidden>
+                    <div class="bw-err" id="bwErr" hidden></div>
+                    <div class="bw-note">After you submit, your booking goes to <b>In review</b>. Your voucher unlocks once it's approved.</div>
                 </div>
             </div>
+        </section>
 
-            <div class="booking-modal-actions">
-                <button type="button" class="btn-cancel" id="bookingModalCancel">Cancel</button>
-                <button type="button" class="btn-confirm" id="bookingModalConfirm">Yes, Book Now</button>
-            </div>
-        </div>
+        {{-- STEP 5 --}}
+        <section class="bw-step" data-step="5">
+            <div class="bw-done" id="bwDone"></div>
+        </section>
     </div>
 
-    <div class="booking-sticky-bar" id="bookingStickyBar">
-        <div class="booking-sticky-info">
-            <span id="stickyPkgCount">0 packages selected</span>
-            <span class="booking-sticky-divider"></span>
-            <span class="booking-sticky-total">
-                <span class="booking-sticky-total-label">Total estimated:</span>
-                <b id="stickyTotal">₱0.00</b>
-            </span>
-        </div>
-        <button type="submit" form="bookingForm" class="u-btn booking-submit-btn" id="bookingSubmitBtn">+ Proceed to Booking</button>
+    <div class="bw-bar" id="bwBar">
+        <button type="button" class="bw-btn back" id="bwBack">← Back</button>
+        <div class="bw-bar-info" id="bwBarInfo"></div>
+        <button type="button" class="bw-btn go" id="bwNext">Next →</button>
     </div>
-
+</div>
 @endsection
 
 @push('scripts')
 <script>
-(function () {
-    var summaryEl = document.getElementById('pkgSummary');
-    var serviceInput = document.getElementById('serviceInput');
-    var packageInput = document.getElementById('packageInput');
-    var tierInput = document.getElementById('tierInput');
-
-    function peso(n) {
-        return '₱' + Number(n).toLocaleString('en-PH');
+window.BW = {
+    tabs: @json($catalog),
+    deals: @json($deals),
+    resume: @json($resume),
+    imgBase: @json(asset('images') . '/'),
+    csrf: @json(csrf_token()),
+    urls: {
+        submit:   @json(route('user.booking.submit')),
+        status:   @json(route('user.booking.status', '__ID__')),
+        receipt:  @json(route('user.bookings.receipt', '__ID__')),
+        review:   @json(route('user.bookings.review', '__ID__')),
+        waiver:   @json(route('user.waiver')),
+        bookings: @json(route('user.bookings')),
+        booking:  @json(route('user.booking')),
+        login:    @json(url('/login'))
     }
-
-    function resetSelection() {
-        packageInput.value = '';
-        tierInput.value = '';
-        document.querySelectorAll('.promo-tier').forEach(function (label) {
-            label.classList.remove('selected');
-        });
-        document.querySelectorAll('.promo-card').forEach(function (card) {
-            card.classList.remove('selected');
-        });
-        document.querySelectorAll('input[name="tier_choice"]').forEach(function (r) {
-            r.checked = false;
-        });
-        summaryEl.classList.add('empty');
-        summaryEl.textContent = 'No package selected yet';
-        if (window.REKS_refreshSlots) window.REKS_refreshSlots();
-    }
-
-    document.querySelectorAll('.service-tab').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-            if (tab.classList.contains('active')) return;
-
-            document.querySelectorAll('.service-tab').forEach(function (t) {
-                t.classList.toggle('active', t === tab);
-            });
-
-            var svc = tab.dataset.service;
-            serviceInput.value = svc;
-
-            document.querySelectorAll('.service-packages').forEach(function (group) {
-                group.hidden = group.dataset.serviceGroup !== svc;
-            });
-
-            // collapse any open tier panels from the previous service
-            document.querySelectorAll('.promo-tiers').forEach(function (p) {
-                p.setAttribute('hidden', '');
-            });
-
-            resetSelection();
-        });
-    });
-
-    document.querySelectorAll('.promo-select-btn, .promo-details-link').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var key = btn.dataset.toggle;
-            var panel = document.getElementById('promoTiers-' + key);
-            var isHidden = panel.hasAttribute('hidden');
-
-            // collapse any other open panel so only one is open at a time
-            document.querySelectorAll('.promo-tiers').forEach(function (p) {
-                if (p !== panel) p.setAttribute('hidden', '');
-            });
-
-            if (isHidden) {
-                panel.removeAttribute('hidden');
-                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                panel.setAttribute('hidden', '');
-            }
-        });
-    });
-
-    document.querySelectorAll('input[name="tier_choice"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            document.querySelectorAll('.promo-tier').forEach(function (label) {
-                label.classList.remove('selected');
-            });
-            document.querySelectorAll('.promo-card').forEach(function (card) {
-                card.classList.remove('selected');
-            });
-            radio.closest('.promo-tier').classList.add('selected');
-
-            var parts = radio.value.split('|');
-            var svc = parts[0];
-            var code = parts[1];
-            var pax = parts[2];
-
-            document.getElementById('promoCard-' + svc + '-' + code).classList.add('selected');
-            packageInput.value = code;
-            tierInput.value = pax;
-            if (window.REKS_refreshSlots) window.REKS_refreshSlots();
-
-            summaryEl.classList.remove('empty');
-            summaryEl.innerHTML = 'Selected: <b>' + radio.dataset.pkgName + '</b> · ' +
-                pax + ' PAX · <b>' + peso(radio.dataset.price) + '</b>';
-        });
-    });
-
-    // Sticky bottom bar (package count + running total) — separate,
-    // additive listener; doesn't touch the selection logic above.
-    var stickyCount = document.getElementById('stickyPkgCount');
-    var stickyTotal = document.getElementById('stickyTotal');
-    document.querySelectorAll('input[name="tier_choice"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            if (stickyCount) stickyCount.textContent = '1 package selected';
-            if (stickyTotal) stickyTotal.textContent = peso(radio.dataset.price);
-        });
-    });
-    document.querySelectorAll('.service-tab').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-            if (stickyCount) stickyCount.textContent = '0 packages selected';
-            if (stickyTotal) stickyTotal.textContent = '₱0.00';
-        });
-    });
-
-    document.querySelectorAll('[data-seemore]').forEach(function (btn) {
-        var originalLabel = btn.textContent;
-        btn.addEventListener('click', function () {
-            var list = btn.previousElementSibling;
-            var expanded = btn.classList.toggle('expanded');
-            list.querySelectorAll('[data-extra]').forEach(function (li) {
-                li.hidden = !expanded;
-            });
-            btn.textContent = expanded ? 'See less ‹' : originalLabel;
-        });
-    });
-
-    // ---------------- category filter (replaces prev/next pagination) ----------------
-    // Packages already arrive price-sorted ascending from the controller,
-    // so filtering just shows/hides cards — no re-sorting needed here.
-   function initCategoryFilter(group) {
-    var filterBar  = group.querySelector('[data-cat-filter]');
-    var grid       = group.querySelector('[data-promo-grid]');
-    var emptyMsg   = group.querySelector('[data-promo-empty]');
-    var pagination = group.querySelector('[data-promo-pagination]');
-    if (!grid) return;
-
-    var PAGE_SIZE = 2; // 1 row of 2 — matches the narrower packages column width
-    var cards = Array.prototype.slice.call(grid.children);
-    var matched = cards;
-    var currentPage = 1;
-
-    function goToPage(p) {
-        currentPage = p;
-        renderPage();
-        grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function renderPage() {
-        var totalPages = Math.max(1, Math.ceil(matched.length / PAGE_SIZE));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        var start = (currentPage - 1) * PAGE_SIZE;
-        var end = start + PAGE_SIZE;
-
-        cards.forEach(function (card) { card.style.display = 'none'; });
-        matched.slice(start, end).forEach(function (card) { card.style.display = ''; });
-
-        if (emptyMsg) emptyMsg.hidden = matched.length > 0;
-
-        if (!pagination) return;
-
-        pagination.hidden = matched.length <= PAGE_SIZE;
-        pagination.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        var prev = document.createElement('button');
-        prev.type = 'button';
-        prev.innerHTML = '&lsaquo;';
-        prev.setAttribute('aria-label', 'Previous page');
-        prev.disabled = currentPage <= 1;
-        prev.addEventListener('click', function () {
-            if (currentPage > 1) goToPage(currentPage - 1);
-        });
-        pagination.appendChild(prev);
-
-        for (var p = 1; p <= totalPages; p++) {
-            (function (p) {
-                var num = document.createElement('button');
-                num.type = 'button';
-                num.textContent = p;
-                num.classList.toggle('active', p === currentPage);
-                num.addEventListener('click', function () { goToPage(p); });
-                pagination.appendChild(num);
-            })(p);
-        }
-
-        var next = document.createElement('button');
-        next.type = 'button';
-        next.innerHTML = '&rsaquo;';
-        next.setAttribute('aria-label', 'Next page');
-        next.disabled = currentPage >= totalPages;
-        next.addEventListener('click', function () {
-            if (currentPage < totalPages) goToPage(currentPage + 1);
-        });
-        pagination.appendChild(next);
-    }
-
-    function applyFilter(cat) {
-        matched = cards.filter(function (card) {
-            return cat === 'all' || card.dataset.category === cat;
-        });
-        currentPage = 1;
-        renderPage();
-    }
-
-    if (filterBar) {
-        filterBar.querySelectorAll('button').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                filterBar.querySelectorAll('button').forEach(function (b) {
-                    b.classList.toggle('active', b === btn);
-                });
-                applyFilter(btn.dataset.cat);
-            });
-        });
-    }
-
-    applyFilter('all');
-}
-
-    document.querySelectorAll('.service-packages').forEach(initCategoryFilter);
-})();
+};
 </script>
 <script>
 (function () {
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
+  'use strict';
+  var BW = window.BW;
+  var root = document.getElementById('bw');
+  if (!root || !BW) return;
 
-    var state = {
-        viewMonth: new Date(today.getFullYear(), today.getMonth(), 1),
-        selectedDate: null,   // Date, midnight
-        selectedTime: null,   // 'HH:mm' 24h internal value
-        fmt: '12'
-    };
+  var TABS = BW.tabs, D = BW.deals;
+  var TAB_KEYS = Object.keys(TABS);
+  var GRAD = {
+    dino_adventure: 'linear-gradient(135deg,#12B5A6,#6FD08C)',
+    field_of_rides: 'linear-gradient(135deg,#FFC948,#F2762E)',
+    rollerfever:    'linear-gradient(135deg,#B82850,#7A4CE0)'
+  };
+  var ITEM = {}, EXTRA = {};
+  TAB_KEYS.forEach(function (t) {
+    TABS[t].items.forEach(function (i) { ITEM[i.key] = i; });
+    TABS[t].extras.forEach(function (e) { EXTRA[e.key] = e; });
+  });
 
-    var monthLbl  = document.getElementById('calMonthLabel');
-    var daysEl    = document.getElementById('calDays');
-    var slotsEl   = document.getElementById('calSlots');
-    var dayLbl    = document.getElementById('calSelectedDayLabel');
-    var bar       = document.getElementById('calSelectedBar');
-    var label     = document.getElementById('dateTimeLabel');
-    var visitDateInput = document.getElementById('visitDateInput');
-    var visitTimeInput = document.getElementById('visitTimeInput');
-    var packageInput = document.getElementById('packageInput');
+  var state = {
+    step: 1, party: null, guests: 0, tab: TAB_KEYS[0],
+    items: {}, extras: {}, date: null, time: null,
+    month: firstOfMonth(new Date()), file: null, booking: null, busy: false, poll: null
+  };
 
-    // Visit duration (in hours) per package code. null = all-day pass
-    // (no fixed duration — just needs a lead time before closing).
-    var PACKAGE_DURATIONS = {
-        non_exclusive: 3,
-        exclusive_weekdays: 3,
-        exclusive_weekends: 3,
-        walkin_1hour: 1,
-        walkin_2hour: 2,
-        walkin_allday: null,
-        weekday: 3,
-        weekend: 3,
-        group_bundle_1hour: 1,
-        group_bundle_2hour: 2
-    };
-
-    function getSelectedDurationHours() {
-        var code = packageInput.value;
-        if (code && PACKAGE_DURATIONS.hasOwnProperty(code)) {
-            return PACKAGE_DURATIONS[code]; // number of hours, or null = all-day
-        }
-        return 3; // fallback if nothing selected yet
-    }
-
-    function resetTimeSelection() {
-        state.selectedTime = null;
-        visitDateInput.value = '';
-        visitTimeInput.value = '';
-        bar.classList.add('empty');
-        label.textContent = 'No date & time selected yet';
-        var availTag = document.getElementById('dateTimeAvailableTag');
-        if (availTag) availTag.style.display = 'none';
-        renderSlots();
-    }
-    window.REKS_resetTimeSelection = resetTimeSelection;
-    // Re-renders the time-slot grid for the currently selected package's
-    // duration WITHOUT clearing the guest's already-chosen date/time —
-    // used when switching service tabs or packages, so a selection made
-    // earlier doesn't disappear. If the previously chosen time no longer
-    // fits the new package duration, renderSlots() simply won't show it
-    // as highlighted, but nothing is cleared.
-    window.REKS_refreshSlots = function () {
-        if (state.selectedDate) renderSlots();
-    };
-
-    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-    function pad(n) { return n < 10 ? '0' + n : '' + n; }
-
-    function isWeekend(date) {
-        var d = date.getDay(); // 0 = Sun, 6 = Sat
-        return d === 0 || d === 6;
-    }
-
-    // Operating hours for the day.
-    // Store closes at 9:00 PM every day — weekday closing time was
-    // previously 10:00 PM, which produced booking slots that ran past
-    // actual closing time (e.g. 7:00 PM - 10:00 PM for a 3-hour package).
-    function hoursFor(date) {
-        return isWeekend(date)
-            ? { openHour: 10, closeHour: 21 } // 10:00 AM - 9:00 PM
-            : { openHour: 9,  closeHour: 21 }; // 9:00 AM - 9:00 PM
-    }
-
-    function formatTime(hour, minute) {
-        if (state.fmt === '24') {
-            return pad(hour) + ':' + pad(minute);
-        }
-        var period = hour >= 12 ? 'PM' : 'AM';
-        var h12 = hour % 12;
-        if (h12 === 0) h12 = 12;
-        return h12 + ':' + pad(minute) + ' ' + period;
-    }
-
-    function renderCalendar() {
-        monthLbl.textContent = MONTHS[state.viewMonth.getMonth()] + ' ' + state.viewMonth.getFullYear();
-        daysEl.innerHTML = '';
-
-        var firstOfMonth = new Date(state.viewMonth.getFullYear(), state.viewMonth.getMonth(), 1);
-        // Monday-first offset (0 = Monday ... 6 = Sunday)
-        var offset = (firstOfMonth.getDay() + 6) % 7;
-        var daysInMonth = new Date(state.viewMonth.getFullYear(), state.viewMonth.getMonth() + 1, 0).getDate();
-
-        for (var i = 0; i < offset; i++) {
-            var empty = document.createElement('span');
-            empty.className = 'cal-day empty';
-            daysEl.appendChild(empty);
-        }
-
-        for (var day = 1; day <= daysInMonth; day++) {
-            var cellDate = new Date(state.viewMonth.getFullYear(), state.viewMonth.getMonth(), day);
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'cal-day';
-            btn.textContent = day;
-
-            var isPast = cellDate < today;
-            if (isPast) {
-                btn.classList.add('disabled');
-                btn.disabled = true;
-            }
-            if (cellDate.getTime() === today.getTime()) {
-                btn.classList.add('today');
-            }
-            if (state.selectedDate && cellDate.getTime() === state.selectedDate.getTime()) {
-                btn.classList.add('selected');
-            }
-
-            (function (d) {
-                btn.addEventListener('click', function () { selectDate(d); });
-            })(cellDate);
-
-            daysEl.appendChild(btn);
-        }
-    }
-
-    function selectDate(date) {
-        state.selectedDate = date;
-        state.selectedTime = null;
-        visitDateInput.value = '';
-        visitTimeInput.value = '';
-        bar.classList.add('empty');
-        label.textContent = 'No date & time selected yet';
-        var availTagOnDateChange = document.getElementById('dateTimeAvailableTag');
-        if (availTagOnDateChange) availTagOnDateChange.style.display = 'none';
-        renderCalendar();
-        renderSlots();
-    }
-
-    function renderSlots() {
-        slotsEl.innerHTML = '';
-
-        if (!state.selectedDate) {
-            dayLbl.textContent = 'Pick a date';
-            var empty = document.createElement('p');
-            empty.className = 'cal-slots-empty';
-            empty.textContent = 'Select a date first';
-            slotsEl.appendChild(empty);
-            return;
-        }
-
-        dayLbl.textContent = DAYS_SHORT[state.selectedDate.getDay()] + ', ' +
-            MONTHS[state.selectedDate.getMonth()] + ' ' + state.selectedDate.getDate();
-
-        var hours = hoursFor(state.selectedDate);
-        var duration = getSelectedDurationHours(); // hours, or null = all-day
-        var lastStartHour = duration === null
-            ? hours.closeHour - 1   // all-day pass: allow entry up to 1hr before closing
-            : hours.closeHour - duration;
-        var isToday = state.selectedDate.getTime() === today.getTime();
-        var now = new Date();
-        var hasSlots = false;
-
-        for (var h = hours.openHour; h <= lastStartHour; h++) {
-            [0, 30].forEach(function (m) {
-                // don't go past the last allowed start time
-                if (h === lastStartHour && m > 0) return;
-
-                // hide past slots if the selected date is today
-                if (isToday) {
-                    var slotDate = new Date(state.selectedDate);
-                    slotDate.setHours(h, m, 0, 0);
-                    if (slotDate <= now) return;
-                }
-
-                hasSlots = true;
-                var value = pad(h) + ':' + pad(m);
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'cal-slot';
-                btn.textContent = duration === null
-                    ? formatTime(h, m)
-                    : formatTime(h, m) + ' – ' + formatTime((h + duration) % 24, m);
-                btn.dataset.value = value;
-                if (state.selectedTime === value) btn.classList.add('selected');
-
-                btn.addEventListener('click', function () {
-                    state.selectedTime = value;
-                    commitSelection();
-                    renderSlots();
-                });
-
-                slotsEl.appendChild(btn);
-            });
-        }
-
-        if (!hasSlots) {
-            var none = document.createElement('p');
-            none.className = 'cal-slots-empty';
-            none.textContent = 'No more slots available this day';
-            slotsEl.appendChild(none);
-        }
-    }
-
-    function commitSelection() {
-        if (!state.selectedDate || !state.selectedTime) return;
-
-        var y = state.selectedDate.getFullYear();
-        var m = pad(state.selectedDate.getMonth() + 1);
-        var d = pad(state.selectedDate.getDate());
-        visitDateInput.value = y + '-' + m + '-' + d;
-        visitTimeInput.value = state.selectedTime;
-
-        var parts = state.selectedTime.split(':');
-        var timeLabel = formatTime(parseInt(parts[0], 10), parseInt(parts[1], 10));
-        label.innerHTML = 'Selected: <b>' + DAYS_SHORT[state.selectedDate.getDay()] + ', ' +
-            MONTHS[state.selectedDate.getMonth()] + ' ' + d + ', ' + y + '</b> · <b>' + timeLabel + '</b>';
-        bar.classList.remove('empty');
-        var availTagOnCommit = document.getElementById('dateTimeAvailableTag');
-        if (availTagOnCommit) availTagOnCommit.style.display = 'inline-block';
-        document.dispatchEvent(new CustomEvent('reks:slot-committed'));
-    }
-
-    document.getElementById('calPrev').addEventListener('click', function () {
-        state.viewMonth = new Date(state.viewMonth.getFullYear(), state.viewMonth.getMonth() - 1, 1);
-        renderCalendar();
+  function $(s, r) { return (r || root).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || root).querySelectorAll(s)); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '\u20B1' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+  function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+  function dayBlocked(cell) {
+    return Object.keys(state.items).some(function (k) {
+      var it = ITEM[k]; if (!it || !it.flat || !it.days) return false;
+      return it.days === 'weekday' ? isWeekend(cell) : !isWeekend(cell);
     });
-    document.getElementById('calNext').addEventListener('click', function () {
-        state.viewMonth = new Date(state.viewMonth.getFullYear(), state.viewMonth.getMonth() + 1, 1);
-        renderCalendar();
-    });
+  }
+  function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
 
-    document.querySelectorAll('.cal-fmt-toggle button').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            state.fmt = btn.dataset.fmt;
-            document.querySelectorAll('.cal-fmt-toggle button').forEach(function (b) {
-                b.classList.toggle('active', b === btn);
-            });
-            renderSlots();
-            if (state.selectedTime) commitSelection();
+  /* ---------------- pricing (mirror of BookingWizard::price) ---------------- */
+  function dealApplies(it) {
+    var list = (D.four_plus_one.packages || {})[it.service] || [];
+    return list.indexOf(it.package) !== -1;
+  }
+  function tierFor(it, g) {
+    var t = it.tiers || [];
+    for (var i = 0; i < t.length; i++) { if (g <= t[i].pax) return t[i]; }
+    return null;
+  }
+  function partyPrice(it) {
+    var t = tierFor(it, state.guests), top = it.tiers[it.tiers.length - 1];
+    if (t) return money(t.price) + ' <small>for up to ' + t.pax + ' guests</small>';
+    return 'From ' + money(it.tiers[0].price) + ' <small>fits ' + it.tiers[0].pax + '\u2013' + top.pax + ' guests only</small>';
+  }
+  function partyTooBig(it) {
+    var top = it.tiers[it.tiers.length - 1].pax;
+    btnNext.classList.remove('bw-shake'); void btnNext.offsetWidth; btnNext.classList.add('bw-shake');
+    barInfo.innerHTML = '<b style="color:var(--pink-deep)">Too many guests</b>This package fits up to ' + top + ' guests';
+    clearTimeout(hintTimer); hintTimer = setTimeout(renderBar, 2600);
+  }
+  function incHTML(it) {
+    var inc = it.inclusions || [];
+    var tiersLi = it.flat ? '<li style="list-style:none;margin-left:-18px;margin-bottom:6px"><b>Price by number of guests</b><br>' +
+      it.tiers.map(function (t) { return 'Up to ' + t.pax + ' guests \u2014 ' + money(t.price); }).join('<br>') + '</li>' : '';
+    if (!inc.length && !tiersLi) return '';
+    return '<div class="bw-inc"><button type="button" class="bw-inc-btn" data-inc aria-expanded="false">What\u2019s included <span>+</span></button><ul hidden>' + tiersLi +
+      inc.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+  }
+  function gridHTML(items) {
+    var pass = items.filter(function (i) { return !i.flat; }), party = items.filter(function (i) { return i.flat; });
+    var h = '';
+    if (party.length && pass.length) h += '<div class="bw-sec">\uD83C\uDFAB Per-person passes</div>';
+    h += pass.map(cardHTML).join('');
+    if (party.length) h += '<div class="bw-sec">\uD83C\uDF89 Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('');
+    return h;
+  }
+  function price() {
+    var subtotal = 0, bundle = 0, groupBase = 0, lines = [], extras = [], extrasTotal = 0;
+    Object.keys(state.items).forEach(function (k) {
+      var it = ITEM[k], qty = state.items[k];
+      if (!it) return;
+      if (it.flat) { var tp = tierFor(it, state.guests), up = tp ? tp.price : 0; subtotal += up; lines.push({ it: it, qty: 1, gross: up, free: 0, disc: 0, tier: tp }); return; }
+      var gross = it.unit_price * qty, free = 0;
+      if (dealApplies(it) && qty >= D.four_plus_one.min_qty) free = Math.floor(qty / D.four_plus_one.min_qty);
+      var disc = free * it.unit_price;
+      subtotal += gross; bundle += disc;
+      if (!free) groupBase += gross;
+      lines.push({ it: it, qty: qty, gross: gross, free: free, disc: disc });
+    });
+    var pct = 0;
+    D.group_tiers.forEach(function (t) { if (state.guests >= t.min_guests) pct = Math.max(pct, t.pct); });
+    var groupDisc = Math.round(groupBase * pct / 100);
+    Object.keys(state.extras).forEach(function (k) {
+      var e = EXTRA[k], q = state.extras[k];
+      if (!e || !q) return;
+      extrasTotal += e.unit_price * q;
+      extras.push({ e: e, qty: q, total: e.unit_price * q });
+    });
+    return { lines: lines, extras: extras, subtotal: subtotal, bundle: bundle, pct: pct, groupDisc: groupDisc,
+      discount: bundle + groupDisc, extrasTotal: extrasTotal, total: subtotal - bundle - groupDisc + extrasTotal };
+  }
+  function selectedCount() { return Object.keys(state.items).length; }
+
+  /* ---------------- navigation ---------------- */
+  var stepEls = $$('.bw-step');
+  var bar = $('#bwBar'), btnBack = $('#bwBack'), btnNext = $('#bwNext'), barInfo = $('#bwBarInfo');
+
+  function go(n, dir) {
+    stopPoll();
+    state.step = n;
+    stepEls.forEach(function (el) {
+      var on = +el.getAttribute('data-step') === n;
+      el.classList.toggle('is-active', on);
+      el.classList.toggle('from-left', dir === 'back');
+    });
+    if (n === 2) renderStep2();
+    if (n === 3) renderStep3();
+    if (n === 4) renderStep4();
+    if (n === 5) renderStep5();
+    renderTrack(); renderBar();
+    root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function renderTrack() {
+    $$('.bw-node').forEach(function (el, i) {
+      el.classList.toggle('done', i + 1 < state.step);
+      el.classList.toggle('now', i + 1 === state.step);
+    });
+    $('.bw-track-fill').style.width = ((state.step - 1) / 4 * 80) + '%';
+  }
+  function canNext() {
+    if (state.step === 1) return state.guests >= 1 && !!state.party;
+    if (state.step === 2) return selectedCount() > 0;
+    if (state.step === 3) return !!(state.date && state.time);
+    if (state.step === 4) return !!state.file;
+    return false;
+  }
+  var HINT = {
+    1: 'Pick who is coming first \uD83D\uDC46', 2: 'Pick at least one attraction \uD83C\uDFAA',
+    3: 'Choose a date and a time slot \uD83D\uDCC5', 4: 'Upload your payment screenshot \uD83D\uDCF8'
+  };
+  var hintTimer = null;
+  function renderBar() {
+    bar.hidden = state.step === 5;
+    btnBack.style.visibility = state.step === 1 ? 'hidden' : 'visible';
+    btnNext.innerHTML = state.step === 4 ? 'Submit for review \uD83C\uDF9F\uFE0F' : 'Next \u2192';
+    btnNext.classList.toggle('dim', !canNext());
+    btnNext.disabled = state.busy;
+    var t = '';
+    if (state.step === 1) {
+      t = state.guests ? '<b>' + plural(state.guests, 'guest') + '</b>' + (state.party === 'group' ? 'Group adventure \uD83C\uDF89' : (state.party === 'couple' ? 'Duo day \uD83E\uDD1D' : 'Me time \uD83D\uDE0E')) : '<b>Who is coming?</b>Pick one above';
+    } else if (state.step === 4) {
+      t = '<b>' + money(price().total) + '</b>Total to pay via QR Ph';
+    } else {
+      var p = price();
+      t = '<b>' + money(p.total) + '</b>' + plural(state.guests, 'guest') + ' \u00B7 ' + plural(selectedCount(), 'pick');
+      if (state.step === 3 && state.date) {
+        t += state.time ? ' \u00B7 ' + dateLabel(state.date) + ' ' + timeLabel(state.time) : ' \u00B7 ' + dateLabel(state.date);
+      }
+    }
+    barInfo.innerHTML = t;
+  }
+  function flashHint() {
+    btnNext.classList.remove('bw-shake'); void btnNext.offsetWidth; btnNext.classList.add('bw-shake');
+    var old = barInfo.innerHTML;
+    barInfo.innerHTML = '<b style="color:var(--pink-deep)">Almost there!</b>' + HINT[state.step];
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(renderBar, 2600);
+    void old;
+  }
+  btnBack.addEventListener('click', function () { if (state.step > 1) go(state.step - 1, 'back'); });
+  btnNext.addEventListener('click', function () {
+    if (state.busy) return;
+    if (!canNext()) return flashHint();
+    if (state.step === 4) return submit();
+    go(state.step + 1, 'fwd');
+  });
+
+  /* ---------------- step 1: party ---------------- */
+  function setGuests(n) {
+    var prev = state.guests;
+    state.guests = n;
+    Object.keys(state.items).forEach(function (k) {
+      if (state.items[k] === prev || state.items[k] > n) state.items[k] = n;
+    });
+    var out = $('#bwGroupN'); if (out) out.textContent = n;
+    $$('.bw-chip').forEach(function (c) { c.classList.toggle('on', +c.getAttribute('data-n') === n && state.party === 'group'); });
+    $('#bwGroupMinus').disabled = n <= 3;
+    $('#bwGroupPlus').disabled = n >= 100;
+  }
+  $$('.bw-pcard').forEach(function (c) {
+    c.addEventListener('click', function () {
+      var p = c.getAttribute('data-party');
+      state.party = p;
+      $$('.bw-pcard').forEach(function (x) { x.classList.toggle('sel', x === c); });
+      $('#bwGroupBox').hidden = p !== 'group';
+      setGuests(p === 'solo' ? 1 : p === 'couple' ? 2 : Math.max(state.guests > 2 ? state.guests : 5, 3));
+      renderBar();
+    });
+  });
+  $('#bwGroupMinus').addEventListener('click', function () { setGuests(Math.max(3, state.guests - 1)); renderBar(); });
+  $('#bwGroupPlus').addEventListener('click', function () { setGuests(Math.min(100, state.guests + 1)); renderBar(); });
+  $$('.bw-chip').forEach(function (c) {
+    c.addEventListener('click', function () { setGuests(+c.getAttribute('data-n')); renderBar(); });
+  });
+
+  /* ---------------- step 2: rides ---------------- */
+  function bannerText() {
+    var g = state.guests, tiers = D.group_tiers.slice().sort(function (a, b) { return a.min_guests - b.min_guests; });
+    var hit = null, next = null;
+    tiers.forEach(function (t) { if (g >= t.min_guests) hit = t; else if (!next) next = t; });
+    var msg = '';
+    if (hit) msg = '\uD83C\uDF89 <b>Group deal unlocked!</b> ' + hit.pct + '% off your attractions.';
+    else if (next) msg = '\uD83D\uDCA1 Bring ' + plural(next.min_guests - g, 'more friend') + ' and get <b>' + next.pct + '% off</b> (groups of ' + next.min_guests + '+).';
+    var hasDeal = false; // banner removed; the card ribbons already show the deal
+    if (hasDeal) {
+      var m = D.four_plus_one.min_qty;
+      msg += (msg ? '<br>' : '') + '\uD83C\uDF81 <b>Buy ' + (m - 1) + ', get 1 free</b> on these passes when ' + m + '+ guests skate together.';
+    }
+    return msg;
+  }
+  function cardHTML(it) {
+    var sel = state.items[it.key] != null, qty = state.items[it.key] || state.guests;
+    var bg = it.image ? 'background-image:linear-gradient(0deg,rgba(0,0,0,.28),rgba(0,0,0,0)),url(\'' + BW.imgBase + esc(it.image) + '\');' : '';
+    var rib = false /* deal ribbon removed */ ? '<span class="bw-ribbon">\uD83C\uDF81 ' + esc(it.deal) + '</span>' : (it.badge ? '<span class="bw-ribbon gold">\u2B50 ' + esc(it.badge) + '</span>' : '');
+    return '<div class="bw-card' + (sel ? ' sel' : '') + '" role="button" tabindex="0" data-key="' + esc(it.key) + '">' +
+      rib + '<span class="bw-tick">\u2713</span>' +
+      '<div class="bw-media" style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + '</div>' +
+      '<div class="bw-body"><b>' + esc(it.name) + '</b><p>' + esc(it.desc) + '</p>' +
+      '<div class="bw-price">' + (it.flat ? partyPrice(it) : money(it.unit_price) + ' <small>/ person</small>') + '</div>' + incHTML(it) + '</div>' +
+      (state.guests > 1 && !it.flat ? '<div class="bw-qty"><span>Guests riding</span><span class="bw-mini"><button type="button" data-d="-1">\u2212</button><span data-q>' + qty + '</span><button type="button" data-d="1">+</button></span></div>' : '') +
+      '</div>';
+  }
+  function renderStep2() {
+    Object.keys(state.items).forEach(function (k) { var o = ITEM[k]; if (o && o.flat && !tierFor(o, state.guests)) delete state.items[k]; });
+    var tabs = $('#bwTabs');
+    tabs.innerHTML = TAB_KEYS.map(function (k) {
+      return '<button type="button" class="bw-tab' + (k === state.tab ? ' on' : '') + '" data-tab="' + k + '" style="--tab-grad:' + GRAD[k] + '">' +
+        '<em>' + TABS[k].emoji + '</em>' + esc(TABS[k].label) + '<span class="bw-count" data-count="' + k + '"></span></button>';
+    }).join('');
+    $$('.bw-tab', tabs).forEach(function (b) {
+      b.addEventListener('click', function () { state.tab = b.getAttribute('data-tab'); renderStep2(); });
+    });
+    var t = TABS[state.tab];
+    var bn = bannerText(); var el = $('#bwBanner'); el.innerHTML = bn; el.hidden = !bn;
+    var grid = $('#bwGrid');
+    grid.style.setProperty('--tab-grad', GRAD[state.tab]);
+    grid.innerHTML = t.items.length ? gridHTML(t.items) : '<div class="bw-empty"><b>\uD83D\uDEA7</b>Nothing to book here yet.</div>';
+    renderExtras(); updateCounts();
+  }
+  function updateCounts() {
+    TAB_KEYS.forEach(function (k) {
+      var n = TABS[k].items.filter(function (i) { return state.items[i.key] != null; }).length;
+      var el = $('[data-count="' + k + '"]');
+      if (el) { el.textContent = n; el.classList.toggle('show', n > 0); }
+    });
+  }
+  function renderExtras() {
+    var box = $('#bwExtras'), ex = TABS[state.tab].extras;
+    if (!ex.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<h4>\u2728 Add-ons <small style="font-weight:500;color:var(--bw-sub)">(optional)</small></h4>' + ex.map(function (e) {
+      var q = state.extras[e.key] || 0;
+      return '<div class="bw-extra"><div>' + esc(e.name) + '<br><small>' + money(e.unit_price) + ' each</small></div>' +
+        '<span class="bw-mini" data-ex="' + esc(e.key) + '"><button type="button" data-d="-1">\u2212</button><span>' + q + '</span><button type="button" data-d="1">+</button></span></div>';
+    }).join('');
+  }
+  $('#bwGrid').addEventListener('click', function (ev) {
+    var incBtn = ev.target.closest('[data-inc]');
+    if (incBtn) {
+      var ul = incBtn.nextElementSibling, open = ul.hidden;
+      ul.hidden = !open; incBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      incBtn.querySelector('span').textContent = open ? '\u2212' : '+';
+      return;
+    }
+    if (ev.target.closest('.bw-inc')) return;
+    var card = ev.target.closest('.bw-card'); if (!card) return;
+    var key = card.getAttribute('data-key'), step = ev.target.closest('[data-d]');
+    if (step) {
+      ev.stopPropagation();
+      var q = (state.items[key] || state.guests) + (+step.getAttribute('data-d'));
+      state.items[key] = Math.max(1, Math.min(state.guests, q));
+      card.querySelector('[data-q]').textContent = state.items[key];
+    } else {
+      if (state.items[key] != null) { delete state.items[key]; }
+      else {
+        var it0 = ITEM[key];
+        if (it0.flat && !tierFor(it0, state.guests)) { return partyTooBig(it0); }
+        var clash = false;
+        Object.keys(state.items).forEach(function (k) {
+          var o = ITEM[k];
+          if (o && o.service === it0.service && (it0.flat || o.flat)) { delete state.items[k]; clash = true; }
         });
-    });
+        state.items[key] = it0.flat ? 1 : state.guests;
+        if (clash) { renderStep2(); renderBar(); return; }
+      }
+      card.classList.toggle('sel', state.items[key] != null);
+      var qe = card.querySelector('[data-q]'); if (qe) qe.textContent = state.items[key] || state.guests;
+    }
+    updateCounts(); renderBar();
+  });
+  $('#bwGrid').addEventListener('keydown', function (ev) {
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('bw-card')) { ev.preventDefault(); ev.target.click(); }
+  });
+  $('#bwExtras').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-d]'); if (!b) return;
+    var wrap = b.closest('[data-ex]'), key = wrap.getAttribute('data-ex');
+    var q = Math.max(0, Math.min(100, (state.extras[key] || 0) + (+b.getAttribute('data-d'))));
+    if (q) state.extras[key] = q; else delete state.extras[key];
+    wrap.querySelector('span').textContent = q;
+    renderBar();
+  });
 
-    // render immediately — calendar is always visible now, no open/close popup
-    renderCalendar();
+  /* ---------------- step 3: date & time ---------------- */
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function dateLabel(iso8) { var p = iso8.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]); return DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
+  function timeLabel(t) { var h = +t.slice(0, 2), m = t.slice(3, 5); return ((h % 12) || 12) + ':' + m + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+  function durationHours() {
+    var d = 1;
+    for (var k in state.items) {
+      var it = ITEM[k]; if (!it) continue;
+      if (it.package === 'walkin_allday') return null;
+      if (it.package === 'walkin_2hour' || it.package === 'group_bundle_2hour') d = Math.max(d, 2);
+      if (it.flat) d = Math.max(d, 3);
+    }
+    return d;
+  }
+  function renderStep3() {
+    var m = state.month, t0 = today(), maxD = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 90);
+    if (state.date) { var sp = state.date.split('-'); if (dayBlocked(new Date(+sp[0], +sp[1] - 1, +sp[2]))) { state.date = null; state.time = null; } }
+    $('#bwMonth').textContent = MONTHS[m.getMonth()] + ' ' + m.getFullYear();
+    $('#bwPrev').disabled = m <= firstOfMonth(t0);
+    $('#bwNextM').disabled = new Date(m.getFullYear(), m.getMonth() + 1, 1) > maxD;
+    var offset = m.getDay(), last = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate(), html = '';
+    for (var i = 0; i < offset; i++) html += '<span></span>';
+    for (var d = 1; d <= last; d++) {
+      var cell = new Date(m.getFullYear(), m.getMonth(), d), v = iso(cell);
+      var cls = 'bw-day' + (isWeekend(cell) ? ' wk' : '') + (cell.getTime() === t0.getTime() ? ' today' : '') + (state.date === v ? ' sel' : '');
+      html += '<button type="button" class="' + cls + '" data-date="' + v + '"' + (cell < t0 || cell > maxD || dayBlocked(cell) ? ' disabled' : '') + '>' + d + '</button>';
+    }
+    $('#bwDays').innerHTML = html;
     renderSlots();
-})();
-</script>
-<script>
-// ── Mobile: calendar as a bottom sheet that floats over the packages ──
-(function () {
-    var sheet    = document.getElementById('calSheet');
-    var backdrop = document.getElementById('calSheetBackdrop');
-    var closeBtn = document.getElementById('calSheetClose');
-    var doneBtn  = document.getElementById('calSheetDone');
-    var openBtn  = document.getElementById('calOpenBtn');
-    var openTxt  = document.getElementById('calOpenBtnText');
-    var timeIn   = document.getElementById('visitTimeInput');
-    var dateIn   = document.getElementById('visitDateInput');
-    var label    = document.getElementById('dateTimeLabel');
-    if (!sheet || !backdrop) return;
-
-    var mq = window.matchMedia('(max-width: 768px)');
-    var autoCloseTimer = null;
-
-    function isMobile() { return mq.matches; }
-
-    function openSheet() {
-        // no JS width check: the CSS only turns .sheet-open into a bottom sheet
-        // on mobile widths, so on desktop this class is harmless.
-        sheet.classList.add('sheet-open');
-        backdrop.classList.add('show');
-        document.body.classList.add('cal-sheet-lock');
+  }
+  function renderSlots() {
+    var box = $('#bwSlots');
+    if (!state.date) { box.innerHTML = '<div class="bw-empty"><b>\uD83D\uDDD3\uFE0F</b>Pick a day to see time slots</div>'; return; }
+    var p = state.date.split('-'), day = new Date(+p[0], +p[1] - 1, +p[2]);
+    var open = isWeekend(day) ? 10 : 9, close = 21, dur = durationHours();
+    var lastStart = dur === null ? close - 1 : close - dur;
+    var now = new Date(), isToday = day.getTime() === today().getTime(), groups = { Morning: [], Afternoon: [], Evening: [] };
+    for (var h = open; h <= lastStart; h++) {
+      [0, 30].forEach(function (mi) {
+        if (h === lastStart && mi > 0) return;
+        if (isToday) { var s = new Date(day); s.setHours(h, mi, 0, 0); if (s <= now) return; }
+        var v = pad(h) + ':' + pad(mi);
+        groups[h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'].push(v);
+      });
     }
-    function closeSheet() {
-        clearTimeout(autoCloseTimer);
-        sheet.classList.remove('sheet-open');
-        backdrop.classList.remove('show');
-        document.body.classList.remove('cal-sheet-lock');
+    var out = '', any = false;
+    Object.keys(groups).forEach(function (g) {
+      if (!groups[g].length) return; any = true;
+      out += '<div class="bw-slots-h">' + g + '</div><div class="bw-slots">' +
+        groups[g].map(function (v) { return '<button type="button" class="bw-slot' + (state.time === v ? ' sel' : '') + '" data-time="' + v + '">' + timeLabel(v) + '</button>'; }).join('') + '</div>';
+    });
+    box.innerHTML = any ? out : '<div class="bw-empty"><b>\uD83D\uDE34</b>No more slots today \u2014 try another day!</div>';
+  }
+  $('#bwPrev').addEventListener('click', function () { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1); renderStep3(); });
+  $('#bwNextM').addEventListener('click', function () { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1); renderStep3(); });
+  $('#bwDays').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-date]'); if (!b || b.disabled) return;
+    state.date = b.getAttribute('data-date'); state.time = null;
+    $$('.bw-day').forEach(function (x) { x.classList.toggle('sel', x === b); });
+    renderSlots(); renderBar();
+  });
+  $('#bwSlots').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-time]'); if (!b) return;
+    state.time = b.getAttribute('data-time');
+    $$('.bw-slot').forEach(function (x) { x.classList.toggle('sel', x === b); });
+    renderBar();
+  });
+
+  /* ---------------- step 4: pay ---------------- */
+  function renderStep4() {
+    var p = price(), h = '<h4>\uD83E\uDDFE Your adventure</h4>';
+    h += '<div class="bw-row"><span>\uD83D\uDCC5 ' + esc(dateLabel(state.date)) + ' \u00B7 ' + esc(timeLabel(state.time)) + '<small>' + plural(state.guests, 'guest') + '</small></span><span></span></div>';
+    p.lines.forEach(function (l) {
+      h += '<div class="bw-row"><span>' + esc(l.it.name) + '<small>' + (l.it.flat ? (l.tier ? 'Up to ' + l.tier.pax + ' guests' : '') : l.qty + ' \u00D7 ' + money(l.it.unit_price)) + (l.free ? ' \u00B7 \uD83C\uDF81 ' + l.free + ' free' : '') + '</small></span><span>' + money(l.gross) + '</span></div>';
+    });
+    p.extras.forEach(function (x) {
+      h += '<div class="bw-row"><span>' + esc(x.e.name) + '<small>' + x.qty + ' \u00D7 ' + money(x.e.unit_price) + '</small></span><span>' + money(x.total) + '</span></div>';
+    });
+    if (p.bundle) h += '<div class="bw-row disc"><span>\uD83C\uDF81 Buy 4, get 1 free</span><span>\u2212' + money(p.bundle) + '</span></div>';
+    if (p.groupDisc) h += '<div class="bw-row disc"><span>\uD83C\uDF89 Group deal (' + p.pct + '%)</span><span>\u2212' + money(p.groupDisc) + '</span></div>';
+    h += '<div class="bw-row sum"><span>Total</span><span>' + money(p.total) + '</span></div>';
+    $('#bwReceipt').innerHTML = h;
+    $('#bwAmount').textContent = money(p.total);
+    $('#bwErr').hidden = true;
+  }
+  var drop = $('#bwDrop'), fileIn = $('#bwFile');
+  drop.addEventListener('click', function () { fileIn.click(); });
+  ['dragenter', 'dragover'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (ev) { if (ev.dataTransfer.files[0]) takeFile(ev.dataTransfer.files[0]); });
+  fileIn.addEventListener('change', function () { if (fileIn.files[0]) takeFile(fileIn.files[0]); });
+  function showErr(msg) { var e = $('#bwErr'); e.textContent = msg; e.hidden = false; }
+  function takeFile(f) {
+    if (f.size > 5 * 1024 * 1024) return showErr('That file is over 5MB. Please upload a smaller screenshot.');
+    if (!/^image\/|application\/pdf/.test(f.type)) return showErr('Please upload an image (JPG, PNG, WEBP) or a PDF.');
+    $('#bwErr').hidden = true; state.file = f;
+    var html = '<b>\u2705 Got it!</b><span class="bw-fname">' + esc(f.name) + '</span>';
+    if (/^image\//.test(f.type)) html += '<img alt="Payment proof preview" src="' + URL.createObjectURL(f) + '">';
+    html += '<small style="display:block;margin-top:8px">Tap to change</small>';
+    drop.innerHTML = html; renderBar();
+  }
+  function submit() {
+    var p = price(), fd = new FormData();
+    fd.append('party_type', state.party); fd.append('guests', state.guests);
+    fd.append('items', JSON.stringify(Object.keys(state.items).map(function (k) { return { key: k, qty: state.items[k] }; })));
+    fd.append('extras', JSON.stringify(Object.keys(state.extras).map(function (k) { return { key: k, qty: state.extras[k] }; })));
+    fd.append('visit_date', state.date); fd.append('visit_time', state.time); fd.append('receipt', state.file);
+    state.busy = true; btnNext.innerHTML = '<span class="bw-spin"></span>Sending\u2026'; btnNext.disabled = true;
+    fetch(BW.urls.submit, { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': BW.csrf, 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }, function () { return { ok: false, status: r.status, j: {} }; }); })
+      .then(function (res) {
+        state.busy = false;
+        if (res.status === 401) { window.location.href = BW.urls.login; return; }
+        if (!res.ok) {
+          var msg = res.j.message || 'Something went wrong. Please try again.';
+          if (res.j.errors) msg = res.j.errors[Object.keys(res.j.errors)[0]][0];
+          showErr(msg); renderBar(); return;
+        }
+        state.booking = res.j.booking; go(5, 'fwd');
+      })
+      .catch(function () { state.busy = false; showErr('Network problem \u2014 please check your connection and try again.'); renderBar(); });
+    void p;
+  }
+
+  /* ---------------- step 5: voucher ---------------- */
+  var CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function fakeCode() { var s = ''; for (var i = 0; i < 8; i++) s += CHARS.charAt(Math.floor(Math.random() * CHARS.length)); return s; }
+  function renderStep5() {
+    var b = state.booking; if (!b) return;
+    var rows = b.items.map(function (i) {
+      return '<div class="bw-row"><span>' + esc(i.name) + '<small>' + plural(i.qty, 'guest') + (i.free ? ' \u00B7 \uD83C\uDF81 ' + i.free + ' free' : '') + '</small></span><span>' + money(i.total) + '</span></div>';
+    }).join('') + b.extras.map(function (e) {
+      return '<div class="bw-row"><span>' + esc(e.name) + '<small>\u00D7 ' + e.qty + '</small></span><span>' + money(e.total) + '</span></div>';
+    }).join('');
+    var disc = b.discount ? '<div class="bw-row disc"><span>\uD83C\uDF89 Deals applied</span><span>\u2212' + money(b.discount) + '</span></div>' : '';
+    var locked = !b.approved;
+    $('#bwDone').innerHTML =
+      '<div class="bw-ticket"><div class="bw-ticket-top"><small>WONDERPARK ADMIT PASS</small><h3>' + esc(b.reference) + '</h3>' +
+      '<div style="opacity:.9;font-size:13px;margin-top:4px">\uD83D\uDCC5 ' + esc(b.date_label) + (b.time_label ? ' \u00B7 ' + esc(b.time_label) : '') + ' \u00B7 ' + plural(b.guests, 'guest') + '</div></div>' +
+      '<div class="bw-ticket-mid">' + rows + disc + '<div class="bw-row sum"><span>Total</span><span>' + money(b.total) + '</span></div></div>' +
+      '<div class="bw-perf"></div><div class="bw-ticket-bot"><div class="bw-vlabel">YOUR VOUCHER CODE</div>' +
+      '<div class="bw-vwrap"><div class="bw-vcode' + (locked ? '' : ' reveal') + '" id="bwCode" aria-live="polite">' + esc(locked ? fakeCode() : b.voucher_code) + '</div>' +
+      '<div class="bw-lock' + (locked ? '' : ' gone') + '" id="bwLock">\uD83D\uDD12</div></div>' +
+      '<div><span class="bw-pill" id="bwPill"></span></div><div id="bwMsg" style="font-size:13px;color:var(--bw-sub);margin-top:4px"></div>' +
+      '<div class="bw-line" id="bwLine"><div class="on">Submitted</div><div id="bwL2">In review</div><div id="bwL3">Approved</div></div></div></div>' +
+      '<div class="bw-actions" id="bwActions"></div>';
+    paintStatus(b, false);
+    if (!b.approved && !b.rejected) startPoll();
+  }
+  function paintStatus(b, confetti) {
+    var pill = $('#bwPill'), msg = $('#bwMsg'), code = $('#bwCode'), lock = $('#bwLock');
+    if (!pill) return;
+    var l2 = $('#bwL2'), l3 = $('#bwL3'), acts = $('#bwActions');
+    var waiver = '<a class="bw-btn go" href="' + BW.urls.waiver + '">\u270D\uFE0F Sign your waiver</a>';
+    var mine = '<a class="bw-btn ghost" href="' + BW.urls.bookings + '">My bookings</a>';
+    var again = '<a class="bw-btn ghost" href="' + BW.urls.booking + '">Book another \uD83C\uDFA1</a>';
+    l2.className = ''; l3.className = '';
+    if (b.approved) {
+      pill.className = 'bw-pill ok'; pill.textContent = 'Approved! See you at the park \uD83C\uDF89';
+      msg.textContent = 'Show this code at the entrance. Please sign the waiver before your visit.';
+      l2.className = 'on'; l3.className = 'on';
+      code.textContent = b.voucher_code; code.classList.add('reveal'); lock.classList.add('gone');
+      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCopy">Copy code</button><a class="bw-btn ghost" href="' + BW.urls.receipt.replace('__ID__', b.id) + '">View receipt</a>' + mine + again;
+      var cp = $('#bwCopy'); if (cp) cp.addEventListener('click', function () { if (navigator.clipboard) navigator.clipboard.writeText(b.voucher_code); cp.textContent = 'Copied \u2713'; });
+      if (confetti) boom();
+    } else if (b.rejected) {
+      pill.className = 'bw-pill bad'; pill.textContent = 'Payment not accepted';
+      msg.textContent = b.rejection_reason || 'Please upload a clearer proof of payment.';
+      l2.className = 'on';
+      acts.innerHTML = '<a class="bw-btn go" href="' + BW.urls.review.replace('__ID__', b.id) + '">Upload new proof</a>' + mine + again;
+    } else {
+      pill.className = 'bw-pill'; pill.textContent = 'In review \u2014 hang tight!';
+      msg.textContent = 'Our team is checking your payment. Your voucher unlocks here as soon as it is approved. \u2728';
+      l2.className = 'on cur';
+      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCheck">Check now</button>' + mine + again;
+      var ck = $('#bwCheck'); if (ck) ck.addEventListener('click', function () { ck.textContent = 'Checking\u2026'; poll(true); });
     }
-    function syncOpenBtn() {
-        if (!openBtn) return;
-        var hasPkg = !!document.getElementById('packageInput').value;
-        openBtn.hidden = !hasPkg;
-        if (dateIn.value && timeIn.value) {
-            openTxt.innerHTML = label.innerHTML.replace('Selected:', 'Change:');
-        } else {
-            openTxt.textContent = 'Pick date & time';
-        }
-        if (doneBtn) doneBtn.disabled = !(dateIn.value && timeIn.value);
-    }
+  }
+  function poll(manual) {
+    if (!state.booking) return;
+    fetch(BW.urls.status.replace('__ID__', state.booking.id), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j) return;
+        var changed = j.status !== state.booking.status;
+        state.booking = j;
+        if (changed || j.approved || j.rejected) { paintStatus(j, j.approved); if (j.approved || j.rejected) stopPoll(); }
+        else if (manual) { var ck = $('#bwCheck'); if (ck) ck.textContent = 'Still in review \u2014 check again soon'; }
+      }).catch(function () {});
+  }
+  function startPoll() { stopPoll(); state.poll = setInterval(poll, 6000); }
+  function stopPoll() { if (state.poll) { clearInterval(state.poll); state.poll = null; } }
 
-    // open the sheet as soon as a package/tier is chosen.
-    // Delegated on document so it still works if the package cards are
-    // re-rendered/moved by the category filter or pagination.
-    document.addEventListener('change', function (e) {
-        var t = e.target;
-        if (!t || t.name !== 'tier_choice') return;
-        // let the main selection handler finish first (it sets packageInput)
-        setTimeout(function () {
-            syncOpenBtn();
-            // collapse the tier panel so the sheet isn't covering an open overlay
-            document.querySelectorAll('.promo-tiers').forEach(function (p) { p.setAttribute('hidden', ''); });
-            openSheet();
-        }, 0);
-    });
+  /* ---------------- confetti ---------------- */
+  function boom() {
+    var c = document.createElement('canvas'); c.className = 'bw-confetti'; document.body.appendChild(c);
+    var ctx = c.getContext('2d'), W = c.width = window.innerWidth, H = c.height = window.innerHeight;
+    var cols = ['#FFC948', '#B82850', '#12B5A6', '#F2762E', '#7A4CE0', '#fff'];
+    var ps = []; for (var i = 0; i < 140; i++) ps.push({ x: W / 2, y: H * 0.35, vx: (Math.random() - .5) * 16, vy: Math.random() * -14 - 3, s: 5 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[i % cols.length] });
+    var t0 = performance.now();
+    (function frame(t) {
+      ctx.clearRect(0, 0, W, H);
+      ps.forEach(function (p) { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .6); ctx.restore(); });
+      if (t - t0 < 3200) requestAnimationFrame(frame); else c.remove();
+    })(t0);
+  }
 
-    // switching service tab clears the package -> hide the shortcut + close
-    document.addEventListener('click', function (e) {
-        if (e.target.closest && e.target.closest('.service-tab')) {
-            closeSheet(); setTimeout(syncOpenBtn, 0);
-        }
-    });
-
-    // once a time slot is picked, update the shortcut and close the sheet shortly after
-    document.addEventListener('reks:slot-committed', function () {
-        syncOpenBtn();
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = setTimeout(closeSheet, 700);
-    });
-
-    if (closeBtn) closeBtn.addEventListener('click', closeSheet);
-    if (doneBtn)  doneBtn.addEventListener('click', closeSheet);
-    backdrop.addEventListener('click', closeSheet);
-    if (openBtn)  openBtn.addEventListener('click', openSheet);
-
-    // leaving mobile width: make sure nothing stays locked
-    var onChange = function () { if (!isMobile()) closeSheet(); };
-    if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
-
-    syncOpenBtn();
-})();
-</script>
-<script>
-// ── Confirmation modal + loading state on submit ──
-(function () {
-    var form = document.getElementById('bookingForm');
-    var submitBtn = document.getElementById('bookingSubmitBtn');
-    var overlay = document.getElementById('bookingModalOverlay');
-    var confirmBtn = document.getElementById('bookingModalConfirm');
-    var cancelBtn = document.getElementById('bookingModalCancel');
-    var confirmPackageText = document.getElementById('confirmPackageText');
-    var confirmDateTimeText = document.getElementById('confirmDateTimeText');
-    if (!form || !submitBtn || !overlay) return;
-
-    var originalLabel = submitBtn.textContent;
-    var isConfirmed = false;
-
-    function openModal() {
-        var pkgSummary = document.getElementById('pkgSummary');
-        var dateBar = document.getElementById('dateTimeLabel');
-        confirmPackageText.textContent = pkgSummary ? pkgSummary.textContent.trim() : '—';
-        confirmDateTimeText.textContent = dateBar ? dateBar.textContent.trim() : '—';
-        overlay.classList.add('active');
-    }
-
-    function closeModal() {
-        overlay.classList.remove('active');
-    }
-
-    form.addEventListener('submit', function (e) {
-        // Pangalawang beses na — kumpirmado na, papayagan nating tuluyan
-        if (isConfirmed) {
-            if (submitBtn.disabled) {
-                e.preventDefault();
-                return;
-            }
-            submitBtn.disabled = true;
-            submitBtn.classList.add('is-loading');
-            submitBtn.innerHTML = '<span class="btn-spinner"></span> Booking...';
-
-            setTimeout(function () {
-                if (submitBtn.disabled) {
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('is-loading');
-                    submitBtn.textContent = originalLabel;
-                }
-            }, 15000);
-            return;
-        }
-
-        // Unang beses — i-validate muna, tapos ipakita ang modal sa halip na direktang mag-submit
-        e.preventDefault();
-
-        var visitDate = document.getElementById('visitDateInput').value;
-        var visitTime = document.getElementById('visitTimeInput').value;
-        var pkg = document.getElementById('packageInput').value;
-        var tier = document.getElementById('tierInput').value;
-
-        if (!visitDate || !visitTime || !pkg || !tier) {
-            alert('Please pick a date, time, and package before booking.');
-            return;
-        }
-
-        openModal();
-    });
-
-    cancelBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeModal();
-    });
-
-    confirmBtn.addEventListener('click', function () {
-        isConfirmed = true;
-        closeModal();
-        if (form.requestSubmit) {
-            form.requestSubmit(submitBtn);
-        } else {
-            form.submit();
-        }
-    });
+  /* ---------------- boot ---------------- */
+  renderTrack(); renderBar();
+  if (BW.resume) { state.booking = BW.resume; state.step = 5; go(5, 'fwd'); }
 })();
 </script>
 @endpush

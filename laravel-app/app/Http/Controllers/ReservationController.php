@@ -350,7 +350,7 @@ class ReservationController extends Controller
 
             return redirect()
                 ->route('reservations.index')
-                ->with('success', 'Reservation approved.');
+                ->with('success', 'Reservation approved.' . ($emailed ? ' The customer was notified by email.' : ''));
         }
 
         // OTHER STATUSES

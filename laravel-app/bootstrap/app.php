@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'attendance/checkin',
         ]);
 
+        $middleware->web(append: [\App\Http\Middleware\LogSystemActivity::class]);
+
         $middleware->alias([
             'auth.session' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
             'role'         => \App\Http\Middleware\EnsureUserHasRole::class,

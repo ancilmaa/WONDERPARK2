@@ -142,8 +142,8 @@
         height: 52px;
         margin: 0 auto 14px;
         border-radius: 50%;
-        background: var(--pink-pale, #ffe6ee);
-        color: var(--pink-deep, #b82850);
+        background: var(--pink-pale, #EEF2FF);
+        color: var(--pink-deep, #4F46E5);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -152,15 +152,15 @@
         font-size: 1.05rem;
         font-weight: 700;
         margin-bottom: 6px;
-        color: #1a1523;
+        color: #0F172A;
     }
     .booking-modal-sub {
         font-size: .85rem;
-        color: #635c72;
+        color: #475569;
         margin-bottom: 18px;
     }
     .booking-modal-summary {
-        background: #f8f6f9;
+        background: #F8FAFC;
         border-radius: 12px;
         padding: 14px 16px;
         margin-bottom: 20px;
@@ -173,8 +173,8 @@
         font-size: .82rem;
         padding: 5px 0;
     }
-    .booking-modal-row span { color: #9c94ab; }
-    .booking-modal-row b { color: #1a1523; text-align: right; }
+    .booking-modal-row span { color: #64748B; }
+    .booking-modal-row b { color: #0F172A; text-align: right; }
     .booking-modal-actions { display: flex; gap: 10px; }
     .booking-modal-actions button {
         flex: 1;
@@ -185,10 +185,10 @@
         border: none;
         cursor: pointer;
     }
-    .btn-cancel { background: #f1eef2; color: #635c72; }
-    .btn-cancel:hover { background: #e5e0e8; }
-    .btn-confirm { background: var(--pink-deep, #b82850); color: #fff; }
-    .btn-confirm:hover { background: var(--pink-dark, #d63e63); }
+    .btn-cancel { background: #F1F5F9; color: #475569; }
+    .btn-cancel:hover { background: #E2E8F0; }
+    .btn-confirm { background: var(--pink-deep, #4F46E5); color: #fff; }
+    .btn-confirm:hover { background: var(--pink-dark, #4338CA); }
 
     .is-loading {
         opacity: .75;

@@ -843,7 +843,7 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .booking-sticky-bar .booking-submit-btn{
     width:auto;padding:12px 24px;font-size:13px;
     background:linear-gradient(120deg, var(--pink-dark, #d63e63), var(--pink-deep));
-    box-shadow:0 10px 22px -10px rgba(184,40,80,.55);
+    box-shadow:0 10px 22px -10px rgba(99,102,241,.55);
 }
 
 /* ---- richer polish on existing selection cards/buttons ---- */
@@ -851,9 +851,9 @@ h1,h2,h3,h4{font-family:var(--font-display);}
 .promo-card{border-radius:20px !important;box-shadow:var(--shadow-card);}
 .promo-card:hover{box-shadow:0 14px 30px -18px rgba(26,21,35,.28);}
 .promo-badge{border-radius:0 0 10px 0 !important;}
-.promo-select-btn{border-radius:12px !important;box-shadow:0 8px 18px -10px rgba(184,40,80,.5);}
+.promo-select-btn{border-radius:12px !important;box-shadow:0 8px 18px -10px rgba(99,102,241,.5);}
 .cal-day{border-radius:12px !important;}
-.cal-day.selected{box-shadow:0 8px 18px -10px rgba(184,40,80,.5);}
+.cal-day.selected{box-shadow:0 8px 18px -10px rgba(99,102,241,.5);}
 .cal-slot{border-radius:12px !important;}
 .promo-pagination button{border-radius:12px !important;}
 

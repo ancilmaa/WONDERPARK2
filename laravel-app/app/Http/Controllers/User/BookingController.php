@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Support\BookingCatalog;
+use App\Support\BookingWizard;
 use App\Support\BookingPricingOverrides;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class BookingController extends Controller
      *
      * GET /user/booking
      */
-    public function create()
+    public function create(Request $request)
     {
         $dates = $this->upcomingDates();
         $services = $this->services;
@@ -50,7 +51,20 @@ class BookingController extends Controller
         $inclusions = $this->inclusions;
         $addons = $this->addons;
 
-        return view('user.booking', compact('dates', 'services', 'packages', 'inclusions', 'addons'));
+        // Step-by-step wizard data (cards, deal rules) + optional resume of a
+        // submitted booking: /app/booking?booking=ID opens straight on the voucher step.
+        $catalog = BookingWizard::catalog($packages, $addons, $services);
+        $deals   = BookingWizard::deals();
+        $resume  = null;
+
+        if ($request->filled('booking') && session()->has('user_id')) {
+            $existing = Booking::where('user_id', session('user_id'))->find((int) $request->query('booking'));
+            if ($existing) {
+                $resume = $this->wizardSummary($existing);
+            }
+        }
+
+        return view('user.booking', compact('dates', 'services', 'packages', 'inclusions', 'addons', 'catalog', 'deals', 'resume'));
     }
 
     /**
@@ -527,6 +541,237 @@ class BookingController extends Controller
             'cancelled'             => ['label' => 'Cancelled', 'class' => 'rose'],
             default                 => ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'amber'],
         };
+    }
+
+    /**
+     * Step-by-step wizard submit: creates the booking AND stores the QR
+     * payment proof in one request, so the booking lands straight in
+     * "awaiting_verification" (shown as "Waiting for Approval") for the
+     * admin to review. Prices are recomputed here from the server catalog;
+     * nothing price-related is trusted from the browser.
+     *
+     * POST /app/booking/submit   (multipart, expects JSON back)
+     */
+    public function submit(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['message' => 'Your session expired. Please log in again.'], 401);
+        }
+
+        $validated = $request->validate([
+            'party_type' => ['required', 'in:solo,couple,group'],
+            'guests'     => ['required', 'integer', 'min:1', 'max:100'],
+            'items'      => ['required', 'string'],
+            'extras'     => ['nullable', 'string'],
+            'visit_date' => ['required', 'date', 'after_or_equal:today'],
+            'visit_time' => ['required', 'date_format:H:i'],
+            'receipt'    => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'receipt.required' => 'Please upload a screenshot or receipt of your payment first.',
+            'receipt.mimes'    => 'Proof of payment must be an image (JPG/PNG/WEBP) or PDF.',
+            'receipt.max'      => 'Proof of payment must be 5MB or smaller.',
+        ]);
+
+        $guests = (int) $validated['guests'];
+        $expected = ['solo' => 1, 'couple' => 2];
+        if (isset($expected[$validated['party_type']]) && $guests !== $expected[$validated['party_type']]) {
+            return response()->json(['message' => 'Guest count does not match the party type.'], 422);
+        }
+        if ($validated['party_type'] === 'group' && $guests < 3) {
+            return response()->json(['message' => 'A group needs at least 3 guests.'], 422);
+        }
+
+        // Opening hours: 9AM weekdays / 10AM weekends, last start 8:30PM.
+        $date = Carbon::parse($validated['visit_date']);
+        $minutes = (int) substr($validated['visit_time'], 0, 2) * 60 + (int) substr($validated['visit_time'], 3, 2);
+        $openAt = $date->isWeekend() ? 10 * 60 : 9 * 60;
+        if ($minutes < $openAt || $minutes > 20 * 60 + 30) {
+            return response()->json(['message' => 'Please pick a time within park hours.'], 422);
+        }
+        if ($date->isToday() && $minutes <= now()->hour * 60 + now()->minute) {
+            return response()->json(['message' => 'That time has already passed today.'], 422);
+        }
+
+        $catalog = BookingWizard::catalog($this->packages, $this->addons, $this->services);
+        $lookup  = BookingWizard::lookup($catalog);
+
+        $rawItems  = json_decode($validated['items'], true);
+        $rawExtras = json_decode($validated['extras'] ?? '[]', true);
+        if (!is_array($rawItems) || !count($rawItems) || !is_array($rawExtras)) {
+            return response()->json(['message' => 'Please pick at least one attraction.'], 422);
+        }
+
+        $lines = [];
+        foreach ($rawItems as $row) {
+            $key = (string) ($row['key'] ?? '');
+            $qty = (int) ($row['qty'] ?? 0);
+            $item = $lookup['items'][$key] ?? null;
+            if (!$item || $qty < 1 || (empty($item['flat']) && $qty > $guests)) {
+                return response()->json(['message' => 'One of the selected attractions is no longer available. Please review your picks.'], 422);
+            }
+            if (!empty($item['flat'])) {
+                // Party package: flat price for the tier that fits the party size.
+                $tier = BookingWizard::tierFor($item, $guests);
+                if (!$tier) {
+                    return response()->json(['message' => $item['name'] . ' fits a limited number of guests. Please reduce your guests or pick per-person passes.'], 422);
+                }
+                if (($item['days'] ?? null) === 'weekday' && $date->isWeekend()) {
+                    return response()->json(['message' => $item['name'] . ' is only available Monday to Friday.'], 422);
+                }
+                if (($item['days'] ?? null) === 'weekend' && !$date->isWeekend()) {
+                    return response()->json(['message' => $item['name'] . ' is only available on weekends.'], 422);
+                }
+                $lines[$key] = ['qty' => 1] + array_merge($item, [
+                    'unit_price' => (float) $tier['price'],
+                    'tier_pax'   => (int) $tier['pax'],
+                    'name'       => $item['name'] . ' (up to ' . (int) $tier['pax'] . ' guests)',
+                ]);
+                continue;
+            }
+            $lines[$key] = ['qty' => $qty] + $item;
+        }
+
+        // A party package already includes play/skate access: one per service, no per-person passes with it.
+        $flatPerService = [];
+        foreach ($lines as $l) {
+            if (!empty($l['flat'])) {
+                $flatPerService[$l['service']] = ($flatPerService[$l['service']] ?? 0) + 1;
+            }
+        }
+        foreach ($lines as $l) {
+            $svc = $l['service'];
+            if (empty($l['flat']) && isset($flatPerService[$svc])) {
+                return response()->json(['message' => 'A party package already includes access, so it cannot be combined with per-person passes for the same attraction.'], 422);
+            }
+        }
+        if (count(array_filter($flatPerService, fn ($n) => $n > 1))) {
+            return response()->json(['message' => 'Please choose only one party package per attraction.'], 422);
+        }
+
+        $extras = [];
+        foreach ($rawExtras as $row) {
+            $key = (string) ($row['key'] ?? '');
+            $qty = (int) ($row['qty'] ?? 0);
+            if ($qty < 1) {
+                continue;
+            }
+            if (!isset($lookup['extras'][$key]) || $qty > 100) {
+                return response()->json(['message' => 'One of the selected extras is no longer available.'], 422);
+            }
+            $extras[$key] = ['qty' => $qty] + $lookup['extras'][$key];
+        }
+
+        $priced = BookingWizard::price(array_values($lines), array_values($extras), $guests);
+
+        // The biggest line decides the "primary" service/package kept in the
+        // legacy columns, so admin pages and the waiver keep working.
+        $primary = collect($priced['lines'])->sortByDesc('line_total')->first();
+
+        $path = $request->file('receipt')->store('payment-proofs', 'public');
+
+        $booking = Booking::create([
+            'user_id'              => session('user_id'),
+            'service'              => $primary['service'],
+            'package'              => $primary['package'],
+            'tier'                 => $guests,
+            'party_type'           => $validated['party_type'],
+            'price'                => (int) round($priced['total']),
+            'discount_total'       => $priced['discount_total'],
+            'items'                => collect($priced['lines'])->map(fn ($l) => [
+                'key' => $l['key'], 'service' => $l['service'], 'package' => $l['package'],
+                'name' => $l['name'], 'unit_price' => $l['unit_price'], 'qty' => $l['qty'],
+                'free_units' => $l['free_units'], 'line_total' => $l['line_total'],
+            ])->values()->all(),
+            'addons'               => collect($priced['extras'])->map(fn ($e) => [
+                'key' => $e['key'], 'name' => $e['name'], 'unit_price' => $e['unit_price'],
+                'qty' => $e['qty'], 'line_total' => $e['line_total'],
+            ])->values()->all(),
+            'visit_date'           => $validated['visit_date'],
+            'visit_time'           => $validated['visit_time'],
+            'payment_method'       => 'qrph',
+            'receipt_path'         => $path,
+            'payment_proof_path'   => $path,
+            'payment_submitted_at' => now(),
+            'status'               => 'awaiting_verification',
+        ]);
+
+        // The waiver (next step after this) reads these from the session.
+        session([
+            'booking_service' => $primary['service'],
+            'booking_id'      => $booking->id,
+        ]);
+
+        $this->emailProofReceived($booking, 'qrph');
+
+        return response()->json([
+            'booking' => $this->wizardSummary($booking),
+            'priced'  => ['total' => $priced['total']],
+        ]);
+    }
+
+    /**
+     * Polled by wizard step 5 so the voucher un-blurs as soon as the admin
+     * approves the payment.
+     *
+     * GET /app/booking/{booking}/status
+     */
+    public function status(int $booking)
+    {
+        if (!session()->has('user_id')) {
+            return response()->json(['message' => 'Please log in again.'], 401);
+        }
+
+        $model = Booking::where('user_id', session('user_id'))->find($booking);
+        abort_if(!$model, 404);
+
+        return response()->json($this->wizardSummary($model));
+    }
+
+    /**
+     * Wizard-shaped view of a booking. The real voucher code is included
+     * ONLY once the booking is approved (confirmed/done) — before that it
+     * never leaves the server, so "blurred" can't be defeated by view-source.
+     */
+    private function wizardSummary(Booking $booking): array
+    {
+        $meta     = $this->statusMeta($booking->status, $booking->payment_rejection_reason);
+        $approved = in_array($booking->status, ['confirmed', 'done'], true);
+
+        $items = collect($booking->items ?? [])->map(fn ($i) => [
+            'name' => $i['name'], 'qty' => $i['qty'], 'free' => $i['free_units'] ?? 0,
+            'total' => (float) $i['line_total'],
+        ])->values()->all();
+
+        // Bookings made with the old form have no items — fall back to the package.
+        if (!count($items)) {
+            $items = [[
+                'name'  => $this->packages[$booking->service][$booking->package]['name'] ?? $booking->package,
+                'qty'   => (int) $booking->tier, 'free' => 0, 'total' => (float) $booking->price,
+            ]];
+        }
+
+        $time = $booking->visit_time ? Carbon::parse($booking->visit_time)->format('g:i A') : null;
+
+        return [
+            'id'               => $booking->id,
+            'reference'        => 'WP-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
+            'status'           => $booking->status,
+            'status_label'     => $meta['label'],
+            'approved'         => $approved,
+            'rejected'         => $booking->status === 'pending_payment' && (bool) $booking->payment_rejection_reason,
+            'rejection_reason' => $booking->status === 'pending_payment' ? $booking->payment_rejection_reason : null,
+            'voucher_code'     => $approved ? $booking->voucher_code : null,
+            'guests'           => (int) $booking->tier,
+            'party_type'       => $booking->party_type,
+            'items'            => $items,
+            'extras'           => collect($booking->addons ?? [])->map(fn ($e) => [
+                'name' => $e['name'] ?? '', 'qty' => $e['qty'] ?? 1, 'total' => (float) ($e['line_total'] ?? 0),
+            ])->values()->all(),
+            'discount'         => (float) $booking->discount_total,
+            'total'            => (float) $booking->price,
+            'date_label'       => $booking->visit_date->format('D, M j, Y'),
+            'time_label'       => $time,
+        ];
     }
 
     public function packageInfo(string $service, string $package): array

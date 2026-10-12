@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Account') · WonderPark Amusement</title>
     <link rel="stylesheet" href="{{ asset('css/user-app-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/user-landing-theme.css') }}?v={{ filemtime(public_path('css/user-landing-theme.css')) }}">
 
     {{-- Apply saved theme before first paint, avoids light-mode flash --}}
     <script>
@@ -24,13 +25,13 @@
            the accent in both modes; only surfaces/text/borders flip.
            =========================================================== */
         [data-theme="dark"]{
-            --d-bg:#15121C;
-            --d-surface:#1E1A29;
-            --d-surface-soft:#262032;
+            --d-bg:#0B1020;
+            --d-surface:#111827;
+            --d-surface-soft:#1F2937;
             --d-border:rgba(255,255,255,.09);
-            --d-text:#F1EDF7;
-            --d-text-soft:#B8AFC9;
-            --d-muted:#8A8299;
+            --d-text:#F1F5F9;
+            --d-text-soft:#CBD5E1;
+            --d-muted:#94A3B8;
         }
 
         [data-theme="dark"] #userView,
@@ -70,7 +71,7 @@
         [data-theme="dark"] th{ color:var(--d-muted); }
 
         [data-theme="dark"] .pkg:has(input:checked){
-            background:rgba(184,40,80,.14); border-color:var(--pink-deep);
+            background:rgba(99,102,241,.14); border-color:var(--pink-deep);
         }
 
         [data-theme="dark"] .u-input,
@@ -100,7 +101,7 @@
 
         [data-theme="dark"] .promo-media{ background:var(--d-surface-soft); }
         [data-theme="dark"] .promo-tier{ border-color:var(--d-border); color:var(--d-text); }
-        [data-theme="dark"] .promo-tier.selected{ background:rgba(184,40,80,.14); }
+        [data-theme="dark"] .promo-tier.selected{ background:rgba(99,102,241,.14); }
         [data-theme="dark"] .promo-inclusions li{ color:var(--d-text-soft); }
 
         [data-theme="dark"] .tag.green{ background:rgba(18,181,166,.16); }
@@ -109,7 +110,7 @@
         [data-theme="dark"] .tag.pink{ background:rgba(226,75,74,.18); }
 
         [data-theme="dark"] .promo-selection-summary{
-            background:rgba(184,40,80,.12); border-color:var(--d-border); color:var(--d-text);
+            background:rgba(99,102,241,.12); border-color:var(--d-border); color:var(--d-text);
         }
         [data-theme="dark"] .promo-selection-summary.empty{
             background:var(--d-surface); color:var(--d-muted);

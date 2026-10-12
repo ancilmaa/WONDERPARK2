@@ -404,7 +404,7 @@
 
   <!-- Inventory Table -->
   <div class="report-section">
-    <div class="report-title">📦 Inventory List</div>
+    <div class="report-title">Inventory List</div>
 
     <div class="table-wrapper">
       <table class="report-table" id="inventoryTable">
