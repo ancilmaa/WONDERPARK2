@@ -61,7 +61,7 @@ class AccountController extends Controller
 
         $this->audit(
             'account_created',
-            "Gumawa ng bagong account: {$request->username} ({$request->role})",
+            "Created new account: {$request->username} ({$request->role})",
             $request->role === 'admin' ? 'warning' : 'info',
             [
                 'new' => [
@@ -108,8 +108,8 @@ class AccountController extends Controller
             if ($old->role !== $request->role) {
                 $this->audit(
                     'role_changed',
-                    "Binago ang role ni {$old->username}: {$old->role} → {$request->role}"
-                        . ($isSelf ? ' (sarili niya)' : ''),
+                    "Changed role of {$old->username}: {$old->role} → {$request->role}"
+                        . ($isSelf ? ' (self)' : ''),
                     'warning',
                     [
                         'target_user_id' => (int) $user_id,
@@ -124,7 +124,7 @@ class AccountController extends Controller
             if ($passwordChanged) {
                 $this->audit(
                     'password_changed',
-                    "Pinalitan ang password ni {$old->username}" . ($isSelf ? ' (sarili niya)' : ' ng admin'),
+                    "Changed password of {$old->username}" . ($isSelf ? ' (self)' : ' by admin'),
                     'warning',
                     [
                         'target_user_id' => (int) $user_id,
@@ -147,7 +147,7 @@ class AccountController extends Controller
             if ($newVals) {
                 $this->audit(
                     'account_updated',
-                    "Na-edit ang account ni {$old->username}: " . implode(', ', array_keys($newVals)),
+                    "Edited account of {$old->username}: " . implode(', ', array_keys($newVals)),
                     'info',
                     ['target_user_id' => (int) $user_id, 'old' => $oldVals, 'new' => $newVals]
                 );
@@ -169,7 +169,7 @@ class AccountController extends Controller
 
             $this->audit(
                 'user_deleted',
-                "Na-delete ang account: {$user->username} ({$user->role})" . ($isSelf ? ' (sarili niya)' : ''),
+                "Deleted account: {$user->username} ({$user->role})" . ($isSelf ? ' (self)' : ''),
                 'critical',
                 [
                     'old' => [

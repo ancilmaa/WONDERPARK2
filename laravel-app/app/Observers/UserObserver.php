@@ -15,7 +15,7 @@ class UserObserver
         if ($user->isDirty($roleColumn)) {
             SystemLogger::anomaly(
                 'role_changed',
-                "Binago ang role ni {$user->email}: '{$user->getOriginal($roleColumn)}' → '{$user->{$roleColumn}}'.",
+                "Changed role of {$user->email}: '{$user->getOriginal($roleColumn)}' → '{$user->{$roleColumn}}'.",
                 'critical',
                 ['from' => $user->getOriginal($roleColumn), 'to' => $user->{$roleColumn}],
                 $user->id,
@@ -27,7 +27,7 @@ class UserObserver
         if ($user->isDirty('password')) {
             SystemLogger::anomaly(
                 'password_changed',
-                "Binago ang password ni {$user->email}.",
+                "Changed password of {$user->email}.",
                 'warning',
                 [],
                 $user->id,
@@ -39,7 +39,7 @@ class UserObserver
         if ($user->isDirty('email')) {
             SystemLogger::anomaly(
                 'email_changed',
-                "Binago ang email: '{$user->getOriginal('email')}' → '{$user->email}'.",
+                "Changed email: '{$user->getOriginal('email')}' → '{$user->email}'.",
                 'warning',
                 [],
                 $user->id,
@@ -52,7 +52,7 @@ class UserObserver
     {
         SystemLogger::anomaly(
             'user_deleted',
-            "Na-delete ang user account ni {$user->email}.",
+            "Deleted user account of {$user->email}.",
             'critical',
             [],
             $user->id,

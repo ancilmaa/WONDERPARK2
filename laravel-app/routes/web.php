@@ -24,23 +24,7 @@ use App\Http\Controllers\CmsController;
 use App\Http\Controllers\BookingCmsController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Admin\SystemLogController;
-
-/*
-|--------------------------------------------------------------------------
-| ROLES
-|   customer = online customer
-|   cashier  = POS
-|   tl       = team leader
-|   manager  = manager
-|   admin    = admin
-|--------------------------------------------------------------------------
-*/
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC ROUTES (walang login)
-|--------------------------------------------------------------------------
-*/
+use App\Http\Controllers\Admin\MyAccountController;
 
 // Landing page
 Route::get('/', function () {
@@ -105,6 +89,12 @@ Route::resource('chatmessaging', ChatMessagingController::class);
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth.session')->group(function () {
+
+    // My Account (profile photo, pangalan, password). Dating walang middleware,
+    // ngayon kailangan nang naka-login.
+    Route::get('/admin/my-account', [MyAccountController::class, 'index'])->name('my-account.index');
+    Route::put('/admin/my-account', [MyAccountController::class, 'updateInfo'])->name('my-account.update');
+    Route::put('/admin/my-account/password', [MyAccountController::class, 'updatePassword'])->name('my-account.password');
 
     // User app (customer-facing) — Account, Waiver, Booking, My Bookings
     Route::prefix('app')->name('user.')->group(function () {
@@ -309,6 +299,8 @@ Route::middleware(['auth.session', 'role:admin'])->group(function () {
 
     // System logs
     Route::get('/admin/system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
+    // "Yes, it's me" / "No, it's not me" para sa failed login
+    Route::post('/admin/system-logs/{id}/review', [SystemLogController::class, 'review'])->name('system-logs.review');
 
     // Accounts
     Route::get('/accounts', [AccountController::class, 'index']);

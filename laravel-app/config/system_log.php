@@ -62,7 +62,13 @@ return [
 
     // Mga field na HINDI dapat ilagay sa log ng LogsActivity trait
     'hidden_fields' => ['password', 'remember_token', 'updated_at', 'created_at'],
-
+    // ── POS (cashier) audit ──
+    'pos_discount_anomaly_percent'  => 25, // manual discount na 25% ng gross pataas = anomaly
+    'pos_discount_repeat_threshold' => 5,  // 5 manual discount ng iisang cashier sa loob ng window = anomaly
+    'pos_reprint_anomaly_count'     => 3,  // ika-3 reprint ng iisang invoice pataas = anomaly
+    'pos_repeat_window_minutes'     => 60,
+    'pos_repeat_threshold'          => 3,  // 3 void sa loob ng window = anomaly
+    'pos_override_ttl_minutes'      => 15, // gaano katagal valid ang manager override
     // Ilang araw itatago ang logs (gamitin sa prune schedule)
     'retention_days' => 90,
 ];
