@@ -141,6 +141,12 @@
         }
         [data-theme="dark"] .theme-toggle:hover{ background:var(--d-surface); }
         .theme-toggle .icon-moon{ display:none; }
+
+        /* Pages that hide their title card keep only the theme toggle, right-aligned, no card */
+        .phone-head.phone-head--toggle-only{
+            justify-content:flex-end !important; padding:0 !important; min-height:0;
+            background:transparent !important; border:0 !important; box-shadow:none !important;
+        }
         [data-theme="dark"] .theme-toggle .icon-sun{ display:none; }
         [data-theme="dark"] .theme-toggle .icon-moon{ display:block; }
     </style>
@@ -152,11 +158,16 @@
     <div class="app-frame">
         @include('partials.bottomnav')
         <div class="app-main">
-            <div class="phone-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+            {{-- A page can hide the big title card with @section('hide-page-title', '1');
+                 the dark-mode toggle always stays. --}}
+            <div class="phone-head @hasSection('hide-page-title') phone-head--toggle-only @endif" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                @hasSection('hide-page-title')
+                @else
                 <div>
                     <p>@yield('page-subtitle', 'Manage your account')</p>
                     <h2>@yield('page-title', 'Account')</h2>
                 </div>
+                @endif
                 <button type="button" class="theme-toggle" id="themeToggleBtn" title="Toggle dark mode">
                     <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
                     <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>

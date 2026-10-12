@@ -376,6 +376,7 @@ window.BW = {
         receipt:  @json(route('user.bookings.receipt', '__ID__')),
         review:   @json(route('user.bookings.review', '__ID__')),
         waiver:   @json(route('user.waiver')),
+        bookingWaiver: @json(route('user.bookings.waiver', '__ID__')),
         bookings: @json(route('user.bookings')),
         booking:  @json(route('user.booking')),
         login:    @json(url('/login'))
@@ -830,7 +831,8 @@ window.BW = {
           if (res.j.errors) msg = res.j.errors[Object.keys(res.j.errors)[0]][0];
           showErr(msg); renderBar(); return;
         }
-        state.booking = res.j.booking; go(5, 'fwd');
+        state.booking = res.j.booking;
+        window.location.href = BW.urls.bookingWaiver.replace('__ID__', res.j.booking.id);
       })
       .catch(function () { state.busy = false; showErr('Network problem \u2014 please check your connection and try again.'); renderBar(); });
     void p;
@@ -871,10 +873,10 @@ window.BW = {
     l2.className = ''; l3.className = '';
     if (b.approved) {
       pill.className = 'bw-pill ok'; pill.textContent = 'Approved! See you at the park \uD83C\uDF89';
-      msg.textContent = 'Show this code at the entrance. Please sign the waiver before your visit.';
+      msg.textContent = 'Show this code at the entrance. See you at the park!';
       l2.className = 'on'; l3.className = 'on';
       code.textContent = b.voucher_code; code.classList.add('reveal'); lock.classList.add('gone');
-      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCopy">Copy code</button><a class="bw-btn ghost" href="' + BW.urls.receipt.replace('__ID__', b.id) + '">View receipt</a>' + mine + again;
+      acts.innerHTML = '<button type="button" class="bw-btn ghost" id="bwCopy">Copy code</button><a class="bw-btn ghost" href="' + BW.urls.receipt.replace('__ID__', b.id) + '">View receipt</a>' + mine + again;
       var cp = $('#bwCopy'); if (cp) cp.addEventListener('click', function () { if (navigator.clipboard) navigator.clipboard.writeText(b.voucher_code); cp.textContent = 'Copied \u2713'; });
       if (confetti) boom();
     } else if (b.rejected) {
@@ -886,7 +888,7 @@ window.BW = {
       pill.className = 'bw-pill'; pill.textContent = 'In review \u2014 hang tight!';
       msg.textContent = 'Our team is checking your payment. Your voucher unlocks here as soon as it is approved. \u2728';
       l2.className = 'on cur';
-      acts.innerHTML = waiver + '<button type="button" class="bw-btn ghost" id="bwCheck">Check now</button>' + mine + again;
+      acts.innerHTML = '<button type="button" class="bw-btn ghost" id="bwCheck">Check now</button>' + mine + again;
       var ck = $('#bwCheck'); if (ck) ck.addEventListener('click', function () { ck.textContent = 'Checking\u2026'; poll(true); });
     }
   }
