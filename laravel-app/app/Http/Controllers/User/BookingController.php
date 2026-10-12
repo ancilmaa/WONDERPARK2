@@ -599,10 +599,47 @@ class BookingController extends Controller
         foreach ($rawItems as $row) {
             $key = (string) ($row['key'] ?? '');
             $qty = (int) ($row['qty'] ?? 0);
-            if (!isset($lookup['items'][$key]) || $qty < 1 || $qty > $guests) {
+            $item = $lookup['items'][$key] ?? null;
+            if (!$item || $qty < 1 || (empty($item['flat']) && $qty > $guests)) {
                 return response()->json(['message' => 'One of the selected attractions is no longer available. Please review your picks.'], 422);
             }
-            $lines[$key] = ['qty' => $qty] + $lookup['items'][$key];
+            if (!empty($item['flat'])) {
+                // Party package: flat price for the tier that fits the party size.
+                $tier = BookingWizard::tierFor($item, $guests);
+                if (!$tier) {
+                    return response()->json(['message' => $item['name'] . ' fits a limited number of guests. Please reduce your guests or pick per-person passes.'], 422);
+                }
+                if (($item['days'] ?? null) === 'weekday' && $date->isWeekend()) {
+                    return response()->json(['message' => $item['name'] . ' is only available Monday to Friday.'], 422);
+                }
+                if (($item['days'] ?? null) === 'weekend' && !$date->isWeekend()) {
+                    return response()->json(['message' => $item['name'] . ' is only available on weekends.'], 422);
+                }
+                $lines[$key] = ['qty' => 1] + array_merge($item, [
+                    'unit_price' => (float) $tier['price'],
+                    'tier_pax'   => (int) $tier['pax'],
+                    'name'       => $item['name'] . ' (up to ' . (int) $tier['pax'] . ' guests)',
+                ]);
+                continue;
+            }
+            $lines[$key] = ['qty' => $qty] + $item;
+        }
+
+        // A party package already includes play/skate access: one per service, no per-person passes with it.
+        $flatPerService = [];
+        foreach ($lines as $l) {
+            if (!empty($l['flat'])) {
+                $flatPerService[$l['service']] = ($flatPerService[$l['service']] ?? 0) + 1;
+            }
+        }
+        foreach ($lines as $l) {
+            $svc = $l['service'];
+            if (empty($l['flat']) && isset($flatPerService[$svc])) {
+                return response()->json(['message' => 'A party package already includes access, so it cannot be combined with per-person passes for the same attraction.'], 422);
+            }
+        }
+        if (count(array_filter($flatPerService, fn ($n) => $n > 1))) {
+            return response()->json(['message' => 'Please choose only one party package per attraction.'], 422);
         }
 
         $extras = [];

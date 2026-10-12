@@ -153,6 +153,12 @@
 .bw-slot.sel{ background:var(--pink-deep); border-color:var(--pink-deep); color:#fff; }
 .bw-empty{ text-align:center; color:var(--bw-sub); padding:34px 10px; font-size:14px; }
 .bw-empty b{ display:block; font-size:38px; margin-bottom:6px; }
+.bw-sec{ grid-column:1/-1; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--bw-sub); margin:10px 0 -2px; }
+.bw-sec small{ font-weight:500; text-transform:none; letter-spacing:0; margin-left:6px; }
+.bw-inc{ padding:0 14px 12px; }
+.bw-inc-btn{ background:none; border:0; padding:0; font:inherit; font-size:12.5px; font-weight:700; color:var(--pink-deep); cursor:pointer; display:flex; gap:6px; align-items:center; }
+.bw-inc ul{ margin:8px 0 0; padding-left:18px; font-size:12.5px; color:var(--bw-sub); line-height:1.5; text-align:left; cursor:default; }
+.bw-inc ul[hidden]{ display:none; }
 
 /* ---------- step 4 ---------- */
 .bw-pay{ display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
@@ -270,7 +276,7 @@
         {{-- STEP 1 --}}
         <section class="bw-step is-active" data-step="1">
             <h3 class="bw-h">Who's coming to play? <span class="bw-wave">👋</span></h3>
-            <p class="bw-sub">How many are coming? Pick one so we can show you the best deals.</p>
+            <p class="bw-sub">How many are coming? Pick one to get started.</p>
             <div class="bw-party">
                 <button type="button" class="bw-pcard" data-party="solo"><span class="bw-big">&#128587;</span><b>Solo</b><small>1 person</small></button>
                 <button type="button" class="bw-pcard" data-party="couple"><span class="bw-big">&#129489;&#8205;&#129309;&#8205;&#129489;</span><b>Duo</b><small>2 people</small></button>
@@ -409,6 +415,12 @@ window.BW = {
   function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
   function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
   function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+  function dayBlocked(cell) {
+    return Object.keys(state.items).some(function (k) {
+      var it = ITEM[k]; if (!it || !it.flat || !it.days) return false;
+      return it.days === 'weekday' ? isWeekend(cell) : !isWeekend(cell);
+    });
+  }
   function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
 
   /* ---------------- pricing (mirror of BookingWizard::price) ---------------- */
@@ -416,11 +428,44 @@ window.BW = {
     var list = (D.four_plus_one.packages || {})[it.service] || [];
     return list.indexOf(it.package) !== -1;
   }
+  function tierFor(it, g) {
+    var t = it.tiers || [];
+    for (var i = 0; i < t.length; i++) { if (g <= t[i].pax) return t[i]; }
+    return null;
+  }
+  function partyPrice(it) {
+    var t = tierFor(it, state.guests), top = it.tiers[it.tiers.length - 1];
+    if (t) return money(t.price) + ' <small>for up to ' + t.pax + ' guests</small>';
+    return 'From ' + money(it.tiers[0].price) + ' <small>fits ' + it.tiers[0].pax + '\u2013' + top.pax + ' guests only</small>';
+  }
+  function partyTooBig(it) {
+    var top = it.tiers[it.tiers.length - 1].pax;
+    btnNext.classList.remove('bw-shake'); void btnNext.offsetWidth; btnNext.classList.add('bw-shake');
+    barInfo.innerHTML = '<b style="color:var(--pink-deep)">Too many guests</b>This package fits up to ' + top + ' guests';
+    clearTimeout(hintTimer); hintTimer = setTimeout(renderBar, 2600);
+  }
+  function incHTML(it) {
+    var inc = it.inclusions || [];
+    var tiersLi = it.flat ? '<li style="list-style:none;margin-left:-18px;margin-bottom:6px"><b>Price by number of guests</b><br>' +
+      it.tiers.map(function (t) { return 'Up to ' + t.pax + ' guests \u2014 ' + money(t.price); }).join('<br>') + '</li>' : '';
+    if (!inc.length && !tiersLi) return '';
+    return '<div class="bw-inc"><button type="button" class="bw-inc-btn" data-inc aria-expanded="false">What\u2019s included <span>+</span></button><ul hidden>' + tiersLi +
+      inc.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+  }
+  function gridHTML(items) {
+    var pass = items.filter(function (i) { return !i.flat; }), party = items.filter(function (i) { return i.flat; });
+    var h = '';
+    if (party.length && pass.length) h += '<div class="bw-sec">\uD83C\uDFAB Per-person passes</div>';
+    h += pass.map(cardHTML).join('');
+    if (party.length) h += '<div class="bw-sec">\uD83C\uDF89 Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('');
+    return h;
+  }
   function price() {
     var subtotal = 0, bundle = 0, groupBase = 0, lines = [], extras = [], extrasTotal = 0;
     Object.keys(state.items).forEach(function (k) {
       var it = ITEM[k], qty = state.items[k];
       if (!it) return;
+      if (it.flat) { var tp = tierFor(it, state.guests), up = tp ? tp.price : 0; subtotal += up; lines.push({ it: it, qty: 1, gross: up, free: 0, disc: 0, tier: tp }); return; }
       var gross = it.unit_price * qty, free = 0;
       if (dealApplies(it) && qty >= D.four_plus_one.min_qty) free = Math.floor(qty / D.four_plus_one.min_qty);
       var disc = free * it.unit_price;
@@ -552,7 +597,7 @@ window.BW = {
     var msg = '';
     if (hit) msg = '\uD83C\uDF89 <b>Group deal unlocked!</b> ' + hit.pct + '% off your attractions.';
     else if (next) msg = '\uD83D\uDCA1 Bring ' + plural(next.min_guests - g, 'more friend') + ' and get <b>' + next.pct + '% off</b> (groups of ' + next.min_guests + '+).';
-    var hasDeal = TABS[state.tab].items.some(function (i) { return !!i.deal; });
+    var hasDeal = false; // banner removed; the card ribbons already show the deal
     if (hasDeal) {
       var m = D.four_plus_one.min_qty;
       msg += (msg ? '<br>' : '') + '\uD83C\uDF81 <b>Buy ' + (m - 1) + ', get 1 free</b> on these passes when ' + m + '+ guests skate together.';
@@ -562,16 +607,17 @@ window.BW = {
   function cardHTML(it) {
     var sel = state.items[it.key] != null, qty = state.items[it.key] || state.guests;
     var bg = it.image ? 'background-image:linear-gradient(0deg,rgba(0,0,0,.28),rgba(0,0,0,0)),url(\'' + BW.imgBase + esc(it.image) + '\');' : '';
-    var rib = it.deal ? '<span class="bw-ribbon">\uD83C\uDF81 ' + esc(it.deal) + '</span>' : (it.badge ? '<span class="bw-ribbon gold">\u2B50 ' + esc(it.badge) + '</span>' : '');
+    var rib = false /* deal ribbon removed */ ? '<span class="bw-ribbon">\uD83C\uDF81 ' + esc(it.deal) + '</span>' : (it.badge ? '<span class="bw-ribbon gold">\u2B50 ' + esc(it.badge) + '</span>' : '');
     return '<div class="bw-card' + (sel ? ' sel' : '') + '" role="button" tabindex="0" data-key="' + esc(it.key) + '">' +
       rib + '<span class="bw-tick">\u2713</span>' +
       '<div class="bw-media" style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + '</div>' +
       '<div class="bw-body"><b>' + esc(it.name) + '</b><p>' + esc(it.desc) + '</p>' +
-      '<div class="bw-price">' + money(it.unit_price) + ' <small>/ person</small></div></div>' +
-      (state.guests > 1 ? '<div class="bw-qty"><span>Guests riding</span><span class="bw-mini"><button type="button" data-d="-1">\u2212</button><span data-q>' + qty + '</span><button type="button" data-d="1">+</button></span></div>' : '') +
+      '<div class="bw-price">' + (it.flat ? partyPrice(it) : money(it.unit_price) + ' <small>/ person</small>') + '</div>' + incHTML(it) + '</div>' +
+      (state.guests > 1 && !it.flat ? '<div class="bw-qty"><span>Guests riding</span><span class="bw-mini"><button type="button" data-d="-1">\u2212</button><span data-q>' + qty + '</span><button type="button" data-d="1">+</button></span></div>' : '') +
       '</div>';
   }
   function renderStep2() {
+    Object.keys(state.items).forEach(function (k) { var o = ITEM[k]; if (o && o.flat && !tierFor(o, state.guests)) delete state.items[k]; });
     var tabs = $('#bwTabs');
     tabs.innerHTML = TAB_KEYS.map(function (k) {
       return '<button type="button" class="bw-tab' + (k === state.tab ? ' on' : '') + '" data-tab="' + k + '" style="--tab-grad:' + GRAD[k] + '">' +
@@ -584,7 +630,7 @@ window.BW = {
     var bn = bannerText(); var el = $('#bwBanner'); el.innerHTML = bn; el.hidden = !bn;
     var grid = $('#bwGrid');
     grid.style.setProperty('--tab-grad', GRAD[state.tab]);
-    grid.innerHTML = t.items.length ? t.items.map(cardHTML).join('') : '<div class="bw-empty"><b>\uD83D\uDEA7</b>Nothing to book here yet.</div>';
+    grid.innerHTML = t.items.length ? gridHTML(t.items) : '<div class="bw-empty"><b>\uD83D\uDEA7</b>Nothing to book here yet.</div>';
     renderExtras(); updateCounts();
   }
   function updateCounts() {
@@ -605,6 +651,14 @@ window.BW = {
     }).join('');
   }
   $('#bwGrid').addEventListener('click', function (ev) {
+    var incBtn = ev.target.closest('[data-inc]');
+    if (incBtn) {
+      var ul = incBtn.nextElementSibling, open = ul.hidden;
+      ul.hidden = !open; incBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      incBtn.querySelector('span').textContent = open ? '\u2212' : '+';
+      return;
+    }
+    if (ev.target.closest('.bw-inc')) return;
     var card = ev.target.closest('.bw-card'); if (!card) return;
     var key = card.getAttribute('data-key'), step = ev.target.closest('[data-d]');
     if (step) {
@@ -613,7 +667,18 @@ window.BW = {
       state.items[key] = Math.max(1, Math.min(state.guests, q));
       card.querySelector('[data-q]').textContent = state.items[key];
     } else {
-      if (state.items[key] != null) delete state.items[key]; else state.items[key] = state.guests;
+      if (state.items[key] != null) { delete state.items[key]; }
+      else {
+        var it0 = ITEM[key];
+        if (it0.flat && !tierFor(it0, state.guests)) { return partyTooBig(it0); }
+        var clash = false;
+        Object.keys(state.items).forEach(function (k) {
+          var o = ITEM[k];
+          if (o && o.service === it0.service && (it0.flat || o.flat)) { delete state.items[k]; clash = true; }
+        });
+        state.items[key] = it0.flat ? 1 : state.guests;
+        if (clash) { renderStep2(); renderBar(); return; }
+      }
       card.classList.toggle('sel', state.items[key] != null);
       var qe = card.querySelector('[data-q]'); if (qe) qe.textContent = state.items[key] || state.guests;
     }
@@ -642,11 +707,13 @@ window.BW = {
       var it = ITEM[k]; if (!it) continue;
       if (it.package === 'walkin_allday') return null;
       if (it.package === 'walkin_2hour' || it.package === 'group_bundle_2hour') d = Math.max(d, 2);
+      if (it.flat) d = Math.max(d, 3);
     }
     return d;
   }
   function renderStep3() {
     var m = state.month, t0 = today(), maxD = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 90);
+    if (state.date) { var sp = state.date.split('-'); if (dayBlocked(new Date(+sp[0], +sp[1] - 1, +sp[2]))) { state.date = null; state.time = null; } }
     $('#bwMonth').textContent = MONTHS[m.getMonth()] + ' ' + m.getFullYear();
     $('#bwPrev').disabled = m <= firstOfMonth(t0);
     $('#bwNextM').disabled = new Date(m.getFullYear(), m.getMonth() + 1, 1) > maxD;
@@ -655,7 +722,7 @@ window.BW = {
     for (var d = 1; d <= last; d++) {
       var cell = new Date(m.getFullYear(), m.getMonth(), d), v = iso(cell);
       var cls = 'bw-day' + (isWeekend(cell) ? ' wk' : '') + (cell.getTime() === t0.getTime() ? ' today' : '') + (state.date === v ? ' sel' : '');
-      html += '<button type="button" class="' + cls + '" data-date="' + v + '"' + (cell < t0 || cell > maxD ? ' disabled' : '') + '>' + d + '</button>';
+      html += '<button type="button" class="' + cls + '" data-date="' + v + '"' + (cell < t0 || cell > maxD || dayBlocked(cell) ? ' disabled' : '') + '>' + d + '</button>';
     }
     $('#bwDays').innerHTML = html;
     renderSlots();
@@ -703,7 +770,7 @@ window.BW = {
     var p = price(), h = '<h4>\uD83E\uDDFE Your adventure</h4>';
     h += '<div class="bw-row"><span>\uD83D\uDCC5 ' + esc(dateLabel(state.date)) + ' \u00B7 ' + esc(timeLabel(state.time)) + '<small>' + plural(state.guests, 'guest') + '</small></span><span></span></div>';
     p.lines.forEach(function (l) {
-      h += '<div class="bw-row"><span>' + esc(l.it.name) + '<small>' + l.qty + ' \u00D7 ' + money(l.it.unit_price) + (l.free ? ' \u00B7 \uD83C\uDF81 ' + l.free + ' free' : '') + '</small></span><span>' + money(l.gross) + '</span></div>';
+      h += '<div class="bw-row"><span>' + esc(l.it.name) + '<small>' + (l.it.flat ? (l.tier ? 'Up to ' + l.tier.pax + ' guests' : '') : l.qty + ' \u00D7 ' + money(l.it.unit_price)) + (l.free ? ' \u00B7 \uD83C\uDF81 ' + l.free + ' free' : '') + '</small></span><span>' + money(l.gross) + '</span></div>';
     });
     p.extras.forEach(function (x) {
       h += '<div class="bw-row"><span>' + esc(x.e.name) + '<small>' + x.qty + ' \u00D7 ' + money(x.e.unit_price) + '</small></span><span>' + money(x.total) + '</span></div>';

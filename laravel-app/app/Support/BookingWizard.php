@@ -54,8 +54,8 @@ class BookingWizard
                 ],
             ],
             'group_tiers' => [
-                ['min_guests' => 10, 'pct' => 15],
-                ['min_guests' => 5,  'pct' => 10],
+                // promo turned off: ['min_guests' => 10, 'pct' => 15],
+                // promo turned off: ['min_guests' => 5,  'pct' => 10],
             ],
         ];
     }
@@ -135,6 +135,22 @@ class BookingWizard
             'extras'  => self::extras('rollerfever', $addons),
         ];
 
+        // ---- Party packages: flat price by guest-count tier ------------
+        foreach (['dino_adventure', 'rollerfever'] as $svc) {
+            $tabs[$svc]['items'] = array_merge($tabs[$svc]['items'], self::partyItems($svc, $packages));
+        }
+
+        // ---- "What's included" list for every card ----------------------
+        $inc = BookingCatalog::inclusions();
+        foreach ($tabs as $svc => $tab) {
+            foreach ($tab['items'] as $i => $item) {
+                $tabs[$svc]['items'][$i]['inclusions'] = array_values($inc[$item['service']][$item['package']] ?? []);
+                if (self::dealApplies($item['service'], $item['package'])) {
+                    $tabs[$svc]['items'][$i]['inclusions'][] = 'Buy 4 guest passes, get 1 free (5 pax total)';
+                }
+            }
+        }
+
         return $tabs;
     }
 
@@ -177,7 +193,7 @@ class BookingWizard
 
             $subtotal += $gross;
             $bundleDiscount += $disc;
-            if ($free === 0) {
+            if ($free === 0 && empty($l['flat'])) {
                 $groupBase += $gross;
             }
 
@@ -221,6 +237,61 @@ class BookingWizard
     }
 
     // ---------------------------------------------------------------
+
+    /**
+     * Party packages (category "packages"): one flat price per guest-count tier,
+     * e.g. 10 guests = P15,000. Weekday/weekend packages carry a 'days' rule.
+     */
+    protected static function partyItems(string $service, array $packages): array
+    {
+        $items = [];
+        foreach ($packages[$service] ?? [] as $code => $pkg) {
+            if (($pkg['category'] ?? null) !== 'packages' || empty($pkg['tiers'])) {
+                continue;
+            }
+            $tiers = $pkg['tiers'];
+            ksort($tiers);
+            $list = [];
+            foreach ($tiers as $pax => $price) {
+                $list[] = ['pax' => (int) $pax, 'price' => (float) $price];
+            }
+            $days = null;
+            if (strpos($code, 'weekday') !== false) {
+                $days = 'weekday';
+            } elseif (strpos($code, 'weekend') !== false) {
+                $days = 'weekend';
+            }
+            $items[] = [
+                'key'        => $service . ':' . $code,
+                'service'    => $service,
+                'package'    => $code,
+                'name'       => $pkg['name'],
+                'desc'       => $pkg['desc'] ?? '',
+                'emoji'      => '🎉',
+                'image'      => $pkg['image'] ?? null,
+                'unit_price' => $list[0]['price'],
+                'badge'      => $pkg['badge'] ?? null,
+                'deal'       => null,
+                'flat'       => true,
+                'tiers'      => $list,
+                'days'       => $days,
+            ];
+        }
+
+        return $items;
+    }
+
+    /** Smallest tier that fits $guests, or null when the party is bigger than the top tier. */
+    public static function tierFor(array $item, int $guests): ?array
+    {
+        foreach ($item['tiers'] ?? [] as $t) {
+            if ($guests <= $t['pax']) {
+                return $t;
+            }
+        }
+
+        return null;
+    }
 
     protected static function passItems(string $service, array $packages, string $emoji): array
     {
