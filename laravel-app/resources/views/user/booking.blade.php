@@ -44,6 +44,8 @@
 .bw-node.now i{ filter:none; opacity:1; border-color:var(--pink-deep); transform:scale(1.14); animation:bwBob 1.6s ease-in-out infinite;
   box-shadow:0 8px 18px -6px rgba(184,40,80,.55); }
 .bw-node.now span{ color:var(--bw-accent); }
+.bw-node{ cursor:pointer; }
+.bw-node:hover i{ transform:scale(1.08); }
 @keyframes bwBob{ 0%,100%{ transform:scale(1.14) translateY(0);} 50%{ transform:scale(1.14) translateY(-5px);} }
 
 /* ---------- stage / steps ---------- */
@@ -330,7 +332,7 @@
 
         {{-- STEP 4 --}}
         <section class="bw-step" data-step="4">
-            <h3 class="bw-h">Scan, pay &amp; send proof <span class="bw-wave">📱</span></h3>
+            <h3 class="bw-h">Scan, pay &amp; send proof</h3>
             <p class="bw-sub">Pay online with QR Ph, then upload your screenshot. Our team will review it.</p>
             <div class="bw-pay">
                 <div class="bw-receipt" id="bwReceipt"></div>
@@ -338,7 +340,7 @@
                     <div class="bw-qr-frame"><img src="{{ asset('images/instapay-qr.png') }}" alt="QR Ph payment code"></div>
                     <p>Scan with GCash, Maya or any banking app</p>
                     <div class="bw-amount" id="bwAmount"></div>
-                    <div class="bw-drop" id="bwDrop"><b>📸 Upload payment screenshot</b><small>Tap or drag a file here · JPG, PNG, WEBP or PDF · max 5MB</small></div>
+                    <div class="bw-drop" id="bwDrop"><b>Upload payment screenshot</b><small>Tap or drag a file here · JPG, PNG, WEBP or PDF · max 5MB</small></div>
                     <input type="file" id="bwFile" accept="image/*,application/pdf" hidden>
                     <div class="bw-err" id="bwErr" hidden></div>
                     <div class="bw-note">After you submit, your booking goes to <b>In review</b>. Your voucher unlocks once it's approved.</div>
@@ -455,9 +457,9 @@ window.BW = {
   function gridHTML(items) {
     var pass = items.filter(function (i) { return !i.flat; }), party = items.filter(function (i) { return i.flat; });
     var h = '';
-    if (party.length && pass.length) h += '<div class="bw-sec">\uD83C\uDFAB Per-person passes</div>';
+    if (party.length && pass.length) h += '<div class="bw-sec">Per-person passes</div>';
     h += pass.map(cardHTML).join('');
-    if (party.length) h += '<div class="bw-sec">\uD83C\uDF89 Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('');
+    if (party.length) h += '<div class="bw-sec">Party packages<small>Flat price based on your number of guests</small></div>' + party.map(cardHTML).join('');
     return h;
   }
   function price() {
@@ -528,7 +530,7 @@ window.BW = {
   function renderBar() {
     bar.hidden = state.step === 5;
     btnBack.style.visibility = state.step === 1 ? 'hidden' : 'visible';
-    btnNext.innerHTML = state.step === 4 ? 'Submit for review \uD83C\uDF9F\uFE0F' : 'Next \u2192';
+    btnNext.innerHTML = state.step === 4 ? 'Submit for review' : 'Next \u2192';
     btnNext.classList.toggle('dim', !canNext());
     btnNext.disabled = state.busy;
     var t = '';
@@ -554,6 +556,19 @@ window.BW = {
     void old;
   }
   btnBack.addEventListener('click', function () { if (state.step > 1) go(state.step - 1, 'back'); });
+  $$('.bw-node').forEach(function (el, i) {
+    el.addEventListener('click', function () {
+      var target = i + 1, cur = state.step;
+      if (state.busy || cur >= 5 || target === cur || target >= 5) return;
+      if (target < cur) return go(target, 'back');
+      for (var s = cur; s < target; s++) {
+        state.step = s;
+        if (!canNext()) { flashHint(); state.step = cur; return; }
+      }
+      state.step = cur;
+      go(target, 'fwd');
+    });
+  });
   btnNext.addEventListener('click', function () {
     if (state.busy) return;
     if (!canNext()) return flashHint();
@@ -644,7 +659,7 @@ window.BW = {
     var box = $('#bwExtras'), ex = TABS[state.tab].extras;
     if (!ex.length) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
-    box.innerHTML = '<h4>\u2728 Add-ons <small style="font-weight:500;color:var(--bw-sub)">(optional)</small></h4>' + ex.map(function (e) {
+    box.innerHTML = '<h4>Add-ons <small style="font-weight:500;color:var(--bw-sub)">(optional)</small></h4>' + ex.map(function (e) {
       var q = state.extras[e.key] || 0;
       return '<div class="bw-extra"><div>' + esc(e.name) + '<br><small>' + money(e.unit_price) + ' each</small></div>' +
         '<span class="bw-mini" data-ex="' + esc(e.key) + '"><button type="button" data-d="-1">\u2212</button><span>' + q + '</span><button type="button" data-d="1">+</button></span></div>';

@@ -26,12 +26,12 @@ class ReservationController extends Controller
     ];
 
     // ─── SYSTEM LOG HELPER ─────────────────────────────────
-    // Isang lugar lang ang tawag sa SystemLogger::record().
-    // Session ang gamit ng app (hindi Laravel Auth), kaya manual na
-    // ipinapasa ang user_id at email ng staff na gumawa ng aksyon.
-    // Kapag ang event ay nagtatapos sa "_deleted", tinatawag din ang
-    // checkBulkDelete(). Naka-try/catch: hindi masisira ang main action
-    // kapag nag-fail ang log.
+    // Single place that calls SystemLogger::record().
+    // The app uses sessions (not Laravel Auth), so the user_id and email
+    // of the staff member performing the action are passed manually.
+    // When the event type ends with "_deleted", checkBulkDelete() is also
+    // called. Wrapped in try/catch so a logging failure never breaks the
+    // main action.
     private function audit(
         string $eventType,
         string $description,
@@ -62,8 +62,8 @@ class ReservationController extends Controller
         }
     }
 
-    // Gawing simpleng string ang value (para sa paghahambing ng luma vs bago).
-    private function norm($v): string
+    // Convert a value to a plain string (for comparing old vs. new values).
+    private function norm(mixed $v): string
     {
         if ($v instanceof \DateTimeInterface) {
             return $v->format('Y-m-d');
@@ -118,10 +118,10 @@ class ReservationController extends Controller
             'approval_status'  => 'pending',
         ]);
 
-        // LOG: bagong reservation na ginawa ng staff (walang pangalan o contact)
+        // LOG: new reservation created by staff (no customer name or contact stored)
         $this->audit(
             'reservation_created',
-            "Gumawa ng reservation #{$booking->getKey()} ({$validated['package']}, {$validated['pax']} pax)",
+            "Created reservation #{$booking->getKey()} ({$validated['package']}, {$validated['pax']} pax)",
             'info',
             [
                 'new' => [
@@ -179,16 +179,17 @@ class ReservationController extends Controller
 
             $reservation->update($validated);
 
-            // LOG: manual na palit ng status. Anomaly kapag naging confirmed/paid
-            // nang hindi dumaan sa verification ng payment (awaiting_verification).
+            // LOG: manual status change. Flagged as an anomaly when the booking
+            // becomes confirmed/paid without going through payment verification
+            // (awaiting_verification).
             if ($oldStatus !== $validated['status']) {
                 $bypass = in_array($validated['status'], ['confirmed', 'paid'], true)
                     && $oldStatus !== 'awaiting_verification';
 
                 $this->audit(
                     'reservation_status_changed',
-                    "Binago ang status ng reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
-                        . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                    "Changed status of reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
+                        . ($bypass ? ' (did not go through payment verification)' : ''),
                     $bypass ? 'warning' : 'info',
                     [
                         'booking_id'   => $reservation->getKey(),
@@ -215,7 +216,7 @@ class ReservationController extends Controller
             'notes'             => ['nullable', 'string'],
         ]);
 
-        // Para sa log: dating values BAGO i-update
+        // For the log: previous values BEFORE updating
         $watch  = ['package', 'pax', 'reservation_date', 'reservation_time'];
         $before = [];
         foreach ($watch as $f) {
@@ -225,8 +226,8 @@ class ReservationController extends Controller
 
         $reservation->update($validated);
 
-        // LOG: mga field na nagbago lang. Pangalan at contact ng customer: sinasabi
-        // lang kung nagbago, hindi nilalagay ang laman.
+        // LOG: only the fields that changed. For the customer name and contact,
+        // we only record that the name changed, never its contents.
         $oldVals = [];
         $newVals = [];
         $fresh   = $reservation->fresh();
@@ -242,7 +243,7 @@ class ReservationController extends Controller
         if ($newVals || $nameChanged) {
             $this->audit(
                 'reservation_updated',
-                "Na-edit ang reservation #{$reservation->getKey()}: "
+                "Edited reservation #{$reservation->getKey()}: "
                     . implode(', ', array_merge(array_keys($newVals), $nameChanged ? ['customer_name'] : [])),
                 'info',
                 [
@@ -287,7 +288,7 @@ class ReservationController extends Controller
             'reject_note.required_if'   => 'Please add a note when the reason is "Others".',
         ]);
 
-        // Para sa log: dating status BAGO i-update
+        // For the log: previous status BEFORE updating
         $oldStatus   = $reservation->status;
         $oldApproval = $reservation->approval_status;
 
@@ -300,10 +301,10 @@ class ReservationController extends Controller
                 'reject_note'     => $validated['reject_note'] ?? null,
             ]);
 
-            // LOG: na-reject ang reservation (may reason at note)
+            // LOG: reservation rejected (with reason and note)
             $this->audit(
                 'reservation_rejected',
-                "Na-reject ang reservation #{$reservation->getKey()}: {$validated['reject_reason']}",
+                "Rejected reservation #{$reservation->getKey()}: {$validated['reject_reason']}",
                 'warning',
                 [
                     'booking_id'   => $reservation->getKey(),
@@ -330,14 +331,14 @@ class ReservationController extends Controller
                 'reject_note'         => null,
             ]);
 
-            // LOG: na-approve ang reservation. Nagiging 'confirmed' ito, kaya puwede
-            // nang i-redeem ang voucher sa POS. Anomaly kapag hindi ito galing sa
-            // awaiting_verification (hindi dumaan sa tseke ng payment).
+            // LOG: reservation approved. It becomes 'confirmed', so the voucher
+            // can now be redeemed at the POS. Flagged as an anomaly when it did
+            // not come from awaiting_verification (payment was not checked).
             $bypass = $oldStatus !== 'awaiting_verification';
             $this->audit(
                 'reservation_approved',
-                "Na-approve ang reservation #{$reservation->getKey()}"
-                    . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                "Approved reservation #{$reservation->getKey()}"
+                    . ($bypass ? ' (did not go through payment verification)' : ''),
                 $bypass ? 'warning' : 'info',
                 [
                     'booking_id'   => $reservation->getKey(),
@@ -347,6 +348,9 @@ class ReservationController extends Controller
                 ],
                 $bypass
             );
+
+            // Notify the customer by email (never blocks the approval if it fails)
+            $emailed = $this->emailPaymentResult($reservation, true);
 
             return redirect()
                 ->route('reservations.index')
@@ -360,16 +364,16 @@ class ReservationController extends Controller
             'reject_note'   => null,
         ]);
 
-        // LOG: manual na palit ng status. Anomaly kapag naging confirmed/paid
-        // nang hindi dumaan sa verification ng payment.
+        // LOG: manual status change. Flagged as an anomaly when the booking
+        // becomes confirmed/paid without going through payment verification.
         if ($oldStatus !== $validated['status']) {
             $bypass = in_array($validated['status'], ['confirmed', 'paid'], true)
                 && $oldStatus !== 'awaiting_verification';
 
             $this->audit(
                 'reservation_status_changed',
-                "Binago ang status ng reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
-                    . ($bypass ? ' (hindi dumaan sa payment verification)' : ''),
+                "Changed status of reservation #{$reservation->getKey()}: {$oldStatus} → {$validated['status']}"
+                    . ($bypass ? ' (did not go through payment verification)' : ''),
                 $bypass ? 'warning' : 'info',
                 [
                     'booking_id'   => $reservation->getKey(),
@@ -409,11 +413,11 @@ class ReservationController extends Controller
             'payment_rejection_reason' => null,
         ]);
 
-        // LOG: na-approve ang payment. Reference lang (booking ID at voucher code),
-        // walang email, pangalan, o proof of payment.
+        // LOG: payment approved. References only (booking ID and voucher code),
+        // no email, name, or proof of payment.
         $this->audit(
             'payment_approved',
-            "Na-approve ang payment ng reservation #{$reservation->getKey()}",
+            "Approved payment for reservation #{$reservation->getKey()}",
             'info',
             [
                 'booking_id'   => $reservation->getKey(),
@@ -457,10 +461,10 @@ class ReservationController extends Controller
             'payment_verified_at'      => null,
         ]);
 
-        // LOG: na-reject ang payment (may reason)
+        // LOG: payment rejected (with reason)
         $this->audit(
             'payment_rejected',
-            "Na-reject ang payment ng reservation #{$reservation->getKey()}: " . mb_substr($validated['reason'], 0, 120),
+            "Rejected payment for reservation #{$reservation->getKey()}: " . mb_substr($validated['reason'], 0, 120),
             'warning',
             [
                 'booking_id'   => $reservation->getKey(),
@@ -552,7 +556,7 @@ class ReservationController extends Controller
      */
     public function destroy(Booking $reservation)
     {
-        // Para sa log: kunin ang buod BAGO burahin
+        // For the log: capture a summary BEFORE deleting
         $old = [
             'booking_id'   => $reservation->getKey(),
             'voucher_code' => $reservation->voucher_code ?? null,
@@ -564,13 +568,13 @@ class ReservationController extends Controller
 
         $reservation->delete();
 
-        // LOG: na-delete ang reservation. Warning kapag may nabayaran na o
-        // may voucher na puwedeng gamitin (confirmed/paid/awaiting_verification).
+        // LOG: reservation deleted. Elevated to critical when money was already
+        // paid or a usable voucher existed (confirmed/paid/awaiting_verification).
         $hadMoney = in_array($old['status'], ['confirmed', 'paid', 'awaiting_verification'], true);
 
         $this->audit(
             'reservation_deleted',
-            "Na-delete ang reservation #{$old['booking_id']} (status: {$old['status']})",
+            "Deleted reservation #{$old['booking_id']} (status: {$old['status']})",
             $hadMoney ? 'critical' : 'warning',
             ['old' => $old],
             $hadMoney

@@ -68,16 +68,21 @@
     <div class="u-card al-card">
         @forelse ($logs as $log)
             @php
-                $g      = explode('.', $log->action)[0];
-                $v      = $look[$g] ?? $look['account'];
-                $failed = str_contains($log->action, 'failed');
-                $when   = \Carbon\Carbon::parse($log->created_at);
-                $ua     = (string) $log->user_agent;
+                $action  = $log->action ?? $log->event_type ?? '';
+                $g       = preg_split('/[._]/', $action)[0];
+                if (in_array($g, ['reservation', 'payment'], true)) {
+                    $g = 'booking';
+                }
+                $v       = $look[$g] ?? $look['account'];
+                $failed  = str_contains($action, 'failed');
+                $when    = \Carbon\Carbon::parse($log->created_at);
+                $ua      = (string) ($log->user_agent ?? '');
                 $browser = str_contains($ua, 'Edg/') ? 'Edge'
                     : (str_contains($ua, 'Firefox') ? 'Firefox'
                     : (str_contains($ua, 'Chrome') ? 'Chrome'
                     : (str_contains($ua, 'Safari') ? 'Safari' : 'Browser')));
-                $device = (str_contains($ua, 'Mobile') || str_contains($ua, 'Android') || str_contains($ua, 'iPhone')) ? 'Mobile' : 'Desktop';
+                $device  = (str_contains($ua, 'Mobile') || str_contains($ua, 'Android') || str_contains($ua, 'iPhone')) ? 'Mobile' : 'Desktop';
+                $ip      = $log->ip_address ?? null;
             @endphp
             <div class="al-row">
                 <span class="wp-ico {{ $failed ? 'c-danger' : $v['ico'] }}" aria-hidden="true">
@@ -85,7 +90,7 @@
                 </span>
                 <div class="al-main">
                     <p class="al-title">{{ $log->description }}</p>
-                    <span class="al-meta">{{ $browser }} · {{ $device }}@if ($log->ip_address) · {{ $log->ip_address }}@endif</span>
+                    <span class="al-meta">{{ $browser }} · {{ $device }}@if ($ip) · {{ $ip }}@endif</span>
                 </div>
                 <div class="al-side">
                     @if ($failed)<span class="wp-badge danger">Failed</span>@endif
