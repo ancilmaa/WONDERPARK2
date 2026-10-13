@@ -8,34 +8,41 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('invoices', function (Blueprint $table) {
-            // Void
-            $table->string('void_reason')->nullable();
-            $table->foreignId('voided_by')->nullable()->constrained('users');
-            $table->timestamp('voided_at')->nullable();
+        Schema::table('sales_transactions', function (Blueprint $table) {
+            // Void: void_reason, voided_by, voided_at already exist
+            // (2026_09_07_145003_add_void_fields_to_sales_transactions)
 
             // Refund
-            $table->decimal('refund_amount', 10, 2)->nullable();
-            $table->string('refund_reason')->nullable();
-            $table->foreignId('refunded_by')->nullable()->constrained('users');
-            $table->timestamp('refunded_at')->nullable();
+            if (! Schema::hasColumn('sales_transactions', 'refund_amount')) {
+                $table->decimal('refund_amount', 10, 2)->nullable();
+            }
+            if (! Schema::hasColumn('sales_transactions', 'refund_reason')) {
+                $table->string('refund_reason')->nullable();
+            }
+            if (! Schema::hasColumn('sales_transactions', 'refunded_by')) {
+                $table->unsignedBigInteger('refunded_by')->nullable();
+            }
+            if (! Schema::hasColumn('sales_transactions', 'refunded_at')) {
+                $table->timestamp('refunded_at')->nullable();
+            }
 
             // Manual discount
-            $table->string('discount_reason')->nullable();
+            if (! Schema::hasColumn('sales_transactions', 'discount_reason')) {
+                $table->string('discount_reason')->nullable();
+            }
 
             // Reprint
-            $table->unsignedInteger('print_count')->default(0);
+            if (! Schema::hasColumn('sales_transactions', 'print_count')) {
+                $table->unsignedInteger('print_count')->default(0);
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('invoices', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('voided_by');
-            $table->dropConstrainedForeignId('refunded_by');
+        Schema::table('sales_transactions', function (Blueprint $table) {
             $table->dropColumn([
-                'void_reason', 'voided_at',
-                'refund_amount', 'refund_reason', 'refunded_at',
+                'refund_amount', 'refund_reason', 'refunded_by', 'refunded_at',
                 'discount_reason', 'print_count',
             ]);
         });

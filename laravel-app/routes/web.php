@@ -24,6 +24,7 @@ use App\Http\Controllers\CmsController;
 use App\Http\Controllers\BookingCmsController;
 use App\Http\Controllers\EmailLoginController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\Admin\MyAccountController;
 use App\Http\Controllers\Admin\SystemLogController;
 
 /*
@@ -39,7 +40,7 @@ use App\Http\Controllers\Admin\SystemLogController;
 
 /*
 |--------------------------------------------------------------------------
-| PUBLIC ROUTES (walang login)
+| PUBLIC ROUTES (no login required)
 |--------------------------------------------------------------------------
 */
 
@@ -58,9 +59,9 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-// Public QR check-in ng empleyado (PIN/token ang proteksyon, kaya naka-log ang mali).
-// Naka-exempt sa CSRF (bootstrap/app.php), kaya may rate limit dito: 10 try kada minuto bawat IP
-// para hindi mahulaan ang PIN nang sunud-sunod.
+// Public employee QR check-in (protected by PIN/token, failed attempts are logged).
+// Exempt from CSRF (bootstrap/app.php), so it is rate limited here: 10 tries per minute per IP
+// to prevent the PIN from being guessed in rapid succession.
 Route::get('/attendance/checkin', [AttendanceController::class, 'showCheckin'])->name('attendance.checkin');
 Route::post('/attendance/checkin', [AttendanceController::class, 'storeCheckin'])
     ->middleware('throttle:10,1')
@@ -106,24 +107,24 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name
 Route::get('/auth/facebook/redirect', [FacebookController::class, 'redirect'])->name('facebook.redirect');
 Route::get('/auth/facebook/callback', [FacebookController::class, 'callback'])->name('facebook.callback');
 
-// TODO: i-check kung guest ang gumagamit nito (landing chat widget?).
-// Kung staff lang, ilipat sa staff group sa baba.
+// TODO: check whether guests use this (landing chat widget?).
+// If it is staff only, move it to the staff group below.
 Route::resource('chatmessaging', ChatMessagingController::class);
 
 /*
 |--------------------------------------------------------------------------
-| NAKA-LOGIN (kahit anong role, kasama ang customer)
+| LOGGED IN (any role, including customers)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth.session')->group(function () {
 
-    // My Account (profile photo, pangalan, password). Dating walang middleware,
-    // ngayon kailangan nang naka-login.
+    // My Account (profile photo, name, password). Previously had no middleware,
+    // now requires a logged-in user.
     Route::get('/admin/my-account', [MyAccountController::class, 'index'])->name('my-account.index');
     Route::put('/admin/my-account', [MyAccountController::class, 'updateInfo'])->name('my-account.update');
     Route::put('/admin/my-account/password', [MyAccountController::class, 'updatePassword'])->name('my-account.password');
 
-    // User app (customer-facing) — Account, Waiver, Booking, My Bookings
+    // User app (customer-facing): Account, Waiver, Booking, My Bookings
     Route::prefix('app')->name('user.')->group(function () {
         Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
         Route::post('/account', [UserDashboardController::class, 'update'])->name('account.update');
@@ -169,8 +170,8 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
 
     Route::get('/home', [HomeController::class, 'index']);
 
-    // Inventory — VIEW ONLY page, bukas sa cashier.
-    // Ang lahat ng add/edit/delete/restock/import/export ay nasa LEADS group sa baba.
+    // Inventory: VIEW ONLY page, open to cashiers.
+    // All add/edit/delete/restock/import/export actions are in the LEADS group below.
     Route::get('/inventory', [InventoryController::class, 'index']);
 
     // POS
@@ -191,7 +192,7 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
     Route::get('/pos/cutoff/{id}', [PosController::class, 'cutoffDetail']);
     Route::get('/pos/cutoff-status', [PosController::class, 'cutoffStatus']);
 
-    // Notifications (ang mga fixed na URL ay nauuna sa {notification})
+    // Notifications (fixed URLs must come before {notification})
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
@@ -204,12 +205,12 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
 /*
 |--------------------------------------------------------------------------
 | LEADS: tl, manager, admin
-| (kasama ang tl dahil /ml-forecast ang landing page nila pagka-login)
+| (includes tl because /ml-forecast is their landing page after login)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () {
 
-    // Inventory — mga aksyong nag-e-edit (HINDI pwede sa cashier)
+    // Inventory: editing actions (NOT allowed for cashiers)
     Route::post('/inventory/add', [InventoryController::class, 'store']);
     Route::post('/inventory/update', [InventoryController::class, 'update']);
     Route::post('/inventory/delete', [InventoryController::class, 'destroy']);
@@ -259,7 +260,7 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
 /*
 |--------------------------------------------------------------------------
 | MANAGEMENT: manager, admin
-| Attendance, Payroll, Employees, Reports, CMS (kasama ang presyo)
+| Attendance, Payroll, Employees, Reports, CMS (including pricing)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth.session', 'role:manager,admin'])->group(function () {
@@ -323,16 +324,16 @@ Route::middleware(['auth.session', 'role:manager,admin'])->group(function () {
 /*
 |--------------------------------------------------------------------------
 | ADMIN ONLY
-| Accounts, System Logs, at ang mga mapanirang aksyon (burahin ang payroll
-| batch, attendance, employees). Kung gusto mong makapag-delete ng payroll
-| batch ang manager, ilipat ang mga iyon sa manager,admin group sa itaas.
+| Accounts, System Logs, and destructive actions (delete payroll batches,
+| attendance, employees). If you want managers to be able to delete payroll
+| batches, move those routes to the manager,admin group above.
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth.session', 'role:admin'])->group(function () {
 
     // System logs
     Route::get('/admin/system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
-    // "Yes, it's me" / "No, it's not me" para sa failed login
+    // "Yes, it's me" / "No, it's not me" review for failed logins
     Route::post('/admin/system-logs/{id}/review', [SystemLogController::class, 'review'])->name('system-logs.review');
 
     // Accounts
@@ -342,12 +343,12 @@ Route::middleware(['auth.session', 'role:admin'])->group(function () {
     Route::put('/accounts/update/{id}', [AccountController::class, 'update']);
     Route::delete('/accounts/delete/{id}', [AccountController::class, 'destroy']);
 
-    // Payroll batch delete (dalawang URL, parehong controller method)
+    // Payroll batch delete (two URLs, same controller method)
     Route::delete('/attendance/payroll-history/{batch}', [AttendanceController::class, 'deleteBatch']);
     Route::delete('/payroll-history/bulk-delete', [AttendanceController::class, 'bulkDeleteBatches'])->name('payroll-history.bulkDelete');
     Route::delete('/payroll-history/{batch}', [AttendanceController::class, 'deleteBatch'])->name('payroll-history.delete-batch');
 
-    // Burahin lahat
+    // Delete everything
     Route::delete('/attendance/clear-all', [AttendanceController::class, 'clearAll'])->name('attendance.clear-all');
     Route::delete('/employees/clear-all', [EmployeeController::class, 'clearAll'])->name('employees.clear-all');
 });
