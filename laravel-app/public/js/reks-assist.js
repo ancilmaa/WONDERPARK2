@@ -10,7 +10,7 @@
     return meta ? meta.content : null;
   }
 
-  const WONDER_PARK_AVATAR_IMG = `<img src="/images/wonderpark2logo.png" alt="Wonder Park">`;
+  const WONDER_PARK_AVATAR_IMG = `<img src="/images/pistavora-mark-dark.svg" alt="Pistavora">`;
 
   function appendMessage(text, sender) {
     const row = document.createElement('div');
@@ -97,7 +97,7 @@
     } catch (err) {
       removeTyping();
       appendMessage("Sorry, I can't reach the server right now. Please try again in a moment.", 'bot');
-      console.error('Wonder Park chat error:', err);
+      console.error('Pistavora chat error:', err);
     } finally {
       sending = false;
     }

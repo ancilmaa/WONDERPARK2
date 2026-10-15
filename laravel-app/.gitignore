@@ -28,3 +28,4 @@ _ide_helper.php
 laravel-app/.env
 .env
 bootstrap/cache/*.php
+*.orig

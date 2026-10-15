@@ -416,7 +416,7 @@ class MlForecastController extends Controller
         $payment  = $request->query('payment_method', 'all');
 
         $pdf = Pdf::loadView('reports.sales_report', [
-            'title'             => 'WonderPark Lipa — Sales Forecast Report',
+            'title'             => 'Pistavora Lipa — Sales Forecast Report',
             'zone'              => null,
             'dateFrom'          => $dateFrom,
             'dateTo'            => $dateTo,

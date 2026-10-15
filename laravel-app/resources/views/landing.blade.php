@@ -5,7 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wonder Park | Family Amusement Center</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <title>Pistavora | Family Amusement Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
@@ -18,7 +19,7 @@
     <header>
         <nav>
             <div class="logo">
-                <img src="{{ asset('images/wonderpark2logo.png') }}" alt="Wonder Park"
+                <img src="{{ asset('images/pistavora-logo-horizontal.svg') }}" alt="Pistavora"
                     style="height:50px;vertical-align:middle; margin:0; mix-blend-mode: multiply;">
             </div>
             <div class="nav-links">
@@ -46,9 +47,9 @@
             <div class="hero-grid">
                 <div class="hero-copy">
                     <div class="wp-open"><b><i></i>Open Daily</b><span>Holidays too</span></div>
-                    <h1>Rides, Roller Skating<br>and a Dino Adventure.</h1>
+                    <h1>Rides, Roller Skating<br>and a DinoLakbay.</h1>
                     <p>
-                        Wonder Park has three zones for the whole family. Reserve your slot and pay online, or walk in.
+                        Pistavora has three zones for the whole family. Reserve your slot and pay online, or walk in.
                         Passes start at
                         <a href="#passes"
                             style="font-weight:700;color:var(--amber);text-decoration:underline;text-underline-offset:3px;">₱149</a>.
@@ -58,16 +59,16 @@
                         <a href="#attractions" class="btn btn-outline-light">See Attractions</a>
                     </div>
                     <p class="wp-zones-line" aria-hidden="true">
-                        <span><i style="background:var(--wp-coral)"></i>Field of Rides</span>
-                        <span><i style="background:var(--wp-teal)"></i>Roller Fever</span>
-                        <span><i style="background:var(--wp-amber)"></i>Dino Adventure</span>
+                        <span><i style="background:var(--wp-coral)"></i>PiyestaRides</span>
+                        <span><i style="background:var(--wp-teal)"></i>Skataya</span>
+                        <span><i style="background:var(--wp-amber)"></i>DinoLakbay</span>
                     </p>
                 </div>
             </div>
         </div>
 
         @php
-            $tick = ['Open Daily', 'Including holidays', 'Weekends 10:00 AM to 9:00 PM', 'Weekdays 11:00 AM to 9:00 PM', 'Field of Rides', 'Roller Fever', 'Dino Adventure', 'Walk-ins welcome'];
+            $tick = ['Open Daily', 'Including holidays', 'Weekends 10:00 AM to 9:00 PM', 'Weekdays 11:00 AM to 9:00 PM', 'PiyestaRides', 'Skataya', 'DinoLakbay', 'Walk-ins welcome'];
         @endphp
         <div class="wp-ticker" aria-label="Open daily, including holidays. Weekends 10 AM to 9 PM. Weekdays 11 AM to 9 PM.">
             <div class="wp-tick-track">
@@ -82,7 +83,7 @@
         </div>
 
         <div class="hero-video-meta">
-            <span class="hero-video-badge"><span class="dot"></span>At Wonder Park</span>
+            <span class="hero-video-badge"><span class="dot"></span>At Pistavora</span>
             <button type="button" class="hero-video-sound" id="wpTeaserSound" aria-label="Toggle video sound"
                 onclick="toggleWpSound()">
                 <svg id="wpSoundIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -103,13 +104,13 @@
             <div class="wp-passes">
 
                 <div class="wp-pass" style="--c:#8a6a2f;--b:#5b4526" onclick="openWpModal('pass-dino')">
-                    <span class="zone">Dino Adventure</span>
+                    <span class="zone">DinoLakbay</span>
                     <h3>Dino Day Pass</h3>
                     <div class="price">₱599<small>per pass</small></div>
                     <ul>
                         <li>Unlimited all-day access</li>
                         <li>Includes 1 child and 1 guardian</li>
-                        <li>All Dino Adventure play areas</li>
+                        <li>All DinoLakbay play areas</li>
                         <li>Best for ages 4 to 12</li>
                     </ul>
                     <div class="links">
@@ -120,8 +121,8 @@
 
                 <div class="wp-pass top" style="--c:#2dd4bf" onclick="openWpModal('pass-roller')">
                     <span class="flag">Most popular</span>
-                    <span class="zone">Roller Fever</span>
-                    <h3>Roller Fever Pass</h3>
+                    <span class="zone">Skataya</span>
+                    <h3>Skataya Pass</h3>
                     <div class="price">₱599<small>per pass</small></div>
                     <ul>
                         <li>Unlimited all-day skating</li>
@@ -136,7 +137,7 @@
                 </div>
 
                 <div class="wp-pass" style="--c:#9a4a52;--b:#6b3a40" onclick="openWpModal('pass-fields')">
-                    <span class="zone">Field of Rides</span>
+                    <span class="zone">PiyestaRides</span>
                     <h3>Ride-All-You-Can</h3>
                     <div class="price">Promo</div>
                     <ul>
@@ -170,8 +171,8 @@
                 <article class="wp-card" style="--tint:#3a1519;--accent:#e11d48">
                     <div class="wp-photo" data-bg="{{ asset('images/vikings.jpg') }}"></div>
                     <div class="wp-body">
-                        <span class="tag">Field of Rides</span>
-                        <h3>Field of Rides</h3>
+                        <span class="tag">PiyestaRides</span>
+                        <h3>PiyestaRides</h3>
                         <p>Amusement rides for every age, from gentle family rides to high-thrill ones.</p>
                         <div class="wp-facts"><span>Many attractions</span><span>Ride-specific rules</span></div>
                         <details>
@@ -189,8 +190,8 @@
                 <article class="wp-card" style="--tint:#0d2f2c;--accent:#0f766e">
                     <div class="wp-photo" data-bg="{{ asset('images/roller-fever.jpg') }}"></div>
                     <div class="wp-body">
-                        <span class="tag">Roller Fever</span>
-                        <h3>Roller Fever Skating Rink</h3>
+                        <span class="tag">Skataya</span>
+                        <h3>Skataya Skating Rink</h3>
                         <p>All-day roller skating in a safe, family-friendly rink. Good for first-timers and regular skaters.</p>
                         <div class="wp-facts"><span>All-day access</span><span>Family friendly</span></div>
                         <details>
@@ -208,8 +209,8 @@
                 <article class="wp-card" style="--tint:#3a2a08;--accent:#b45309">
                     <div class="wp-photo" data-bg="{{ asset('images/dino_1.jpg') }}"></div>
                     <div class="wp-body">
-                        <span class="tag">Dino Adventure</span>
-                        <h3>Dino Adventure Playground</h3>
+                        <span class="tag">DinoLakbay</span>
+                        <h3>DinoLakbay Playground</h3>
                         <p>An indoor playground with a dinosaur theme, with slides, climbing areas, obstacle courses and play zones.</p>
                         <div class="wp-facts"><span>Up to age 12</span><span>Indoor playground</span></div>
                         <details>
@@ -228,8 +229,8 @@
                     <div class="wp-photo" data-bg="{{ asset('images/roller-skates.jpg') }}"></div>
                     <div class="wp-body">
                         <span class="tag">Party add-on</span>
-                        <h3>Celebrate at Wonder Park</h3>
-                        <p>Birthdays and group parties fit both Roller Fever and Dino Adventure. Skate by the neon photo corner or gather the kids around the giant ball pit.</p>
+                        <h3>Celebrate at Pistavora</h3>
+                        <p>Birthdays and group parties fit both Skataya and DinoLakbay. Skate by the neon photo corner or gather the kids around the giant ball pit.</p>
                         <div class="wp-facts"><span>All ages</span><span>Book ahead</span></div>
                         <button type="button" class="more" onclick="openWpModal('celebrate')">Party details</button>
                     </div>
@@ -255,7 +256,7 @@
                 <div class="module-card" onclick="openWpModal('party')">
                     <div class="module-icon">🎉</div>
                     <h3>Birthday & Party Packages</h3>
-                    <p>Hold birthdays, school outings, team events and family gatherings at Field of Rides, Dino Adventure or Roller Fever.</p>
+                    <p>Hold birthdays, school outings, team events and family gatherings at PiyestaRides, DinoLakbay or Skataya.</p>
                 </div>
 
                 <div class="module-card" onclick="openWpModal('reservation')">
@@ -267,7 +268,7 @@
                 <div class="module-card" onclick="openWpModal('channels')">
                     <div class="module-icon">🌐</div>
                     <h3>Multiple Booking Channels</h3>
-                    <p>Book with Wonder Park directly, or through Klook and StarDeals for selected attractions and promos.</p>
+                    <p>Book with Pistavora directly, or through Klook and StarDeals for selected attractions and promos.</p>
                 </div>
 
                 <div class="module-card" onclick="openWpModal('payment')">
@@ -342,9 +343,9 @@
                         </div>
                         <p class="wp-label">Pick any rides you like</p>
                         <div class="wp-ridepick" id="wpPick">
-                            <button type="button" data-v="Field of Rides">🎡<small>Field of Rides</small></button>
-                            <button type="button" data-v="Roller Fever">🛼<small>Roller Fever</small></button>
-                            <button type="button" data-v="Dino Adventure">🦕<small>Dino Adventure</small></button>
+                            <button type="button" data-v="Field of Rides">🎡<small>PiyestaRides</small></button>
+                            <button type="button" data-v="Roller Fever">🛼<small>Skataya</small></button>
+                            <button type="button" data-v="Dino Adventure">🦕<small>DinoLakbay</small></button>
                         </div>
                         <div class="wp-note" id="wpPickNote">Solo, no rides picked yet.</div>
                         <div class="foot"><button type="button" onclick="wpGoStep(1)">Back</button><button type="button" onclick="wpGoStep(3)">Next</button></div>
@@ -426,7 +427,7 @@
                 </div>
 
                 <div class="wp-tile wp-map">
-                    <iframe title="Map to Wonder Park" loading="lazy"
+                    <iframe title="Map to Pistavora" loading="lazy"
                         src="https://maps.google.com/maps?q=Lima+Technology+Center+Malvar+Batangas&output=embed"></iframe>
                     <div class="addr">
                         <span>Lima Technology Center, Lipa City / Malvar, Batangas</span>
@@ -437,7 +438,7 @@
 
                 <div class="wp-tile wp-good">
                     <dl style="margin:0;display:grid;gap:18px;">
-                        <div><dt>Zones</dt><dd><div class="wp-chips"><span>Field of Rides</span><span>Roller Fever</span><span>Dino Adventure</span></div></dd></div>
+                        <div><dt>Zones</dt><dd><div class="wp-chips"><span>PiyestaRides</span><span>Skataya</span><span>DinoLakbay</span></div></dd></div>
                         <div><dt>Tickets</dt><dd>Reserve online or walk in, depending on capacity.</dd></div>
                         <div><dt>Pay with</dt><dd><div class="wp-chips"><span>Cash</span><span>Cards</span><span>GCash</span><span>Maya</span><span>Klook</span><span>StarDeals</span></div></dd></div>
                     </dl>
@@ -451,7 +452,7 @@
     <footer class="wp-foot">
         <div class="wp-foot-grid">
             <div class="wp-foot-brand">
-                <p class="name">Wonder Park</p>
+                <p class="name">Pistavora</p>
                 <p>Rides, roller skating and a dinosaur playground. A day out for the whole family.</p>
                 <a href="{{ route('login') }}" class="btn btn-primary btn-sm">Book Now</a>
             </div>
@@ -470,9 +471,9 @@
             <div>
                 <h4>Zones</h4>
                 <ul>
-                    <li><i style="background:var(--wp-coral)"></i>Field of Rides</li>
-                    <li><i style="background:var(--wp-teal)"></i>Roller Fever</li>
-                    <li><i style="background:var(--wp-amber)"></i>Dino Adventure</li>
+                    <li><i style="background:var(--wp-coral)"></i>PiyestaRides</li>
+                    <li><i style="background:var(--wp-teal)"></i>Skataya</li>
+                    <li><i style="background:var(--wp-amber)"></i>DinoLakbay</li>
                     <li><a href="{{ route('login') }}">Sign In</a></li>
                 </ul>
             </div>
@@ -487,7 +488,7 @@
             </div>
         </div>
 
-        <div class="wp-foot-bar">© {{ date('Y') }} Wonder Park. All rights reserved.</div>
+        <div class="wp-foot-bar">© {{ date('Y') }} Pistavora. All rights reserved.</div>
     </footer>
 
     {{-- ============ MODAL ============ --}}
@@ -828,9 +829,9 @@
         /* ---------- Modal ---------- */
         const wpModalData = {
             'pass-dino': {
-                icon: '🦕', tag: 'Dino Adventure',
+                icon: '🦕', tag: 'DinoLakbay',
                 tagColor: 'rgba(255,182,39,.18)', tagText: 'var(--amber)',
-                title: 'Dino Adventure Price List',
+                title: 'DinoLakbay Price List',
                 desc: 'Indoor dinosaur playground rates. The all-day pass covers the whole day.',
                 list: [
                     '1 Hour: ₱299',
@@ -842,9 +843,9 @@
                 ]
             },
             'pass-roller': {
-                icon: '🛼', tag: 'Roller Fever',
+                icon: '🛼', tag: 'Skataya',
                 tagColor: 'rgba(45,212,191,.15)', tagText: 'var(--teal)',
-                title: 'Roller Fever Price List',
+                title: 'Skataya Price List',
                 desc: 'Regular rates and group bundle discounts for skating sessions. Skates and gear rental are available separately.',
                 list: [
                     'Regular, 1 Hour: ₱249',
@@ -858,9 +859,9 @@
                 ]
             },
             'pass-fields': {
-                icon: '🎡', tag: 'Field of Rides',
+                icon: '🎡', tag: 'PiyestaRides',
                 tagColor: 'rgba(255,107,107,.15)', tagText: 'var(--coral)',
-                title: 'Field of Rides: Per-Ride Prices',
+                title: 'PiyestaRides: Per-Ride Prices',
                 desc: 'Each ride is priced per head, except car-based and per-ride attractions. Promo bundles may be available seasonally.',
                 list: [
                     'Tiger Train: ₱60 per head',
@@ -886,9 +887,9 @@
                 icon: '🎉', tag: 'Guest Services',
                 tagColor: 'rgba(255,107,107,.15)', tagText: 'var(--coral)',
                 title: 'Birthday & Party Packages',
-                desc: 'Hold a birthday, school outing or team day at Wonder Park. Packages can mix all three zones to suit your group\'s age and interests.',
+                desc: 'Hold a birthday, school outing or team day at Pistavora. Packages can mix all three zones to suit your group\'s age and interests.',
                 list: [
-                    'Available at Field of Rides, Dino Adventure or Roller Fever',
+                    'Available at PiyestaRides, DinoLakbay or Skataya',
                     'Options from small family parties to large group events',
                     'Good for birthdays, school field trips and team building',
                     'Arranged in advance with our reservations team',
@@ -912,9 +913,9 @@
                 icon: '🌐', tag: 'Guest Services',
                 tagColor: 'rgba(45,212,191,.15)', tagText: 'var(--teal)',
                 title: 'Multiple Booking Channels',
-                desc: 'Book directly with Wonder Park or through one of our partners, whichever is easier for you.',
+                desc: 'Book directly with Pistavora or through one of our partners, whichever is easier for you.',
                 list: [
-                    'Book on the Wonder Park website for the most flexibility',
+                    'Book on the Pistavora website for the most flexibility',
                     'Book through Klook for select attractions and promos',
                     'Book through StarDeals for seasonal discounts and vouchers',
                     'Voucher bookings are redeemed at the gate',
@@ -949,11 +950,11 @@
             'celebrate': {
                 icon: '🎉', tag: 'Party Add-on',
                 tagColor: 'rgba(45,212,191,.15)', tagText: 'var(--teal)',
-                title: 'Celebrate at Wonder Park',
-                desc: 'Roller Fever and Dino Adventure both work as party venues. Pick the one that suits your celebration and our team sets it up.',
+                title: 'Celebrate at Pistavora',
+                desc: 'Skataya and DinoLakbay both work as party venues. Pick the one that suits your celebration and our team sets it up.',
                 list: [
-                    'Roller Fever: neon photo-booth corner, great for skate parties',
-                    'Dino Adventure: giant ball pit inside the dinosaur playhouse',
+                    'Skataya: neon photo-booth corner, great for skate parties',
+                    'DinoLakbay: giant ball pit inside the dinosaur playhouse',
                     'Good for birthdays, kiddie parties and group celebrations',
                     'Open to all ages, and you can mix zones for bigger groups',
                     'Book ahead with our reservations team to hold your date'

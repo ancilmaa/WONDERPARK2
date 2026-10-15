@@ -131,7 +131,7 @@
 <div class="fc-head">
   <div>
     <h1>Sales Forecast</h1>
-    <p>ML-powered sales trends and demand predictions for WonderPark Lipa.</p>
+    <p>ML-powered sales trends and demand predictions for Pistavora Lipa.</p>
     <span class="fc-live">Live · <span id="generatedAt">Loading…</span></span>
   </div>
   <button class="fc-btn fc-btn-ghost" id="downloadReport"><i class="fas fa-file-pdf"></i> Download Report</button>

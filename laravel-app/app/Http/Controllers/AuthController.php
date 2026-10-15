@@ -124,10 +124,10 @@ class AuthController extends Controller
 
                 try {
                     \Illuminate\Support\Facades\Mail::raw(
-                        "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes. If you didn't try to log in, you can ignore this email.",
+                        "Your Pistavora verification code is: {$code}\n\nThis code expires in 10 minutes. If you didn't try to log in, you can ignore this email.",
                         function ($message) use ($user) {
                             $message->to($user->email)
-                                    ->subject('Your WonderPark verification code');
+                                    ->subject('Your Pistavora verification code');
                         }
                     );
                 } catch (\Throwable $e) {
@@ -308,10 +308,10 @@ class AuthController extends Controller
 
         try {
             \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark verification code is: {$code}\n\nThis code expires in 10 minutes.",
+                "Your Pistavora verification code is: {$code}\n\nThis code expires in 10 minutes.",
                 function ($message) use ($user) {
                     $message->to($user->email)
-                            ->subject('Your WonderPark verification code');
+                            ->subject('Your Pistavora verification code');
                 }
             );
         } catch (\Throwable $e) {
@@ -447,9 +447,9 @@ class AuthController extends Controller
 
             try {
                 \Illuminate\Support\Facades\Mail::raw(
-                    "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email.",
+                    "Your Pistavora password reset code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email.",
                     function ($message) use ($user) {
-                        $message->to($user->email)->subject('Reset your WonderPark password');
+                        $message->to($user->email)->subject('Reset your Pistavora password');
                     }
                 );
             } catch (\Throwable $e) {
@@ -576,9 +576,9 @@ class AuthController extends Controller
 
         try {
             \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark password reset code is: {$code}\n\nThis code expires in 10 minutes.",
+                "Your Pistavora password reset code is: {$code}\n\nThis code expires in 10 minutes.",
                 function ($message) use ($user) {
-                    $message->to($user->email)->subject('Reset your WonderPark password');
+                    $message->to($user->email)->subject('Reset your Pistavora password');
                 }
             );
         } catch (\Throwable $e) {

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset password | WonderPark Amusement Com Inc.</title>
+    <title>Reset password | Pistavora Amusement Park</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
@@ -20,7 +20,7 @@
             <div class="bg-slide" data-bg="{{ asset('images/vikings.jpg') }}"></div>
             <div class="bg-slide" data-bg="{{ asset('images/roller-fever.jpg') }}"></div>
             <div class="auth-visual-content">
-                <a href="{{ route('home') }}" class="logo">WonderPark<span class="dot">•</span>Amusement</a>
+                <a href="{{ route('home') }}" class="logo">Pistavora<span class="dot">•</span>Amusement</a>
                 <div class="auth-visual-copy">
                     <span class="ticket-label on-dark">Account recovery</span>
                     <h2>Almost there.</h2>

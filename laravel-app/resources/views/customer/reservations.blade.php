@@ -691,10 +691,10 @@
 
     @php
         $dummyRows = [
-            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'category' => 'Dino Adventure', 'package' => 'Whole Day Pass', 'pax' => 4],
-            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'category' => 'RollerFever', 'package' => 'Birthday Package', 'pax' => 12],
-            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'category' => 'Dino Adventure', 'package' => 'Half Day Pass', 'pax' => 2],
-            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'category' => 'Field of Rides', 'package' => 'Group Package', 'pax' => 20],
+            ['customer' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@example.com', 'date' => 'Jul 02, 2026', 'time' => '10:00 AM', 'category' => 'DinoLakbay', 'package' => 'Whole Day Pass', 'pax' => 4],
+            ['customer' => 'Maria Santos', 'email' => 'maria.santos@example.com', 'date' => 'Jul 03, 2026', 'time' => '1:00 PM', 'category' => 'Skataya', 'package' => 'Birthday Package', 'pax' => 12],
+            ['customer' => 'Ana Reyes', 'email' => 'ana.reyes@example.com', 'date' => 'Jul 05, 2026', 'time' => '9:00 AM', 'category' => 'DinoLakbay', 'package' => 'Half Day Pass', 'pax' => 2],
+            ['customer' => 'Mark Villanueva', 'email' => 'mark.villanueva@example.com', 'date' => 'Jul 06, 2026', 'time' => '2:30 PM', 'category' => 'PiyestaRides', 'package' => 'Group Package', 'pax' => 20],
         ];
         $usingDummyData = !isset($bookings) || $bookings->count() === 0;
         $packageOptions = $packages ?? ['Whole Day Pass', 'Half Day Pass', 'Birthday Package', 'Group Package'];
@@ -702,9 +702,9 @@
         // Maps the `service` slug saved by the customer booking flow to its label.
         // Reservations made via the admin "New Reservation" form don't collect a service yet.
         $serviceLabels = [
-            'dino_adventure' => 'Dino Adventure',
-            'rollerfever'    => 'RollerFever',
-            'field_of_rides' => 'Field of Rides',
+            'dino_adventure' => 'DinoLakbay',
+            'rollerfever'    => 'Skataya',
+            'field_of_rides' => 'PiyestaRides',
         ];
 
         // Rejection reasons. These are also shown to the customer.
@@ -743,9 +743,9 @@
 
         <select id="categoryFilter">
             <option value="">All Categories</option>
-            <option value="Dino Adventure">Dino Adventure</option>
-            <option value="RollerFever">RollerFever</option>
-            <option value="Field of Rides">Field of Rides</option>
+            <option value="Dino Adventure">DinoLakbay</option>
+            <option value="RollerFever">Skataya</option>
+            <option value="Field of Rides">PiyestaRides</option>
         </select>
 
         <select id="statusFilter">

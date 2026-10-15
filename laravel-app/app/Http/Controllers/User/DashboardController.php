@@ -153,9 +153,9 @@ class DashboardController extends Controller
 
         try {
             \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark password change code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email — your password will not be changed.",
+                "Your Pistavora password change code is: {$code}\n\nThis code expires in 10 minutes. If you didn't request this, you can safely ignore this email — your password will not be changed.",
                 function ($message) use ($user) {
-                    $message->to($user->email)->subject('Confirm your WonderPark password change');
+                    $message->to($user->email)->subject('Confirm your Pistavora password change');
                 }
             );
         } catch (\Throwable $e) {
@@ -252,9 +252,9 @@ class DashboardController extends Controller
 
         try {
             \Illuminate\Support\Facades\Mail::raw(
-                "Your WonderPark password change code is: {$code}\n\nThis code expires in 10 minutes.",
+                "Your Pistavora password change code is: {$code}\n\nThis code expires in 10 minutes.",
                 function ($message) use ($user) {
-                    $message->to($user->email)->subject('Confirm your WonderPark password change');
+                    $message->to($user->email)->subject('Confirm your Pistavora password change');
                 }
             );
         } catch (\Throwable $e) {

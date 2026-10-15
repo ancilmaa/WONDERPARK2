@@ -374,7 +374,7 @@
         </div>
         <div class="form-group">
           <label>Zone <span style="color:#ef4444">*</span></label>
-          <input type="text" id="newCatZone" list="zoneDatalist" placeholder="e.g. Dino Adventure">
+          <input type="text" id="newCatZone" list="zoneDatalist" placeholder="e.g. DinoLakbay">
           <datalist id="zoneDatalist">
             @foreach($zones as $zone)
               <option value="{{ $zone }}">

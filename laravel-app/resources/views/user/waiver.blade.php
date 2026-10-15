@@ -91,7 +91,7 @@ html, body { margin: 0; padding: 0; }
     <div class="waiver-header">
         <div class="u-card">
             <h4>Liability Waiver &amp; Data Privacy Consent</h4>
-            <p>Required before confirming any {{ $waiver['park_name'] }} booking — covers Dino Adventure, RollerFever, and Field of Rides.</p>
+            <p>Required before confirming any {{ $waiver['park_name'] }} booking — covers DinoLakbay, Skataya, and PiyestaRides.</p>
         </div>
     </div>
 

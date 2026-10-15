@@ -24,17 +24,17 @@ class BookingCatalog
     {
         return [
             'dino_adventure' => [
-                'name'    => 'Dino Adventure',
+                'name'    => 'DinoLakbay',
                 'tagline' => 'Kids Party & Softplay',
                 'image'   => 'dino_1.jpg',
             ],
             'rollerfever' => [
-                'name'    => 'RollerFever',
+                'name'    => 'Skataya',
                 'tagline' => 'Skate Rink Parties',
                 'image'   => 'roller-fever.jpg',
             ],
             'field_of_rides' => [
-                'name'    => 'Field of Rides',
+                'name'    => 'PiyestaRides',
                 'tagline' => 'Amusement Rides & Games',
                 'image'   => 'field-of-rides-icon.jpg',
             ],

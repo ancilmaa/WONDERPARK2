@@ -1030,7 +1030,7 @@
     <div class="cms-page">
 
         <div class="cms-crumb">
-            <span>{{ config('app.name', 'WonderPark') }} Lipa Branch</span>
+            <span>{{ config('app.name', 'Pistavora') }} Lipa Branch</span>
             <i class="fa-solid fa-chevron-right"></i>
             <a href="{{ route('cms.index') }}">Website Management</a>
             <i class="fa-solid fa-chevron-right"></i>
@@ -1163,13 +1163,13 @@
                             src="{{ $pv('video_path', $defaultVideo) }}"></video>
 
                         <div class="cms-preview-overlay">
-                            <span class="cms-preview-tag">Field of Rides • Open Daily</span>
+                            <span class="cms-preview-tag">PiyestaRides • Open Daily</span>
 
                             <div class="cms-preview-copy">
                                 <h2 class="cms-preview-headline" @if ($has('title')) data-preview-target="{{ $fkey('title') }}" @endif>{!! $pv('title', 'Three worlds of thrill,<br><span class="accent">one ticket away.</span>') !!}</h2>
 
                                 <p class="cms-preview-desc">
-                                    <span @if ($has('description')) data-preview-target="{{ $fkey('description') }}" @endif>{{ $pv('description', "From the gravity-defying loops of Roller Fever to the prehistoric trails of Dino Adventure, Wonder Park is built for a full day of family fun — now bookable, trackable, and paid for online.") }}</span>
+                                    <span @if ($has('description')) data-preview-target="{{ $fkey('description') }}" @endif>{{ $pv('description', "From the gravity-defying loops of Skataya to the prehistoric trails of DinoLakbay, Pistavora is built for a full day of family fun — now bookable, trackable, and paid for online.") }}</span>
                                     Passes start as low as
                                     <span class="cms-preview-price" @if ($has('price_teaser')) data-preview-target="{{ $fkey('price_teaser') }}" @endif>{{ $pv('price_teaser', '₱149') }}</span>
                                     — tap the price to book your slot.
@@ -1181,15 +1181,15 @@
                                 </div>
 
                                 <div class="cms-preview-stamps">
-                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#FF5A5F"></span>Field of Rides</span>
-                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#14B8A6"></span>Roller Fever</span>
-                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#FFB627"></span>Dino Adventure</span>
+                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#FF5A5F"></span>PiyestaRides</span>
+                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#14B8A6"></span>Skataya</span>
+                                    <span class="cms-preview-stamp"><span class="swatch" style="background:#FFB627"></span>DinoLakbay</span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="cms-preview-videobar">
-                            <span class="cms-preview-video-badge"><span class="dot"></span>At Wonder Park</span>
+                            <span class="cms-preview-video-badge"><span class="dot"></span>At Pistavora</span>
                             <div class="cms-preview-videobar-right"><i class="fa-solid fa-volume-high"></i></div>
                         </div>
                     </div>
@@ -1205,7 +1205,7 @@
                             <div>
                                 <span class="cms-preview-pill cms-preview-pill--violet" @if ($has('tag')) data-preview-target="{{ $fkey('tag') }}" @endif>{{ $pv('tag', 'Plan Your Day') }}</span>
                                 <h2 class="cms-preview-split-title" @if ($has('title')) data-preview-target="{{ $fkey('title') }}" @endif>{{ $pv('title', 'Make it a full day out — not just a stop-by') }}</h2>
-                                <p class="cms-preview-split-desc" @if ($has('description')) data-preview-target="{{ $fkey('description') }}" @endif>{{ $pv('description', "Wonder Park sits inside the Lima Technology Center complex, so a booking here pairs easily with a longer family day: grab a meal nearby, then swing through all three zones before closing.") }}</p>
+                                <p class="cms-preview-split-desc" @if ($has('description')) data-preview-target="{{ $fkey('description') }}" @endif>{{ $pv('description', "Pistavora sits inside the Lima Technology Center complex, so a booking here pairs easily with a longer family day: grab a meal nearby, then swing through all three zones before closing.") }}</p>
                                 <ul class="cms-preview-split-list">
                                     <li>Open daily, including holidays — no need to plan around a rest day</li>
                                     <li>Weekend hours run longer (10AM–9PM) for full-day visits</li>
@@ -1223,7 +1223,7 @@
                         <div class="cms-preview-contact">
                             <div>
                                 <span class="cms-preview-pill cms-preview-pill--coral">Visit Us</span>
-                                <h2 class="cms-preview-contact-title">Plan your visit to Wonder Park</h2>
+                                <h2 class="cms-preview-contact-title">Plan your visit to Pistavora</h2>
                                 <p class="cms-preview-contact-desc">Open daily, including holidays. Group bookings and school field trips are coordinated in advance through our reservations team.</p>
                                 <span class="cms-btn-preview cms-btn-preview--primary">Book a Slot</span>
                             </div>
@@ -1239,7 +1239,7 @@
                                 </div>
                                 <div class="cms-preview-info-row">
                                     <b>Zones</b>
-                                    <span @if ($has('zones')) data-preview-target="{{ $fkey('zones') }}" @endif>{{ $pv('zones', 'Field of Rides · Roller Fever · Dino Adventure') }}</span>
+                                    <span @if ($has('zones')) data-preview-target="{{ $fkey('zones') }}" @endif>{{ $pv('zones', 'PiyestaRides · Skataya · DinoLakbay') }}</span>
                                 </div>
                                 <div class="cms-preview-info-row">
                                     <b>Bookings</b>
@@ -1252,14 +1252,14 @@
                 @elseif ($sectionKey === 'footer')
                     {{-- mirrors <footer> in landing.blade.php --}}
                     <div class="cms-preview-footer">
-                        <h3 class="cms-preview-footer-title">Wonder Park</h3>
-                        <p class="cms-preview-footer-tagline" @if ($has('tagline')) data-preview-target="{{ $fkey('tagline') }}" @endif>{{ $pv('tagline', "From thrilling rides to prehistoric adventures and endless skating fun, Wonder Park is your destination for unforgettable family experiences.") }}</p>
+                        <h3 class="cms-preview-footer-title">Pistavora</h3>
+                        <p class="cms-preview-footer-tagline" @if ($has('tagline')) data-preview-target="{{ $fkey('tagline') }}" @endif>{{ $pv('tagline', "From thrilling rides to prehistoric adventures and endless skating fun, Pistavora is your destination for unforgettable family experiences.") }}</p>
                         <div class="cms-preview-footer-zones">
-                            <span><span class="swatch" style="background:#FF5A5F"></span>Field of Rides</span>
-                            <span><span class="swatch" style="background:#14B8A6"></span>Roller Fever</span>
-                            <span><span class="swatch" style="background:#FFB627"></span>Dino Adventure</span>
+                            <span><span class="swatch" style="background:#FF5A5F"></span>PiyestaRides</span>
+                            <span><span class="swatch" style="background:#14B8A6"></span>Skataya</span>
+                            <span><span class="swatch" style="background:#FFB627"></span>DinoLakbay</span>
                         </div>
-                        <p class="cms-preview-footer-copy">© {{ date('Y') }} Wonder Park. All Rights Reserved.</p>
+                        <p class="cms-preview-footer-copy">© {{ date('Y') }} Pistavora. All Rights Reserved.</p>
                     </div>
 
                 @else

@@ -4,7 +4,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Account') · WonderPark Amusement</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <title>@yield('title', 'Account') · Pistavora Amusement Park</title>
     <link rel="stylesheet" href="{{ asset('css/user-app-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/user-landing-theme.css') }}?v={{ filemtime(public_path('css/user-landing-theme.css')) }}">
 

@@ -352,10 +352,10 @@
         <div class="payslip-doc">
 
             <div class="row company-row">
-                <div class="cell" style="flex:1;">WONDERPARK</div>
+                <div class="cell" style="flex:1;">PISTAVORA</div>
             </div>
             <div class="row dept-row">
-                <div class="cell" style="flex:1;">Roller Fever</div>
+                <div class="cell" style="flex:1;">Skataya</div>
             </div>
 
             <div class="address-block">

@@ -20,11 +20,11 @@ class BookingController extends Controller
      * ------------------------------------------------------------------
      * Wizard catalog additions
      * ------------------------------------------------------------------
-     * RollerFever Group Bundle: PHP 996 flat, covers 5 guests (4 + 1 free),
+     * Skataya Group Bundle: PHP 996 flat, covers 5 guests (4 + 1 free),
      *   shown as the 4th box next to the 1-hour, 2-hour and all-day passes.
      *   It is flagged "recommended" in the wizard once the group is 5+.
      *
-     * Field of Rides "Try Every Ride": the card that already exists in the
+     * PiyestaRides "Try Every Ride": the card that already exists in the
      *   catalog (PHP 600 per person) is kept as is, and its "What's included"
      *   list is replaced with the full details below. TER_PRICE is only used
      *   as a fallback if no Try Every Ride card exists in the catalog.
@@ -155,7 +155,7 @@ class BookingController extends Controller
             $catalog['rollerfever']['items'] = $items;
         }
 
-        // Field of Rides: complete the existing "Try Every Ride" card (matched by name).
+        // PiyestaRides: complete the existing "Try Every Ride" card (matched by name).
         if (isset($catalog['field_of_rides']['items']) && is_array($catalog['field_of_rides']['items'])) {
             $terDesc = "Try every ride \u{2014} up to 10 rides, except Viking. Shareable, no expiration.";
             $terInclusions = [
@@ -277,7 +277,7 @@ class BookingController extends Controller
             'status'     => 'pending_payment',
         ]);
 
-        // Remember which service (Dino Adventure vs RollerFever vs Field of
+        // Remember which service (DinoLakbay vs Skataya vs Field of
         // Rides) this booking is for, so the Waiver step later on can show
         // the correct waiver text. Also remember the booking id so the
         // receipt shown after the waiver is signed knows which booking to
@@ -399,7 +399,7 @@ class BookingController extends Controller
             $monthValues[] = (int) ($bookingsByMonth[$month->format('Y-m')] ?? 0);
         }
 
-        // Category breakdown (Dino Adventure / RollerFever / Field of
+        // Category breakdown (DinoLakbay / Skataya / Field of
         // Rides) — a proportion-of-whole question, so this feeds a donut
         // chart rather than the bar chart above (which is a trend over
         // time and reads better as bars).
@@ -577,11 +577,11 @@ class BookingController extends Controller
               . "Once it is approved, it can no longer be rescheduled.\n\n"
               . "Your voucher code will be sent to you after approval.\n\n"
               . "My Bookings: {$myBookings}\n\n"
-              . "Thank you,\nWonderPark";
+              . "Thank you,\nPistavora";
 
         try {
             Mail::raw($body, function ($message) use ($email) {
-                $message->to($email)->subject('We received your WonderPark payment proof');
+                $message->to($email)->subject('We received your Pistavora payment proof');
             });
         } catch (\Throwable $e) {
             Log::error('Proof received email failed: ' . $e->getMessage());

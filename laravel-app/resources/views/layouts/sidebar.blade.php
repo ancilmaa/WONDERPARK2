@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>WonderPark System | @yield('title', 'Dashboard')</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <title>Pistavora System | @yield('title', 'Dashboard')</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -1516,7 +1517,7 @@
     @endphp
 
     <div class="mobile-topbar no-print">
-        <img src="{{ asset('images/wonderpark1logo.png') }}" alt="WonderPark">
+        <img src="{{ asset('images/pistavora-logo-horizontal.svg') }}" alt="Pistavora">
         <div class="mobile-topbar-actions">
             @if ($canViewNotifications)
                 <div class="notif-trigger">
@@ -1581,9 +1582,9 @@
                 <button type="button" class="sidebar-toggle no-print" id="sidebarToggle" aria-label="Main menu" aria-expanded="true" aria-controls="sidebar">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <div class="mark"><img src="{{ asset('images/wonderpark1logo.png') }}" alt="REKS"></div>
+                <div class="mark"><img src="{{ asset('images/pistavora-mark.svg') }}" alt="Pistavora"></div>
                 <div class="brand-text">
-                    <span class="brand-name">WonderPark</span>
+                    <span class="brand-name">Pistavora</span>
                     <span class="brand-sub">Lipa Branch &middot; Operations</span>
                 </div>
                 @if ($canViewNotifications)
@@ -1810,25 +1811,25 @@
                                 </div>
                                 <div class="nav-submenu {{ $submenuOpen ? 'open' : '' }}" id="forecastSubmenu">
                                     <a href="/fieldOfRides" class="{{ request()->is('fieldOfRides') ? 'active' : '' }}">
-                                        <i class="fa-solid fa-flag-checkered"></i> <span>Field of Rides</span>
+                                        <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
                                     </a>
                                     <a href="/RollerFever" class="{{ request()->is('RollerFever') ? 'active' : '' }}">
-                                        <i class="fa-solid fa-bolt"></i> <span>Roller Fever</span>
+                                        <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
                                     </a>
                                     <a href="/DinoAdventure" class="{{ request()->is('DinoAdventure') ? 'active' : '' }}">
-                                        <i class="fa-solid fa-dragon"></i> <span>Dino Adventure</span>
+                                        <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                                     </a>
                                 </div>
                             </div>
                         @else
                             <a href="/fieldOfRides" class="{{ request()->is('fieldOfRides') ? 'active' : '' }}">
-                                <i class="fa-solid fa-flag-checkered"></i> <span>Field of Rides</span>
+                                <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
                             </a>
                             <a href="/RollerFever" class="{{ request()->is('RollerFever') ? 'active' : '' }}">
-                                <i class="fa-solid fa-bolt"></i> <span>Roller Fever</span>
+                                <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
                             </a>
                             <a href="/DinoAdventure" class="{{ request()->is('DinoAdventure') ? 'active' : '' }}">
-                                <i class="fa-solid fa-dragon"></i> <span>Dino Adventure</span>
+                                <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                             </a>
                         @endif
                     </div>

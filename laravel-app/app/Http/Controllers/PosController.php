@@ -1014,10 +1014,10 @@ class PosController extends Controller
         // ng mga zone sa report kahit walang benta sa isa (mafi-filter out
         // na lang mamaya kung walang laman).
         $byZone = [
-            'roller fever'   => ['zone_label' => 'Roller Fever',   'items' => [], 'total_sales' => 0],
+            'roller fever'   => ['zone_label' => 'Skataya',   'items' => [], 'total_sales' => 0],
             'snackbar'       => ['zone_label' => 'Snackbar',       'items' => [], 'total_sales' => 0],
-            'field of rides' => ['zone_label' => 'Field of Rides', 'items' => [], 'total_sales' => 0],
-            'dino adventure' => ['zone_label' => 'Dino Adventure', 'items' => [], 'total_sales' => 0],
+            'field of rides' => ['zone_label' => 'PiyestaRides', 'items' => [], 'total_sales' => 0],
+            'dino adventure' => ['zone_label' => 'DinoLakbay', 'items' => [], 'total_sales' => 0],
         ];
 
         foreach ($transactions as $t) {

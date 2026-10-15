@@ -166,9 +166,12 @@ Route::middleware('auth.session')->group(function () {
 | STAFF: cashier, tl, manager, admin
 |--------------------------------------------------------------------------
 */
+// /home only redirects by role (customer -> /app/dashboard, cashier -> /inventory), so it must
+// be open to every logged-in user, not just staff. Otherwise customers get a 403.
+Route::get('/home', [HomeController::class, 'index'])->middleware('auth.session');
+
 Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(function () {
 
-    Route::get('/home', [HomeController::class, 'index']);
 
     // Inventory: VIEW ONLY page, open to cashiers.
     // All add/edit/delete/restock/import/export actions are in the LEADS group below.

@@ -83,12 +83,12 @@ class ChatController extends Controller
         $catalog = $this->catalogText();
 
         return <<<PROMPT
-You are the "Wonder Park" chatbot, the friendly AI assistant for REKS
+You are the "Pistavora" chatbot, the friendly AI assistant for Pistavora
 Amusement Park's online booking system. Always answer in clear, simple
 English only — regardless of what language the guest writes in — so every
 visitor can understand you. Keep answers warm and to the point. For general questions use 2-4 sentences.
 But when a guest asks about the price, cost, packages or inclusions of an
-experience (Dino Adventure, RollerFever or Field of Rides), cover EVERY
+experience (DinoLakbay, Skataya or PiyestaRides), cover EVERY
 package listed for it below — walk-in passes, group bundles and party
 packages alike — with its exact price. Write one short line per package
 (package name, then price), then one closing sentence pointing them to
@@ -98,7 +98,7 @@ FORMATTING RULES (important):
 - Never use markdown formatting — no asterisks for bold/italics, no bullet
   points, no headers. The chat widget only displays plain text, so any
   markdown symbols would show up literally (e.g. the guest would see
-  "**Dino Adventure**" with the asterisks still there). Write in plain,
+  "**DinoLakbay**" with the asterisks still there). Write in plain,
   natural sentences only.
 - Whenever you mention a package, always include its exact price from the
   list below. For per-guest passes and per-ride tickets say "per guest"
@@ -106,20 +106,20 @@ FORMATTING RULES (important):
   starting price and the pax it starts at, for example "starts at 15,000
   PHP for 10 pax". If you don't have an exact figure for something, say
   so rather than leaving it vague.
-- If the guest names an experience (Dino Adventure, RollerFever or Field
+- If the guest names an experience (DinoLakbay, Skataya or Field
   of Rides), answer only about that experience, using the latest question.
 - If the guest asks a general question that does not name an experience
   (for example solo or individual passes, the cheapest option, options for
   kids, or "what do you offer"), cover ALL THREE experiences: one short
   line per relevant package with its exact price, grouped by experience
   name. For solo or individual questions, list the per-guest passes of
-  Dino Adventure, RollerFever and Field of Rides, and mention that party
+  DinoLakbay, Skataya and PiyestaRides, and mention that party
   packages and group bundles also exist. Never claim something applies to
   "all experiences" unless you have listed each one.
 - The guest may write in Tagalog, Taglish or another language. Understand
   it, but always reply in simple English.
 
-Here is what you know about the REKS Amusement booking system:
+Here is what you know about the Pistavora Amusement Park booking system:
 
 HOW BOOKING WORKS (step by step, on the Booking page of the website):
 1. The guest picks a date and time from the always-visible calendar on the
@@ -129,7 +129,7 @@ HOW BOOKING WORKS (step by step, on the Booking page of the website):
    package takes (e.g. a 3-hour party package won't show a slot starting
    after 6:00 PM, since it must end by 9:00 PM closing time).
 2. On the right side, the guest first picks which experience they want:
-   Dino Adventure, RollerFever, or Field of Rides (see below).
+   DinoLakbay, Skataya, or PiyestaRides (see below).
 3. The guest then picks a specific package card under that experience,
    taps "Select package" to see the pax (number of guests) options and
    what's included, and picks the pax tier that matches their group size.
@@ -143,7 +143,7 @@ THE THREE EXPERIENCES, PACKAGES, PRICES, ADD-ONS AND INCLUSIONS
 (live from the booking system — always quote exactly these figures and
 never guess, round or invent a price, pax count or inclusion; if something
 is not listed here, say you don't have that detail and point the guest to
-the Booking page or the REKS staff):
+the Booking page or the Pistavora staff):
 
 {$catalog}
 
@@ -161,7 +161,7 @@ WHAT YOU CANNOT DO:
 - For anything outside general package/pricing/how-to-book questions —
   refunds, complaints, custom event negotiation, or anything you're unsure
   about — let the guest know their concern would be best handled by the
-  REKS staff on-site or through the park's official contact channels.
+  Pistavora staff on-site or through the park's official contact channels.
 
 Keep answers friendly and conversational — this is a chat widget, not an essay.
 PROMPT;
@@ -223,7 +223,7 @@ PROMPT;
             // a couple of seconds — retry up to 2 more times. 429 (quota) is NOT retried
             // on the same model, since that only burns more of the limit.
             for ($i = 1; $i <= 3 && $response->serverError(); $i++) {
-                Log::warning('Wonder Park chat retrying after temporary Gemini error', [
+                Log::warning('Pistavora chat retrying after temporary Gemini error', [
                     'attempt' => $i,
                     'status' => $response->status(),
                 ]);
@@ -235,7 +235,7 @@ PROMPT;
             // history, the history is the likely culprit — retry with only the
             // latest question so the guest still gets an answer.
             if ($response->status() === 400 && count($contents) > 1) {
-                Log::warning('Wonder Park chat 400 with history, retrying without history', [
+                Log::warning('Pistavora chat 400 with history, retrying without history', [
                     'body' => mb_substr($response->body(), 0, 500),
                 ]);
                 $response = $geminiCall(2000, [end($contents)]);
@@ -250,7 +250,7 @@ PROMPT;
                 if ($fb === $model) {
                     continue;
                 }
-                Log::warning('Wonder Park chat switching to fallback model', [
+                Log::warning('Pistavora chat switching to fallback model', [
                     'to' => $fb,
                     'status' => $response->status(),
                 ]);
@@ -267,12 +267,12 @@ PROMPT;
                 // OTHER) can't be fixed by raising the token limit, so we
                 // just log it for later review instead of retrying blindly.
                 if ($finishReason === 'MAX_TOKENS') {
-                    Log::warning('Wonder Park chat reply hit MAX_TOKENS, retrying with a bigger budget', [
+                    Log::warning('Pistavora chat reply hit MAX_TOKENS, retrying with a bigger budget', [
                         'partial_reply' => $response->json('candidates.0.content.parts.0.text'),
                     ]);
                     $response = $geminiCall(3500);
                 } elseif ($finishReason && $finishReason !== 'STOP') {
-                    Log::warning('Wonder Park chat reply stopped for a non-STOP reason', [
+                    Log::warning('Pistavora chat reply stopped for a non-STOP reason', [
                         'finish_reason' => $finishReason,
                         'partial_reply' => $response->json('candidates.0.content.parts.0.text'),
                     ]);
@@ -282,14 +282,14 @@ PROMPT;
                 $status = $response->status();
                 $errorCode = $response->json('error.status');
 
-                Log::error('Wonder Park chat Gemini error', [
+                Log::error('Pistavora chat Gemini error', [
                     'status' => $status,
                     'error_code' => $errorCode,
                     'body' => $response->body(),
                 ]);
 
                 if ($status === 429 || $errorCode === 'RESOURCE_EXHAUSTED') {
-                    $busy = "Sorry, the Wonder Park chatbot is a bit busy right now (usage limit reached). Please try again in a bit.";
+                    $busy = "Sorry, the Pistavora chatbot is a bit busy right now (usage limit reached). Please try again in a bit.";
                     if (config('app.debug')) {
                         $busy .= " [debug: " . mb_substr((string) $response->json('error.message'), 0, 300) . "]";
                     }
@@ -334,7 +334,7 @@ PROMPT;
             return response()->json(['reply' => $reply, 'error' => false])
                 ->cookie('reks_chat_session', $sessionId, 60 * 24 * 30);
         } catch (\Throwable $e) {
-            Log::error('Wonder Park chat exception', [
+            Log::error('Pistavora chat exception', [
                 'exception_class' => get_class($e),
                 'error' => $e->getMessage(),
             ]);
