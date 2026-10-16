@@ -20,18 +20,18 @@ class BookingWizard
     /** Individual PiyestaRides attractions, grouped by the price package they belong to. */
     protected const FOR_RIDES = [
         'rides_60' => [
-            ['Tiger Train', '🚂'], ['Mini Carousel', '🎠'], ['Star Speed', '⭐'],
-            ['Little Chicken', '🐔'], ['Boat Pool', '🚤'], ['Carousel', '🎠'],
-            ['Flying Chair', '🪑'], ['Mini Ferris Wheel', '🎡'], ['Samba Balloon', '🎈'],
-            ['Crazy Plane', '✈️'],
+            ['Tiger Train', '🚂', 'tiger-train.jpg'], ['Mini Carousel', '🎠', 'mini-carousel.jpg'], ['Star Speed', '⭐', 'star-speed.jpg'],
+            ['Little Chicken', '🐔', 'little-chicken.jpg'], ['Boat Pool', '🚤', 'boat-pool.jpg'], ['Carousel', '🎠', 'carousel.jpg'],
+            ['Flying Chair', '🪑', 'flying-chair.jpg'], ['Mini Ferris Wheel', '🎡', 'mini-ferris-wheel.jpg'], ['Samba Balloon', '🎈', 'samba-balloon.jpg'],
+            ['Crazy Plane', '✈️', 'crazy-plane.jpg'],
         ],
         'rides_120' => [
-            ['Vikings', '⚓', 'vikings.jpg'], ['Go-Kart', '🏎️'],
+            ['Vikings', '⚓', 'ride-vikings.jpg'], ['Go-Kart', '🏎️', 'go-kart.jpg'],
         ],
         'rides_150' => [
-            ['Inflatable Playground (30 mins)', '🏰'], ['Mini Trampoline (30 mins)', '🤸'],
-            ['Rev & Roll (per car)', '🚗'], ['Happy Cars (per ride)', '🚙'],
-            ['Jurassic Adventure (per ride)', '🦖'],
+            ['Inflatable Playground (30 mins)', '🏰', 'inflatable-playground-30-mins.jpg'], ['Mini Trampoline (30 mins)', '🤸', 'mini-trampoline-30-mins.jpg'],
+            ['Rev & Roll (per car)', '🚗', 'rev-and-roll-per-car.jpg'], ['Happy Cars (per ride)', '🚙', 'happy-cars-per-ride.jpg'],
+            ['Jurassic Adventure (per ride)', '🦖', 'jurassic-adventure-per-ride.jpg'],
         ],
     ];
 

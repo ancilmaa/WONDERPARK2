@@ -134,7 +134,7 @@ class BookingController extends Controller
                 'name'          => 'Group Bundle',
                 'desc'          => '2 hours of skating for 5 guests. Buy 4, get 1 free.',
                 'emoji'         => "\u{1F6FC}",
-                'image'         => null,
+                'image'         => 'group-bundle.jpg',
                 'badge'         => null,
                 'unit_price'    => (float) self::BUNDLE_PRICE,
                 'flat'          => false,
