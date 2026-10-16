@@ -2,53 +2,9 @@
 
 @section('title', 'Attendance')
 
-@push('head')
-    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap"
-        rel="stylesheet">
-@endpush
-
 @section('styles')
+    @include('partials.ui-theme')
     <style>
-        .serif {
-            font-family: 'Source Serif 4', serif;
-        }
-
-        .toolbar {
-            background: var(--card);
-            padding: 22px 26px;
-            margin-bottom: 20px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 18px;
-        }
-
-        .toolbar .eyebrow {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .09em;
-            margin-bottom: 6px;
-        }
-
-        .toolbar h2 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .toolbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
         .toolbar-actions input[type="file"] {
             font-size: 12px;
             color: var(--ink-soft);
@@ -59,142 +15,8 @@
             max-width: 210px;
         }
 
-        .toolbar .period-select {
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            color: var(--ink-soft);
-            padding: 10px 12px;
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            background: var(--bg);
-            cursor: pointer;
-            max-width: 260px;
-        }
-
-        .toolbar .period-select:focus {
-            outline: none;
-            border-color: var(--pink);
-            background: #fff;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .stat-card .label {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 9px;
-        }
-
-        .stat-card .value {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.7rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .stat-card .sub {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 7px;
-        }
-
-        .filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .filter-bar .filter-label {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-right: 2px;
-        }
-
-        .filter-bar input[type="text"],
-        .filter-bar select {
-            padding: 9px 12px;
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            font-size: 12.5px;
-            font-family: 'Inter', sans-serif;
-            color: var(--ink-soft);
-            background: var(--bg);
-        }
-
-        .filter-bar input[type="text"] {
-            flex: 1;
-            min-width: 180px;
-            max-width: 280px;
-        }
-
-        .filter-bar select {
-            cursor: pointer;
-        }
-
-        .filter-toggle {
-            padding: 9px 14px;
-            border: 1px solid var(--line-strong);
-            border-radius: 999px;
-            background: #fff;
-            color: var(--ink-soft);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s ease;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .filter-toggle:hover {
-            border-color: var(--pink);
-        }
-
-        .filter-toggle.active[data-type="late"] {
-            background: var(--deduct);
-            border-color: var(--deduct);
-            color: #fff;
-        }
-
-        .filter-toggle.active[data-type="overtime"] {
-            background: var(--present);
-            border-color: var(--present);
-            color: #fff;
-        }
-
-        .filter-clear {
-            background: none;
-            border: none;
-            color: var(--pink-deep);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: underline;
-            font-family: 'Inter', sans-serif;
-            padding: 9px 4px;
-        }
+        .table-box { scrollbar-width: none; -ms-overflow-style: none; }
+        .table-box::-webkit-scrollbar { display: none; }
 
         .source-legend {
             display: flex;
@@ -203,94 +25,12 @@
             flex-wrap: wrap;
             font-size: 11px;
             color: var(--muted);
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
-
-        .source-legend span {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .source-legend .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .source-legend .dot-bio {
-            background: var(--muted);
-            opacity: .5;
-        }
-
-        .source-legend .dot-qr {
-            background: #2F6FE0;
-        }
-
-        .pagination {
-            display: none;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            padding-top: 18px;
-            margin-top: 4px;
-            border-top: 1px solid var(--line);
-        }
-
-        .pagination-info {
-            font-size: 11.5px;
-            color: var(--muted);
-            margin-right: 6px;
-        }
-
-        .pagination button {
-            min-width: 30px;
-            padding: 7px 10px;
-            border: 1px solid var(--line-strong);
-            background: #fff;
-            color: var(--ink-soft);
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .pagination button.active {
-            background: var(--pink-deep);
-            border-color: var(--pink-deep);
-            color: #fff;
-        }
-
-        .pagination button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        #noMatchRow td {
-            padding: 26px !important;
-            color: var(--muted) !important;
-            background: var(--card) !important;
-        }
-
-        .table-box {
-            background: var(--card);
-            padding: 28px 26px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            /* Scrollable pa rin (mouse wheel, trackpad, swipe) — itinatago
-               lang ang visual na scrollbar mismo. */
-            scrollbar-width: none;       /* Firefox */
-            -ms-overflow-style: none;    /* Old Edge / IE */
-        }
-
-        .table-box::-webkit-scrollbar {
-            display: none;              /* Chrome, Safari, new Edge */
-        }
+        .source-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .source-legend .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+        .source-legend .dot-bio { background: var(--muted); opacity: .5; }
+        .source-legend .dot-qr { background: var(--info); }
 
         .payroll-header {
             text-align: center;
@@ -299,7 +39,6 @@
             border-bottom: 2px solid var(--ink);
             position: relative;
         }
-
         .payroll-header::after {
             content: "";
             position: absolute;
@@ -310,126 +49,26 @@
             height: 1px;
             background: var(--pink);
         }
+        .payroll-header h3 { font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: .6px; color: var(--ink); }
+        .payroll-header p { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: .2px; }
 
-        .payroll-header h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 19px;
-            font-weight: 700;
-            letter-spacing: 0.6px;
-            color: var(--ink);
-        }
+        /* ---- Attendance grid (centered cells, overrides the shared table look) ---- */
+        .att-table { min-width: 980px; font-size: 12px; }
+        .att-table th, .att-table td { padding: 11px 6px; text-align: center; }
+        .att-table thead th { padding: 10px 6px; }
+        .att-table td:nth-child(2) { text-align: left; color: var(--ink); font-weight: 600; }
+        .att-table .category-row td { text-align: left; padding: 8px 14px; }
+        .week-end { border-right: 1px solid var(--line-strong) !important; }
 
-        .payroll-header p {
-            font-size: 12px;
-            color: var(--muted);
-            margin-top: 4px;
-            letter-spacing: 0.2px;
-        }
+        .cell-present { color: var(--present); font-weight: 700; }
+        .cell-deduction { color: var(--danger); font-weight: 600; font-size: 10.5px; }
+        .cell-rest { color: var(--rest); font-weight: 400; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 980px;
-            font-size: 12px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        th,
-        td {
-            padding: 11px 6px;
-            text-align: center;
-            border-bottom: 1px solid var(--line);
-        }
-
-        thead tr:last-child th {
-            background: var(--ink);
-            color: #fff;
-            font-weight: 600;
-            font-size: 11px;
-            padding: 10px 6px;
-            border-bottom: none;
-        }
-
-        .week-end {
-            border-right: 1px solid var(--line-strong) !important;
-        }
-
-        tbody tr:hover:not(.category-row):not(.total-row) {
-            background: var(--pink-pale);
-        }
-
-        td {
-            color: var(--ink-soft);
-        }
-
-        td:nth-child(2) {
-            text-align: left;
-            color: var(--ink);
-            font-weight: 600;
-        }
-
-        .category-row td {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-            font-weight: 700;
-            text-align: left;
-            padding: 8px 14px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            font-size: 10.5px;
-            border-top: 1px solid var(--line-strong);
-            border-bottom: 1px solid var(--line-strong);
-        }
-
-        .cell-present {
-            color: var(--present);
-            font-weight: 700;
-        }
-
-        .cell-deduction {
-            color: var(--deduct);
-            font-weight: 600;
-            font-size: 10.5px;
-        }
-
-        .cell-rest {
-            color: var(--rest);
-            font-weight: 400;
-        }
-
-        /* QR Time In with no Time Out yet — not counted until Time Out */
-        .cell-pending {
-            color: #C98A1F;
-            font-weight: 700;
-            font-size: 10px;
-            letter-spacing: .04em;
-        }
-
-        .cell-pending.src-qr::after {
-            content: '';
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: #2F6FE0;
-            margin-left: 3px;
-            vertical-align: super;
-        }
-
+        /* QR Time In with no Time Out yet: not counted until Time Out */
+        .cell-pending { color: var(--warn); font-weight: 700; font-size: 10px; letter-spacing: .04em; }
+        .cell-pending.src-qr::after,
         .cell-present.src-qr::after,
-        .cell-deduction.src-qr::after {
-            content: '';
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: #2F6FE0;
-            margin-left: 3px;
-            vertical-align: super;
-        }
-
-        /* Mga lumang record na galing sa dating Manual Entry —
-           nananatili ang tuldok para makilala pa rin. */
+        .cell-deduction.src-qr::after,
         .cell-present.src-manual::after,
         .cell-deduction.src-manual::after {
             content: '';
@@ -437,20 +76,25 @@
             width: 5px;
             height: 5px;
             border-radius: 50%;
-            background: #C98A1F;
             margin-left: 3px;
             vertical-align: super;
         }
+        .cell-pending.src-qr::after,
+        .cell-present.src-qr::after,
+        .cell-deduction.src-qr::after { background: var(--info); }
+        /* Older records from the former Manual Entry keep their dot so they stay recognizable. */
+        .cell-present.src-manual::after,
+        .cell-deduction.src-manual::after { background: var(--warn); }
 
         .days-worked {
             background: var(--pink-pale);
             color: var(--ink);
             font-weight: 700;
-            font-family: 'Source Serif 4', serif;
+            font-family: var(--font-display);
             font-size: 13px;
         }
 
-        .total-row td {
+        .att-table .total-row td {
             background: transparent;
             color: var(--ink);
             font-weight: 700;
@@ -459,290 +103,11 @@
             border-bottom: none;
             padding-top: 16px;
         }
+        .att-table .total-row td:last-child { font-family: var(--font-display); font-size: 16px; color: var(--pink-deep); }
 
-        .total-row td:last-child {
-            font-family: 'Source Serif 4', serif;
-            font-size: 16px;
-            color: var(--pink-deep);
-        }
+        #uploadBtn.loading { opacity: .6; pointer-events: none; }
 
-        .print-btn {
-            padding: 11px 20px;
-            background: var(--pink-deep);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background .15s ease, box-shadow .15s ease;
-        }
-
-        .print-btn:hover {
-            background: var(--pink-dark);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
-
-        .clear-all-btn {
-            padding: 11px 20px;
-            background: #C62828;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background .15s ease, box-shadow .15s ease;
-        }
-
-        .clear-all-btn:hover {
-            background: #9E1F1F;
-            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.18);
-        }
-
-        #uploadBtn {
-            padding: 11px 18px !important;
-            background: #fff !important;
-            color: var(--ink) !important;
-            border: 1px solid var(--line-strong) !important;
-            border-radius: 10px !important;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        #uploadBtn:hover {
-            background: var(--bg) !important;
-            border-color: var(--pink) !important;
-        }
-
-        .btn-ghost {
-            padding: 11px 18px;
-            background: #fff;
-            color: var(--ink);
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        .btn-ghost:hover {
-            background: var(--bg);
-            border-color: var(--pink);
-        }
-
-        .btn-primary {
-            padding: 11px 20px;
-            background: var(--pink-deep);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-            transition: background .15s ease, box-shadow .15s ease;
-        }
-
-        .btn-primary:hover {
-            background: var(--pink-dark);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
-
-        #toastStack {
-            position: fixed;
-            top: 22px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            max-width: 420px;
-            padding: 0 16px;
-            pointer-events: none;
-        }
-
-        .toast {
-            pointer-events: auto;
-            width: 100%;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            background: #fff;
-            color: var(--ink);
-            padding: 14px 16px;
-            border-radius: 14px;
-            border-left: 4px solid var(--ink);
-            box-shadow: var(--shadow-md);
-            font-size: 13px;
-            font-weight: 500;
-            line-height: 1.4;
-            opacity: 0;
-            transform: translateY(-16px) scale(.97);
-            animation: toastIn .35s cubic-bezier(.34, 1.56, .64, 1) forwards;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .toast.hide {
-            animation: toastOut .28s ease forwards;
-        }
-
-        .toast .toast-icon {
-            flex-shrink: 0;
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            color: #fff;
-            background: var(--ink-soft);
-        }
-
-        .toast.toast-info .toast-icon {
-            background: var(--pink-deep);
-        }
-
-        .toast.toast-success {
-            border-left-color: var(--present);
-        }
-
-        .toast.toast-success .toast-icon {
-            background: var(--present);
-        }
-
-        .toast.toast-error {
-            border-left-color: var(--deduct);
-        }
-
-        .toast.toast-error .toast-icon {
-            background: var(--deduct);
-        }
-
-        .toast.toast-info {
-            border-left-color: var(--pink-deep);
-        }
-
-        .toast .toast-body {
-            flex: 1;
-            min-width: 0;
-            padding-top: 2px;
-        }
-
-        .toast .toast-title {
-            font-weight: 700;
-            font-size: 12.5px;
-            margin-bottom: 2px;
-            color: var(--ink);
-        }
-
-        .toast .toast-msg {
-            color: var(--ink-soft);
-            font-size: 12.5px;
-            word-break: break-word;
-        }
-
-        .toast .toast-close {
-            flex-shrink: 0;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--muted);
-            font-size: 13px;
-            padding: 2px;
-            line-height: 1;
-            margin-top: 1px;
-        }
-
-        .toast .toast-close:hover {
-            color: var(--ink);
-        }
-
-        .toast .toast-bar {
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            height: 3px;
-            border-radius: 0 0 0 14px;
-            background: currentColor;
-            opacity: .35;
-            animation: toastShrink 3s linear forwards;
-        }
-
-        @keyframes toastIn {
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        @keyframes toastOut {
-            to {
-                opacity: 0;
-                transform: translateY(-12px) scale(.96);
-            }
-        }
-
-        @keyframes toastShrink {
-            from {
-                width: 100%;
-            }
-
-            to {
-                width: 0%;
-            }
-        }
-
-        @media(max-width:520px) {
-            #toastStack {
-                top: 14px;
-                max-width: calc(100% - 24px);
-                padding: 0;
-            }
-        }
-
-        #uploadOverlay,
-        #qrOverlay,
-        #clearAllOverlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-            background: rgba(26, 21, 35, .38);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            animation: overlayFade .2s ease;
-            padding: 20px;
-        }
-
-        #uploadOverlay.active,
-        #qrOverlay.active,
-        #clearAllOverlay.active {
-            display: flex;
-        }
-
+        /* Upload overlay card */
         .upload-card {
             background: #fff;
             border-radius: 18px;
@@ -757,7 +122,6 @@
             text-align: center;
             animation: cardPop .3s cubic-bezier(.34, 1.56, .64, 1);
         }
-
         .upload-spinner {
             width: 52px;
             height: 52px;
@@ -766,184 +130,29 @@
             border-top-color: var(--pink-deep);
             animation: spin .8s linear infinite;
         }
+        .upload-card .upload-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink); }
+        .upload-card .upload-sub { font-size: 12.5px; color: var(--ink-soft); }
 
-        .upload-card .upload-title {
-            font-family: 'Source Serif 4', serif;
-            font-weight: 700;
-            font-size: 16px;
-            color: var(--ink);
-        }
-
-        .upload-card .upload-sub {
-            font-size: 12.5px;
-            color: var(--ink-soft);
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes overlayFade {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes cardPop {
-            from {
-                opacity: 0;
-                transform: scale(.92);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        /* QR / CONFIRM MODALS */
-        .modal-card {
-            background: #fff;
-            border-radius: 18px;
-            width: 100%;
-            max-width: 480px;
-            max-height: calc(100vh - 24px);
-            overflow-y: auto;
-            box-shadow: var(--shadow-md);
-            animation: cardPop .25s cubic-bezier(.34, 1.56, .64, 1);
-            scrollbar-width: none;       /* Firefox */
-            -ms-overflow-style: none;    /* Old Edge / IE */
-        }
-
-        .modal-card::-webkit-scrollbar {
-            display: none;              /* Chrome, Safari, new Edge */
-        }
-
-        .modal-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 16px 20px 12px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .modal-head .eyebrow {
-            font-size: .64rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .09em;
-            margin-bottom: 3px;
-        }
-
-        .modal-head h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.02rem;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .modal-close {
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            border: none;
-            background: var(--bg);
-            color: var(--ink-soft);
-            font-size: 13px;
-            cursor: pointer;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-close:hover {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-        }
-
-        .modal-body {
-            padding: 16px 20px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        .form-group label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--ink-soft);
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        .form-group input,
-        .form-group select {
-            padding: 8px 10px;
+        /* Assign Areas modal */
+        .area-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+        .area-row:last-child { border-bottom: none; }
+        .area-row .area-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+        .area-row .area-cat { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+        .area-row select {
+            padding: 7px 10px;
             border: 1px solid var(--line-strong);
             border-radius: 9px;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            color: var(--ink);
+            font-size: 12.5px;
+            color: var(--ink-soft);
             background: var(--bg);
+            min-width: 150px;
         }
+        .area-list { max-height: 55vh; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+        .area-list::-webkit-scrollbar { display: none; }
 
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--pink);
-            background: #fff;
-        }
-
-        .form-hint {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .modal-foot {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 12px 20px 16px;
-        }
-
-        #qrCodeBox {
-            display: flex;
-            justify-content: center;
-            padding: 18px 0 6px;
-        }
-
-        .qr-link-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 14px;
-        }
-
+        /* QR modal */
+        #qrCodeBox { display: flex; justify-content: center; padding: 18px 0 6px; }
+        .qr-link-row { display: flex; gap: 8px; margin-top: 14px; }
         .qr-link-row input {
             flex: 1;
             padding: 10px 12px;
@@ -954,145 +163,32 @@
             background: var(--bg);
         }
 
-        @media(max-width:900px) {
-            .stats-row {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .toolbar h2 {
-                font-size: 1.05rem;
-            }
-
-            .toolbar-actions {
-                width: 100%;
-            }
-
-            .toolbar-actions input[type="file"] {
-                max-width: none;
-                width: 100%;
-            }
-
-            .toolbar .period-select {
-                max-width: none;
-                width: 100%;
-            }
-
-            .toolbar-actions button {
-                width: 100%;
-            }
-
-            table {
-                min-width: 760px;
-                font-size: 11px;
-            }
-
-            th,
-            td {
-                padding: 8px 4px;
-            }
-
-            .filter-bar input[type="text"] {
-                max-width: none;
-                width: 100%;
-            }
-
-            .filter-bar select {
-                width: 100%;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 900px) {
+            .toolbar-actions { width: 100%; }
+            .toolbar-actions input[type="file"] { max-width: none; width: 100%; }
+            .toolbar-actions button { width: 100%; }
+            .att-table { min-width: 760px; font-size: 11px; }
+            .att-table th, .att-table td { padding: 8px 4px; }
         }
-
-        @media(max-width:520px) {
-            table {
-                min-width: 640px;
-                font-size: 10px;
-            }
-
-            .payroll-header h3 {
-                font-size: 14px;
-            }
-
-            .payroll-header p {
-                font-size: 11px;
-            }
+        @media (max-width: 520px) {
+            .att-table { min-width: 640px; font-size: 10px; }
+            .payroll-header h3 { font-size: 14px; }
+            .payroll-header p { font-size: 11px; }
         }
 
         @media print {
-            body {
-                background: #fff;
-            }
-
-            .app-shell {
-                display: block;
-            }
-
-            .sidebar,
-            .sidebar-overlay,
-            .mobile-topbar,
-            .toolbar,
-            .stats-row,
-            .no-print {
-                display: none !important;
-            }
-
-            .content-body {
-                padding: 0;
-                max-width: none;
-            }
-
-            .table-box {
-                box-shadow: none;
-                border-radius: 0;
-                padding: 0;
-                overflow: visible;
-            }
-
-            table {
-                min-width: unset;
-                width: 100%;
-                font-size: 10px;
-            }
-
-            th,
-            td {
-                border: 1px solid #999;
-                padding: 4px;
-            }
-
-            .cell-present {
-                color: var(--present) !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .cell-deduction {
-                color: var(--deduct) !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .category-row td {
-                background: var(--pink-light) !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .days-worked {
-                background: var(--pink-pale) !important;
-                color: var(--ink) !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            thead tr:last-child th {
-                background: var(--ink) !important;
-                color: #fff !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+            body { background: #fff; }
+            .app-shell { display: block; }
+            .sidebar, .sidebar-overlay, .mobile-topbar, .toolbar, .stats-row, .no-print { display: none !important; }
+            .content-body { padding: 0; max-width: none; }
+            .table-box { box-shadow: none; border-radius: 0; padding: 0; overflow: visible; }
+            .att-table { min-width: unset; width: 100%; font-size: 10px; }
+            .att-table th, .att-table td { border: 1px solid #999; padding: 4px; }
+            .cell-present { color: var(--present) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .cell-deduction { color: var(--danger) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .category-row td { background: var(--pink-light) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .days-worked { background: var(--pink-pale) !important; color: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            thead th { background: var(--ink) !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
 @endsection
@@ -1100,10 +196,9 @@
 @section('content')
 
     @php
-        // A day counts as "present" (worked) unless it's a bare dash — that
-        // means genuinely absent. "-15", "-30", etc. are late/undertime by
-        // that many minutes, but the employee still showed up, so those
-        // still count toward Days Worked.
+        // A day counts as "present" (worked) unless it's a bare dash, which means genuinely absent.
+        // "-15", "-30", etc. are late/undertime by that many minutes, but the employee still showed up,
+        // so those still count toward Days Worked.
         if (!function_exists('isDayPresent')) {
             function isDayPresent($v): bool
             {
@@ -1131,6 +226,43 @@
 
         $days = $periodDays ?? 15;
 
+        // ── Split each category by area ──
+        // Order: Manager → Team Leader → Staff → others.
+        // Within a category: Field of Rides → Dino Adventure → Roller Skates, then those without an area.
+        // The Manager has no area.
+        $areaOrder = $areaOptions ?? ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+        $catOrder = ['manager', 'team leader', 'staff'];
+        $anyArea = isset($records) && $records->contains(fn($r) => !empty($r->area));
+
+        $sections = collect();
+        if (isset($records)) {
+            $byCat = $grouped->sortBy(function ($g, $c) use ($catOrder) {
+                $p = array_search(strtolower($c), $catOrder);
+                return $p === false ? 99 : $p;
+            });
+
+            foreach ($byCat as $cat => $emps) {
+                $isManager = strtolower($cat) === 'manager';
+                $byArea = $emps->groupBy(fn($e) => (string) ($e->area ?? ''))
+                    ->sortBy(function ($g, $a) use ($areaOrder, $isManager) {
+                        $a = (string) $a;
+                        if ($a === '') return $isManager ? -1 : 100;
+                        $p = array_search($a, $areaOrder);
+                        return $p === false ? 50 : $p;
+                    });
+
+                foreach ($byArea as $a => $g) {
+                    $a = (string) $a;
+                    $sections->push([
+                        'category' => $cat,
+                        'area' => $a,
+                        'employees' => $g,
+                        'unassigned' => $a === '' && !$isManager && $anyArea,
+                    ]);
+                }
+            }
+        }
+
         $totalDaysAll = 0;
         if (isset($records)) {
             foreach ($records as $rec) {
@@ -1150,47 +282,36 @@
         <div>
             <div class="eyebrow">Lipa Branch &middot; Bio Attendance</div>
             <h2>Bio Attendance Sheet</h2>
-            <p class="sub" style="font-size:12px;color:var(--muted);margin-top:4px;">
-                Showing: <strong>Days {{ $periodStart->day }}&ndash;{{ $periodEnd->day }}</strong>
-                ({{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }})
-            </p>
-            {{-- View a specific half-month. The import follows whichever
-                 period is on screen. --}}
-            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-                <span style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">View</span>
-                <select class="period-select" aria-label="View period"
-                    onchange="window.location.href='{{ route('attendance') }}?period=' + encodeURIComponent(this.value)">
-                    @foreach (($periodOptions ?? []) as $opt)
-                        <option value="{{ $opt['value'] }}" {{ $opt['selected'] ? 'selected' : '' }}>{{ $opt['label'] }}</option>
-                    @endforeach
-                </select>
-            </div>
         </div>
 
         <div class="toolbar-actions">
             <form id="uploadForm" action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data"
                 style="display:contents;">
                 @csrf
-                {{-- The bio file is imported into whichever period is currently
-                     on screen (change it with the "View" dropdown on the left). --}}
+                {{-- The bio file is imported into the period currently on screen (always the current half-month). --}}
                 <input type="hidden" name="period_start" value="{{ $periodStart->format('Y-m-d') }}">
                 <input type="file" name="import_file" required>
-                <button id="uploadBtn" type="submit">Import Bio File</button>
+                <button id="uploadBtn" type="submit" class="btn-ghost">Import Bio File</button>
             </form>
             <button type="button" class="btn-ghost" id="openQrBtn">
                 <i class="fa-solid fa-qrcode"></i> Show QR Code
             </button>
-            <button class="print-btn" onclick="window.print()">Print</button>
+            @if (\Illuminate\Support\Facades\Route::has('attendance.areas'))
+                <button type="button" class="btn-ghost" id="openAreaBtn">
+                    <i class="fa-solid fa-location-dot"></i> Assign Areas
+                </button>
+            @endif
+            <button class="btn-primary" onclick="window.print()">Print</button>
 
             <form id="clearAllForm" action="{{ route('attendance.clear-all') }}" method="POST" style="display:contents;">
                 @csrf
                 @method('DELETE')
-                <button type="button" class="clear-all-btn" id="openClearAllBtn">Clear All</button>
+                <button type="button" class="btn-danger" id="openClearAllBtn">Clear All</button>
             </form>
         </div>
     </div>
 
-    <div class="stats-row no-print">
+    <div class="stats-row no-print" style="--cols:2;">
         <div class="stat-card">
             <div class="label">Employees</div>
             <div class="value">{{ $totalEmployees }}</div>
@@ -1231,6 +352,12 @@
                     <option value="{{ strtolower($cat) }}">{{ $cat }}</option>
                 @endforeach
             </select>
+            <select id="areaFilter">
+                <option value="">All Areas</option>
+                @foreach ($areaOrder as $a)
+                    <option value="{{ strtolower($a) }}">{{ $a }}</option>
+                @endforeach
+            </select>
             <button type="button" class="filter-toggle" data-type="late" id="filterLate">Late / Absent</button>
             <button type="button" class="filter-toggle" data-type="overtime" id="filterOvertime">Overtime</button>
             <button type="button" class="filter-clear" id="filterClear">Clear filters</button>
@@ -1239,14 +366,14 @@
         <div class="source-legend no-print">
             <span><span class="dot dot-bio"></span> Bio scanner</span>
             <span><span class="dot dot-qr"></span> QR self check-in</span>
-            <span><strong style="color:#C98A1F;">IN</strong> Timed in, waiting for Time Out</span>
+            <span><strong style="color:var(--warn);">IN</strong> Timed in, waiting for Time Out</span>
             <span>Hover a day to see the actual Time In / Time Out</span>
         </div>
 
-        <table>
+        <table class="att-table">
             <thead>
                 <tr>
-                    <th>NO</th>
+                    <th>No</th>
                     <th colspan="2" style="text-align:left;padding-left:14px;">Name of Employee</th>
                     @for ($i = 1; $i <= $days; $i++)
                         <th class="{{ $i % 5 == 0 && $i != $days ? 'week-end' : '' }}">{{ $i }}</th>
@@ -1264,9 +391,17 @@
 
                 @if (isset($records) && count($records) > 0)
 
-                    @foreach ($grouped as $category => $employees)
-                        <tr class="category-row" data-cat-row="{{ strtolower($category) }}">
-                            <td colspan="{{ $days + 4 }}">{{ strtoupper($category) }}</td>
+                    @foreach ($sections as $section)
+                        @php
+                            $category = $section['category'];
+                            $area = $section['area'];
+                            $employees = $section['employees'];
+                        @endphp
+                        <tr class="category-row" data-cat-row="{{ strtolower($category) }}"
+                            data-area-row="{{ strtolower($area) }}">
+                            <td colspan="{{ $days + 4 }}">
+                                {{ strtoupper($category) }}@if ($area) &middot; {{ strtoupper($area) }}@elseif ($section['unassigned']) &middot; NO AREA YET @endif
+                            </td>
                         </tr>
 
                         @foreach ($employees as $item)
@@ -1283,14 +418,14 @@
                                         $hasOvertime = true;
                                     }
                                     if ((str_starts_with((string) $v, '-') && $v !== '') || isShortHours($v)) {
-                                        // Covers both a bare "-" (absent) and
-                                        // "-15" (late) — both are worth
-                                        // flagging under the Late/Absent filter.
+                                        // Covers both a bare "-" (absent) and "-15" (late);
+                                        // both are worth flagging under the Late/Absent filter.
                                         $hasLate = true;
                                     }
                                 }
                             @endphp
                             <tr data-name="{{ strtolower($item->name) }}" data-category="{{ strtolower($category) }}"
+                                data-area="{{ strtolower($area) }}"
                                 data-late="{{ $hasLate ? 1 : 0 }}" data-overtime="{{ $hasOvertime ? 1 : 0 }}">
                                 <td>{{ $no++ }}</td>
                                 <td colspan="2">{{ $item->name }}</td>
@@ -1301,10 +436,9 @@
                                         $src = $item->{'source_' . $i} ?? null;
                                         $weekEndClass = $i % 5 == 0 && $i != $days ? 'week-end' : '';
                                         $srcClass = $src === 'qr' ? 'src-qr' : ($src === 'manual' ? 'src-manual' : '');
-                                        $srcTitle = $val === 'IN' ? 'Timed in — waiting for Time Out' : ($src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner'));
+                                        $srcTitle = $val === 'IN' ? 'Timed in, waiting for Time Out' : ($src === 'qr' ? 'QR self check-in' : ($src === 'manual' ? 'Manual entry' : 'Bio scanner'));
 
-                                        // Actual recorded Time In / Time Out (QR entries
-                                        // have these; bio rows usually don't).
+                                        // Actual recorded Time In / Time Out (QR entries have these; bio rows usually don't).
                                         $tin = $item->{'tin_' . $i} ?? null;
                                         $tout = $item->{'tout_' . $i} ?? null;
                                         $timeTxt = $tin ? ' | In: ' . $tin . ' · Out: ' . ($tout ?? '—') : '';
@@ -1353,9 +487,7 @@
 
     </div>
 
-    <div id="toastStack" class="no-print" aria-live="polite"></div>
-
-    <div id="uploadOverlay" class="no-print" aria-live="assertive">
+    <div id="uploadOverlay" class="modal-overlay no-print" aria-live="assertive">
         <div class="upload-card">
             <div class="upload-spinner"></div>
             <div class="upload-title">Uploading BIO file</div>
@@ -1364,7 +496,7 @@
     </div>
 
     <!-- QR CHECK-IN MODAL -->
-    <div id="qrOverlay" class="no-print" aria-hidden="true">
+    <div id="qrOverlay" class="modal-overlay no-print" aria-hidden="true">
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle" style="max-width:380px;">
             <div class="modal-head">
                 <div>
@@ -1393,7 +525,7 @@
                         @endfor
                     </select>
                     <p class="form-hint">Normally scans are recorded under today's real date. Choose an earlier
-                        day only to catch up — it stays in effect for 2 hours after you generate the QR.</p>
+                        day only to catch up. It stays in effect for 2 hours after you generate the QR.</p>
                 </div>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
@@ -1404,47 +536,92 @@
                     <i class="fa-solid fa-rotate"></i> Generate New QR
                 </button>
                 <p class="form-hint" style="margin-top:8px;">
-                    Gumagawa ito ng bagong QR code at awtomatikong mawawalan ng bisa ang lumang QR (kahit naka-print na ito).
+                    This creates a new QR code and automatically invalidates the old one, even if it has already been printed.
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- CLEAR ALL ATTENDANCE — custom confirm modal (not the native browser confirm()) -->
-    <div id="clearAllOverlay" class="no-print" aria-hidden="true">
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clearAllTitle" style="max-width:400px;">
-            <div class="modal-head">
-                <div>
-                    <div class="eyebrow" style="color:#C62828;">Dangerous Action</div>
-                    <h3 id="clearAllTitle">Delete All Attendance?</h3>
+    <!-- ASSIGN AREAS MODAL -->
+    @if (\Illuminate\Support\Facades\Route::has('attendance.areas'))
+        <div id="areaOverlay" class="modal-overlay no-print" aria-hidden="true">
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="areaTitle">
+                <form action="{{ route('attendance.areas') }}" method="POST">
+                    @csrf
+                    <div class="modal-head">
+                        <div>
+                            <div class="eyebrow">Team Leader &amp; Staff</div>
+                            <h3 id="areaTitle">Assign Areas</h3>
+                        </div>
+                        <button type="button" class="modal-close" id="closeAreaModal" aria-label="Close">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!($areaReady ?? false))
+                            <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
+                                The Employees table does not have an <strong>area</strong> column yet.
+                                Please run <code>php artisan migrate</code> first.
+                            </p>
+                        @elseif (empty($areaEmployees))
+                            <p style="font-size:13px;color:var(--ink-soft);">There are no active Team Leaders or Staff.</p>
+                        @else
+                            <p class="form-hint" style="margin-bottom:8px;">
+                                The Manager has no area, so they are not listed here.
+                            </p>
+                            <div class="area-list">
+                                @foreach ($areaEmployees as $i => $emp)
+                                    <div class="area-row">
+                                        <div>
+                                            <div class="area-name">{{ $emp['name'] }}</div>
+                                            <div class="area-cat">{{ $emp['category'] }}</div>
+                                        </div>
+                                        <input type="hidden" name="employees[{{ $i }}][name]" value="{{ $emp['name'] }}">
+                                        <select name="employees[{{ $i }}][area]">
+                                            <option value="">— No area —</option>
+                                            @foreach ($areaOrder as $a)
+                                                <option value="{{ $a }}" {{ $emp['area'] === $a ? 'selected' : '' }}>{{ $a }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-foot">
+                        <button type="button" class="btn-ghost" id="cancelAreaModal">Cancel</button>
+                        @if (($areaReady ?? false) && !empty($areaEmployees))
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Areas
+                            </button>
+                        @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- CLEAR ALL ATTENDANCE: custom confirm modal (not the native browser confirm()) -->
+    <div id="clearAllOverlay" class="modal-overlay no-print" aria-hidden="true">
+        <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="clearAllTitle">
+            <div class="confirm-icon warn"><i class="fa-solid fa-trash"></i></div>
+            <div class="confirm-body">
+                <div class="confirm-title" id="clearAllTitle">Delete all attendance?</div>
+                <div class="confirm-message">
+                    This will delete <strong>all</strong> attendance records: every period, every source
+                    (bio and QR). The import history will be cleared as well. <strong>This cannot be undone.</strong>
                 </div>
-                <button type="button" class="modal-close" id="closeClearAllModal" aria-label="Close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
             </div>
-            <div class="modal-body">
-                <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
-                    This will delete <strong>all</strong> attendance records — every period, every source
-                    (bio and QR). The import history will be cleared as well. <strong>This cannot be
-                        undone.</strong>
-                </p>
-            </div>
-            <div class="modal-foot">
+            <div class="confirm-foot">
                 <button type="button" class="btn-ghost" id="cancelClearAll">Cancel</button>
-                <button type="button" class="clear-all-btn" id="confirmClearAllBtn">
+                <button type="button" class="btn-danger" id="confirmClearAllBtn">
                     <i class="fa-solid fa-trash"></i> Yes, delete everything
                 </button>
             </div>
         </div>
     </div>
 
-    @if (session('success'))
-        <span id="flash-success" data-msg="{{ session('success') }}" style="display:none;"></span>
-    @endif
-
-    @if (session('error'))
-        <span id="flash-error" data-msg="{{ session('error') }}" style="display:none;"></span>
-    @endif
+    @include('partials.ui-toast')
 
 @endsection
 
@@ -1453,60 +630,7 @@
     <script>
         const form = document.getElementById("uploadForm");
         const btn = document.getElementById("uploadBtn");
-        const toastStack = document.getElementById("toastStack");
         const uploadOverlay = document.getElementById("uploadOverlay");
-
-        const TOAST_ICONS = {
-            info: {
-                icon: 'fa-solid fa-arrow-up-from-bracket',
-                title: 'Uploading'
-            },
-            success: {
-                icon: 'fa-solid fa-circle-check',
-                title: 'Success'
-            },
-            error: {
-                icon: 'fa-solid fa-circle-exclamation',
-                title: 'Error'
-            }
-        };
-
-        function showToast(msg, type = "info", opts = {}) {
-            const cfg = TOAST_ICONS[type] || TOAST_ICONS.info;
-            const title = opts.title || cfg.title;
-            const duration = opts.duration ?? 3000;
-
-            const el = document.createElement('div');
-            el.className = `toast toast-${type}`;
-            el.innerHTML = `
-        <div class="toast-icon"><i class="${cfg.icon}"></i></div>
-        <div class="toast-body">
-            <div class="toast-title">${title}</div>
-            <div class="toast-msg"></div>
-        </div>
-        <button type="button" class="toast-close" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
-        <div class="toast-bar" style="animation-duration:${duration}ms;"></div>
-    `;
-            el.querySelector('.toast-msg').textContent = msg;
-
-            function dismiss() {
-                if (!el.isConnected) return;
-                el.classList.add('hide');
-                setTimeout(() => el.remove(), 280);
-            }
-
-            el.querySelector('.toast-close').addEventListener('click', dismiss);
-            toastStack.appendChild(el);
-
-            if (duration > 0) {
-                setTimeout(dismiss, duration);
-            }
-
-            return {
-                el,
-                dismiss
-            };
-        }
 
         form.addEventListener("submit", function() {
             btn.classList.add("loading");
@@ -1519,12 +643,6 @@
             document.body.style.overflow = "";
             btn.classList.remove("loading");
         });
-
-        const successMsg = document.getElementById('flash-success')?.dataset.msg;
-        const errorMsg = document.getElementById('flash-error')?.dataset.msg;
-
-        if (successMsg) showToast(successMsg, "success");
-        if (errorMsg) showToast(errorMsg, "error");
 
         // ── QR Code modal ──
         const qrOverlay = document.getElementById('qrOverlay');
@@ -1548,7 +666,7 @@
                     text: qrLinkInput.value,
                     width: 220,
                     height: 220,
-                    colorDark: '#221A2B',
+                    colorDark: '#0F172A',
                     colorLight: '#ffffff',
                 });
             }
@@ -1572,7 +690,7 @@
             showToast('Link copied!', 'success', { duration: 1800 });
         });
 
-        // "Generate New QR" — two-tap confirm before it fires, since this
+        // "Generate New QR": two-tap confirm before it fires, since this
         // instantly invalidates any old printed QR the moment it succeeds.
         regenQrBtn?.addEventListener('click', () => {
             if (!qrArmed) {
@@ -1604,8 +722,8 @@
                 }),
             })
             .then(async (res) => {
-                // Read as text first, so a server crash (500 page, 419 CSRF
-                // page, etc.) still shows something useful in the toast.
+                // Read as text first, so a server crash (500 page, 419 CSRF page, etc.)
+                // still shows something useful in the toast.
                 const raw = await res.text();
                 let data = {};
                 try { data = JSON.parse(raw); } catch (e) { /* not JSON */ }
@@ -1626,7 +744,7 @@
                         text: data.url,
                         width: 220,
                         height: 220,
-                        colorDark: '#221A2B',
+                        colorDark: '#0F172A',
                         colorLight: '#ffffff',
                     });
                 }
@@ -1646,13 +764,37 @@
             if (e.key === 'Escape') {
                 if (qrOverlay.classList.contains('active')) closeQrModal();
                 if (clearAllOverlay.classList.contains('active')) closeClearAllModal();
+                if (areaOverlay && areaOverlay.classList.contains('active')) closeAreaModal();
             }
         });
 
-        // ── Clear All Attendance — custom confirm modal ──
+        // ── Assign Areas modal ──
+        const areaOverlay = document.getElementById('areaOverlay');
+
+        function openAreaModal() {
+            if (!areaOverlay) return;
+            areaOverlay.classList.add('active');
+            areaOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAreaModal() {
+            if (!areaOverlay) return;
+            areaOverlay.classList.remove('active');
+            areaOverlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('openAreaBtn')?.addEventListener('click', openAreaModal);
+        document.getElementById('closeAreaModal')?.addEventListener('click', closeAreaModal);
+        document.getElementById('cancelAreaModal')?.addEventListener('click', closeAreaModal);
+        areaOverlay?.addEventListener('click', (e) => {
+            if (e.target === areaOverlay) closeAreaModal();
+        });
+
+        // ── Clear All Attendance: custom confirm modal ──
         const clearAllOverlay = document.getElementById('clearAllOverlay');
         const openClearAllBtn = document.getElementById('openClearAllBtn');
-        const closeClearAllModalBtn = document.getElementById('closeClearAllModal');
         const cancelClearAllBtn = document.getElementById('cancelClearAll');
         const confirmClearAllBtn = document.getElementById('confirmClearAllBtn');
         const clearAllForm = document.getElementById('clearAllForm');
@@ -1670,13 +812,12 @@
         }
 
         openClearAllBtn?.addEventListener('click', openClearAllModal);
-        closeClearAllModalBtn?.addEventListener('click', closeClearAllModal);
         cancelClearAllBtn?.addEventListener('click', closeClearAllModal);
         clearAllOverlay?.addEventListener('click', (e) => {
             if (e.target === clearAllOverlay) closeClearAllModal();
         });
 
-        // Only this click actually submits the form — a plain click on
+        // Only this click actually submits the form. A plain click on
         // "Clear All" in the toolbar just opens the modal above.
         confirmClearAllBtn?.addEventListener('click', () => {
             confirmClearAllBtn.disabled = true;
@@ -1688,6 +829,7 @@
         (function() {
             const searchInput = document.getElementById('employeeSearch');
             const categoryFilter = document.getElementById('categoryFilter');
+            const areaFilter = document.getElementById('areaFilter');
             const lateToggle = document.getElementById('filterLate');
             const otToggle = document.getElementById('filterOvertime');
             const clearBtn = document.getElementById('filterClear');
@@ -1701,7 +843,7 @@
 
             let groups = [];
 
-            // Ginagawa ulit tuwing napapalitan ang table (live update).
+            // Rebuilt every time the table is replaced (live update).
             function rebuildGroups() {
                 tbody = document.querySelector('.table-box table tbody');
                 noMatchRow = document.getElementById('noMatchRow');
@@ -1711,10 +853,7 @@
                 let current = null;
                 Array.from(tbody.children).forEach(function(tr) {
                     if (tr.classList.contains('category-row')) {
-                        current = {
-                            catRow: tr,
-                            rows: []
-                        };
+                        current = { catRow: tr, rows: [] };
                         groups.push(current);
                     } else if (current && tr.dataset.name !== undefined) {
                         current.rows.push(tr);
@@ -1726,12 +865,14 @@
             function getMatches() {
                 const q = (searchInput.value || '').trim().toLowerCase();
                 const cat = categoryFilter.value || '';
+                const area = areaFilter.value || '';
                 const wantLate = lateToggle.classList.contains('active');
                 const wantOT = otToggle.classList.contains('active');
                 const matches = [];
                 groups.forEach(g => g.rows.forEach(row => {
                     const ok = (!q || row.dataset.name.indexOf(q) !== -1) &&
                         (!cat || row.dataset.category === cat) &&
+                        (!area || row.dataset.area === area) &&
                         (!wantLate || row.dataset.late === '1') &&
                         (!wantOT || row.dataset.overtime === '1');
                     if (ok) matches.push(row);
@@ -1747,13 +888,11 @@
                 }
                 paginationEl.style.display = 'flex';
                 let html = `<span class="pagination-info">Page ${currentPage} of ${totalPages}</span>`;
-                html +=
-                    `<button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo; Prev</button>`;
+                html += `<button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo; Prev</button>`;
                 for (let p = 1; p <= totalPages; p++) {
                     html += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
                 }
-                html +=
-                    `<button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next &raquo;</button>`;
+                html += `<button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next &raquo;</button>`;
                 paginationEl.innerHTML = html;
                 paginationEl.querySelectorAll('button[data-page]').forEach(b => {
                     b.addEventListener('click', () => {
@@ -1791,6 +930,7 @@
 
             searchInput.addEventListener('input', applyFilters);
             categoryFilter.addEventListener('change', applyFilters);
+            areaFilter.addEventListener('change', applyFilters);
             lateToggle.addEventListener('click', () => {
                 lateToggle.classList.toggle('active');
                 applyFilters();
@@ -1802,13 +942,14 @@
             clearBtn.addEventListener('click', () => {
                 searchInput.value = '';
                 categoryFilter.value = '';
+                areaFilter.value = '';
                 lateToggle.classList.remove('active');
                 otToggle.classList.remove('active');
                 applyFilters();
             });
 
-            // Tinatawag ng live update pagkatapos mapalitan ang table.
-            // Nananatili ang search, filters at page number.
+            // Called by the live update after the table is replaced.
+            // The search, filters and page number are preserved.
             window.attendanceRefresh = function() {
                 rebuildGroups();
                 render();
@@ -1817,7 +958,7 @@
             render();
         })();
 
-        // ===== LIVE UPDATE: kusang nag-a-update ang sheet kapag may nag-Time In / Time Out =====
+        // ===== LIVE UPDATE: the sheet refreshes itself whenever someone Times In / Times Out =====
         (function() {
             const SIG_URL = "{{ route('attendance.live') }}?period={{ $periodStart->format('Y-m-d') }}";
             const PAGE_URL = "{{ route('attendance') }}?period={{ $periodStart->format('Y-m-d') }}";
@@ -1865,7 +1006,7 @@
 
                     const data = await res.json();
 
-                    // Unang tawag: itala lang ang kasalukuyang estado.
+                    // First call: just record the current state.
                     if (lastSig === null) {
                         lastSig = data.sig;
                         return;
@@ -1875,14 +1016,14 @@
                         const ok = await refreshSheet();
                         if (ok) {
                             lastSig = data.sig;
-                            showToast('May bagong attendance. Na-update na ang sheet.', 'success', {
+                            showToast('New attendance recorded. The sheet has been updated.', 'success', {
                                 title: 'Live update',
                                 duration: 2500
                             });
                         }
                     }
                 } catch (e) {
-                    // Walang internet sandali o nag-restart ang server; subukan ulit sa susunod.
+                    // Brief network loss or the server restarted; try again on the next poll.
                 } finally {
                     busy = false;
                 }

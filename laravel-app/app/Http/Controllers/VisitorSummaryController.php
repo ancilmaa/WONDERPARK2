@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use Illuminate\Http\Request;
 use App\Models\SiteVisit;
-use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class VisitorSummaryController extends Controller
 {
-    // Added '0-12' so young children (e.g. 5-8 y/o at Dino Adventure) have a
-    // bracket to fall into. Without this bracket they either get silently
-    // dropped or lumped into 'Unknown'.
     protected array $ageBrackets = [
         '0-12'  => [0, 12],
         '13-17' => [13, 17],
@@ -23,15 +21,17 @@ class VisitorSummaryController extends Controller
         '55+'   => [55, 200],
     ];
 
-    // Keyed by the actual raw value stored in bookings.service (confirmed via screenshot: snake_case slugs)
+    // Keyed by the raw value stored in bookings.service
     protected array $attractionMeta = [
-        'field_of_rides'  => ['name' => 'Field of Rides',  'icon' => 'fa-circle-half-stroke', 'color' => '#4C6FFF'],
-        'dino_adventure'  => ['name' => 'Dino Adventure',  'icon' => 'fa-water',              'color' => '#1FA37A'],
-        'rollerfever'     => ['name' => 'Roller Fever',    'icon' => 'fa-bolt',                'color' => '#FF7A45'],
+        'field_of_rides' => ['name' => 'Field of Rides', 'icon' => 'fa-circle-half-stroke', 'color' => '#4C6FFF'],
+        'dino_adventure' => ['name' => 'Dino Adventure', 'icon' => 'fa-water',              'color' => '#1FA37A'],
+        'rollerfever'    => ['name' => 'Roller Fever',   'icon' => 'fa-bolt',               'color' => '#FF7A45'],
     ];
 
-    // Each age bracket maps to a LIST of promo variants so different
-    // attractions sharing the same top bracket don't show identical promos.
+    // Possible columns in `users` that hold the visitor's place (first one found is used).
+    // Palitan/dagdagan ayon sa aktwal na column mo.
+    protected array $placeColumnCandidates = ['city', 'municipality', 'address', 'province'];
+
     protected array $promoPlaybook = [
         '0-12' => [
             ['title' => 'Kiddie Explorer Bundle', 'desc' => 'Bundle in extra playground/slide access — most of this group are young children who love repeat play.'],
@@ -39,7 +39,7 @@ class VisitorSummaryController extends Controller
         ],
         '13-17' => [
             ['title' => 'Student Squad Promo', 'desc' => 'Offer a discounted weekday rate for school groups of 10+ pax to fill mid-week slots with this bracket.'],
-            ['title' => 'Field Trip Rate',      'desc' => 'Pitch a bulk-booking group rate to schools targeting this attraction for organized outings.'],
+            ['title' => 'Field Trip Rate',     'desc' => 'Pitch a bulk-booking group rate to schools targeting this attraction for organized outings.'],
         ],
         '18-24' => [
             ['title' => 'Barkada Bundle',             'desc' => 'Push a 4-6 pax group package with a free photo pass — this age group books in groups and shares on social media.'],
@@ -71,122 +71,69 @@ class VisitorSummaryController extends Controller
         $days = (int) $request->get('days', 30);
         $from = now()->subDays($days);
 
+        // Detect which "place" column exists in users (avoids SQL errors).
+        $placeColumn = collect($this->placeColumnCandidates)
+            ->first(fn ($c) => Schema::hasColumn('users', $c));
+        $placeSelect = $placeColumn ? "users.`{$placeColumn}`" : 'NULL';
+
         $bookings = Booking::query()
-            // A booking can come from either the customer flow (user_id) or
-            // the admin/reservations flow (customer_id) — both point to
-            // users.user_id, so match on whichever one is set.
-            ->leftJoin('users', function ($join) {
-                $join->on('users.user_id', '=', 'bookings.customer_id')
-                     ->orOn('users.user_id', '=', 'bookings.user_id');
-            })
-            // Filter on the actual visit/reservation date, not created_at,
-            // to match what the Reservations page shows for this range.
+            // One join on whichever id is set -> no duplicate rows (the old orOn could duplicate).
+            ->leftJoin('users', 'users.user_id', '=', DB::raw('COALESCE(bookings.customer_id, bookings.user_id)'))
             ->whereRaw('COALESCE(bookings.reservation_date, bookings.visit_date) >= ?', [$from->toDateString()])
             ->select('bookings.*', 'users.age as user_age', 'users.email as user_email')
+            ->addSelect(DB::raw("{$placeSelect} as user_place"))
             ->addSelect(DB::raw('COALESCE(bookings.customer_name, users.fullname) as resolved_customer_name'))
             ->addSelect(DB::raw('COALESCE(bookings.customer_id, bookings.user_id) as resolved_user_id'))
             ->orderByDesc('bookings.created_at')
             ->get();
 
         $totalOnlineBookings = $bookings->count();
-        $totalVisitors = SiteVisit::where('last_seen_at', '>=', $from)->count();
 
-        // --- Age distribution (now counts PEOPLE, not bookings) ---
-        $overallAgeCounts = $this->ageCountsForBookings($bookings);
-        $totalPeopleCounted = array_sum($overallAgeCounts);
-
-        $ageDistribution = collect($overallAgeCounts)
-            ->filter(fn ($count, $label) => $label !== 'Unknown' || $count > 0)
-            ->map(function ($count, $label) use ($totalPeopleCounted) {
-                return [
-                    'label'      => $label,
-                    'count'      => $count,
-                    'percentage' => $totalPeopleCounted > 0 ? round(($count / $totalPeopleCounted) * 100, 1) : 0,
-                ];
-            })
-            ->values();
-
-        $topOverallAgeGroup = $ageDistribution->sortByDesc('count')->first()['label'] ?? '—';
-
+        // ---------- Attraction ranking ----------
         $attractionRanking = $bookings
             ->groupBy('service')
             ->map(function ($group, $serviceCode) {
-                $meta = $this->attractionMeta[$serviceCode] ?? [
-                    'name'  => $serviceCode ? $this->prettifyPackageCode($serviceCode) : 'Other',
-                    'icon'  => 'fa-ticket',
-                    'color' => '#6B7280',
-                ];
+                $meta = $this->metaFor($serviceCode);
 
-                $groupAgeCounts = $this->ageCountsForBookings($group);
-
-                $ageBreakdown = collect($groupAgeCounts)
+                $ageBreakdown = collect($this->ageCountsForBookings($group))
                     ->filter(fn ($count, $label) => $label !== 'Unknown' || $count > 0)
                     ->map(fn ($count, $label) => ['label' => $label, 'count' => $count])
                     ->values();
 
-                $topAge = $ageBreakdown->sortByDesc('count')->first()['label'] ?? '—';
-
-                $packageBreakdown = $group
-                    ->groupBy('package')
-                    ->map(function ($pkgGroup, $packageCode) {
-                        return [
-                            'label' => $this->prettifyPackageCode($packageCode ?: 'Unspecified'),
-                            'count' => $pkgGroup->count(),
-                        ];
-                    })
-                    ->sortByDesc('count')
-                    ->values();
-
-                $topPackage = $packageBreakdown->first()['label'] ?? '—';
-                $maxPackageCount = $packageBreakdown->first()['count'] ?? 0;
-                $totalBookings = $group->count();
+                $total = $group->count();
 
                 return [
-                    'name'              => $meta['name'],
-                    'icon'              => $meta['icon'],
-                    'color'             => $meta['color'],
-                    // 'bookings' is what the view reads; 'total_bookings' kept
-                    // for internal use further down (sorting, service pie, promos).
-                    'bookings'          => $totalBookings,
-                    'total_bookings'    => $totalBookings,
-                    'top_age_group'     => $topAge,
-                    'top_package'       => $topPackage,
-                    'package_breakdown' => $packageBreakdown->take(3)->values(),
-                    'max_package_count' => $maxPackageCount ?: 1,
+                    'name'           => $meta['name'],
+                    'icon'           => $meta['icon'],
+                    'color'          => $meta['color'],
+                    'bookings'       => $total,
+                    'total_bookings' => $total,
+                    'top_age_group'  => $ageBreakdown->sortByDesc('count')->first()['label'] ?? '—',
                 ];
             })
             ->sortByDesc('total_bookings')
             ->values();
 
-        $topAttraction = $attractionRanking->first()['name'] ?? '—';
-
-        // Service distribution for the pie chart — percentage + raw count per service.
         $serviceDistribution = $attractionRanking
-            ->map(function ($a) use ($totalOnlineBookings) {
-                return [
-                    'name'       => $a['name'],
-                    'count'      => $a['total_bookings'],
-                    'percentage' => $totalOnlineBookings > 0
-                        ? round(($a['total_bookings'] / $totalOnlineBookings) * 100, 1)
-                        : 0,
-                    'color'      => $a['color'],
-                ];
-            })
+            ->map(fn ($a) => [
+                'name'       => $a['name'],
+                'count'      => $a['total_bookings'],
+                'percentage' => $totalOnlineBookings > 0
+                    ? round(($a['total_bookings'] / $totalOnlineBookings) * 100, 1)
+                    : 0,
+                'color'      => $a['color'],
+            ])
             ->values();
 
-        // Most-availed packages overall (across all services), ranked 1-5.
+        // ---------- Package ranking (per service, NOT limited to top 5 overall) ----------
         $packageRanking = $bookings
-            ->groupBy('package')
-            ->map(function ($group, $packageCode) {
-                $dominantService = $group->pluck('service')->countBy()->sortDesc()->keys()->first();
-                $meta = $this->attractionMeta[$dominantService] ?? [
-                    'name'  => $dominantService ? $this->prettifyPackageCode($dominantService) : 'Other',
-                    'icon'  => 'fa-ticket',
-                    'color' => '#6B7280',
-                ];
+            ->groupBy(fn ($b) => ($b->service ?: 'other') . '|' . ($b->package ?: 'Unspecified'))
+            ->map(function ($group) {
+                $first = $group->first();
+                $meta  = $this->metaFor($first->service);
 
                 return [
-                    'package' => $this->prettifyPackageCode($packageCode ?: 'Unspecified'),
+                    'package' => $this->prettifyPackageCode($first->package ?: 'Unspecified'),
                     'service' => $meta['name'],
                     'color'   => $meta['color'],
                     'icon'    => $meta['icon'],
@@ -194,20 +141,43 @@ class VisitorSummaryController extends Controller
                 ];
             })
             ->sortByDesc('count')
-            ->take(5)
             ->values();
 
-        // Pick a promo variant per attraction based on its top age bracket
-        // (which now reflects actual attendees when age_breakdown is filled
-        // in, not just the booker's account age). Uses a stable hash of the
-        // attraction name so the SAME attraction always shows the SAME promo
-        // across refreshes.
+        // ---------- Origins per service (taga-saan) ----------
+        $originsByService = $bookings
+            ->groupBy(fn ($b) => $this->metaFor($b->service)['name'])
+            ->map(fn ($group) => $group
+                ->groupBy(fn ($b) => $this->cleanPlace($b->user_place))
+                ->map(fn ($g, $place) => ['place' => $place, 'count' => $g->count()])
+                ->sortByDesc('count')
+                ->values()
+                ->all()
+            )
+            ->all();
+
+        // ---------- Top online bookers ----------
+        $topBookers = $bookings
+            ->groupBy(fn ($b) => $b->resolved_user_id ?: ($b->user_email ?: $b->resolved_customer_name))
+            ->map(function ($g) {
+                $b = $g->first();
+                return [
+                    'name'         => $b->resolved_customer_name ?: ('Visitor #' . $b->resolved_user_id),
+                    'email'        => $b->user_email,
+                    'place'        => $this->cleanPlace($b->user_place, null),
+                    'bookings'     => $g->count(),
+                    'last_booking' => $g->max('created_at'),
+                ];
+            })
+            ->sortByDesc('bookings')
+            ->take(10)
+            ->values();
+
+        // ---------- Promo recommendations ----------
         $recommendations = $attractionRanking
             ->filter(fn ($a) => $a['total_bookings'] > 0 && isset($this->promoPlaybook[$a['top_age_group']]))
             ->map(function ($a) {
                 $variants = $this->promoPlaybook[$a['top_age_group']];
-                $index = crc32($a['name']) % count($variants);
-                $promo = $variants[$index];
+                $promo = $variants[crc32($a['name']) % count($variants)];
 
                 return [
                     'attraction' => $a['name'],
@@ -220,50 +190,42 @@ class VisitorSummaryController extends Controller
             })
             ->values();
 
-        // Visitors currently considered "online" — anyone with a site_visits
-        // heartbeat in the last 5 minutes, matched by user id.
-        $onlineUserIds = SiteVisit::where('last_seen_at', '>=', now()->subMinutes(5))
-            ->pluck('user_id')
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        // ---------- Visitor logins ----------
+        $recentSince = now()->subMinutes(5);
 
-        // Only reservations that haven't happened yet (today or a future
-        // date) belong in the "Recent Visitor Logins" panel — a booking
-        // dated before today is already done, so exclude it here.
+        $onlineUserIds = SiteVisit::where('last_seen_at', '>=', $recentSince)
+            ->pluck('user_id')->filter()->unique()->values()->all();
+
+        // Real last activity per user (falls back to booking created_at).
+        $lastSeenByUser = SiteVisit::whereNotNull('user_id')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, MAX(last_seen_at) as last_seen')
+            ->pluck('last_seen', 'user_id');
+
         $today = now()->startOfDay();
         $upcomingBookings = $bookings->filter(function ($b) use ($today) {
             $date = $b->reservation_date ?? $b->visit_date;
-            if (!$date) {
-                return false;
-            }
-
-            return \Carbon\Carbon::parse($date)->startOfDay()->gte($today);
+            return $date && Carbon::parse($date)->startOfDay()->gte($today);
         });
 
-        // One row per visitor (not per booking). Bookings are already ordered
-        // newest-first, so grouping by identity and taking the first item in
-        // each group keeps that visitor's most recent upcoming login/booking only.
         $visitorLogins = $upcomingBookings
-            ->groupBy(function ($b) {
-                // Prefer a stable identity: user id, then email, then name.
-                return $b->resolved_user_id ?: ($b->user_email ?: $b->resolved_customer_name);
-            })
-            ->map(function ($group) use ($onlineUserIds) {
+            ->groupBy(fn ($b) => $b->resolved_user_id ?: ($b->user_email ?: $b->resolved_customer_name))
+            ->map(function ($group) use ($onlineUserIds, $lastSeenByUser) {
                 $b = $group->first();
                 $name = $b->resolved_customer_name ?: ('Visitor #' . $b->resolved_user_id);
+
+                $lastSeen = $b->resolved_user_id ? ($lastSeenByUser[$b->resolved_user_id] ?? null) : null;
+                $lastLogin = $lastSeen ? Carbon::parse($lastSeen) : $b->created_at;
 
                 return [
                     'id'             => $b->id,
                     'name'           => $name,
                     'initials'       => $this->initialsFromName($name),
                     'email'          => $b->user_email,
-                    'age_group'      => $this->resolveAgeGroup($b->user_age) ?? 'Unknown',
-                    'last_login'     => optional($b->created_at)->format('M d, Y h:i A'),
+                    'last_login'     => optional($lastLogin)->format('M d, Y h:i A'),
                     'online'         => $b->resolved_user_id ? in_array($b->resolved_user_id, $onlineUserIds) : false,
                     'reservation_id' => $b->id,
-                    '_sort'          => $b->created_at,
+                    '_sort'          => $lastLogin,
                 ];
             })
             ->sortByDesc('_sort')
@@ -271,56 +233,43 @@ class VisitorSummaryController extends Controller
             ->map(fn ($v) => collect($v)->except('_sort')->all())
             ->values();
 
-        $newAccounts = User::where('created_at', '>=', $from)->get();
-        $totalNewAccounts = $newAccounts->count();
-
-        $accountAgeDistribution = collect($this->ageBrackets)
-            ->map(function ($range, $label) use ($newAccounts) {
-                [$min, $max] = $range;
-                return [
-                    'label' => $label,
-                    'count' => $newAccounts->filter(fn ($u) => $this->ageInRange($u->age, $min, $max))->count(),
-                ];
-            })
-            ->values();
-
-        $unknownNewAccountAge = $newAccounts->filter(fn ($u) => $this->resolveAgeGroup($u->age) === null)->count();
-        if ($unknownNewAccountAge > 0) {
-            $accountAgeDistribution->push(['label' => 'Unknown', 'count' => $unknownNewAccountAge]);
-        }
-
         return view('customer.visitor-summary', compact(
             'days',
             'totalOnlineBookings',
-            'totalVisitors',
-            'topOverallAgeGroup',
-            'topAttraction',
             'attractionRanking',
             'serviceDistribution',
             'packageRanking',
+            'originsByService',
+            'topBookers',
             'recommendations',
-            'visitorLogins',
-            'totalNewAccounts',
-            'accountAgeDistribution',
-            'ageDistribution'
+            'visitorLogins'
         ));
     }
 
     public function liveCount()
     {
-        $onlineSince = now()->subMinutes(5);
-
         return response()->json([
-            'online_now' => SiteVisit::where('last_seen_at', '>=', $onlineSince)->count(),
+            'online_now' => SiteVisit::where('last_seen_at', '>=', now()->subMinutes(5))->count(),
         ]);
     }
 
-    /**
-     * Sums per-bracket attendee counts across a collection of bookings.
-     * Each booking contributes via bookingAgeCounts() — either its real
-     * age_breakdown (preferred) or a 1-person fallback based on the
-     * booker's account age.
-     */
+    // ---------------------------------------------------------------- helpers
+
+    protected function metaFor(?string $serviceCode): array
+    {
+        return $this->attractionMeta[$serviceCode] ?? [
+            'name'  => $serviceCode ? $this->prettifyPackageCode($serviceCode) : 'Other',
+            'icon'  => 'fa-ticket',
+            'color' => '#6B7280',
+        ];
+    }
+
+    protected function cleanPlace($place, ?string $fallback = 'Unknown'): ?string
+    {
+        $place = trim((string) $place);
+        return $place !== '' ? $place : $fallback;
+    }
+
     protected function ageCountsForBookings($bookings): array
     {
         $labels = array_merge(array_keys($this->ageBrackets), ['Unknown']);
@@ -335,18 +284,6 @@ class VisitorSummaryController extends Controller
         return $totals;
     }
 
-    /**
-     * Returns [bracket_label => count] for ONE booking.
-     *
-     * If the booking has a filled-in age_breakdown (new bookings, once the
-     * form asks for it), that's used directly — it can represent multiple
-     * attendees across several brackets (e.g. 2 kids + 1 parent).
-     *
-     * Otherwise, falls back to the old behavior: count the booking as ONE
-     * person, bracketed by the account holder's age (users.age). This keeps
-     * every booking made before this feature existed working exactly as
-     * it did before.
-     */
     protected function bookingAgeCounts($booking): array
     {
         $labels = array_merge(array_keys($this->ageBrackets), ['Unknown']);
@@ -364,13 +301,8 @@ class VisitorSummaryController extends Controller
             return $counts;
         }
 
-        // Fallback: single person, bracketed by the account holder's age.
         $label = $this->resolveAgeGroup($booking->user_age);
-        if ($label !== null) {
-            $counts[$label] = 1;
-        } else {
-            $counts['Unknown'] = 1;
-        }
+        $counts[$label ?? 'Unknown'] = 1;
 
         return $counts;
     }
@@ -407,8 +339,7 @@ class VisitorSummaryController extends Controller
 
     protected function initialsFromName(string $name): string
     {
-        $parts = preg_split('/\s+/', trim($name));
-        $parts = array_filter($parts, fn ($p) => $p !== '');
+        $parts = array_values(array_filter(preg_split('/\s+/', trim($name)), fn ($p) => $p !== ''));
 
         if (empty($parts)) {
             return '?';
@@ -418,9 +349,6 @@ class VisitorSummaryController extends Controller
             return strtoupper(substr($parts[0], 0, 2));
         }
 
-        $first = strtoupper(substr(reset($parts), 0, 1));
-        $last  = strtoupper(substr(end($parts), 0, 1));
-
-        return $first . $last;
+        return strtoupper(substr($parts[0], 0, 1) . substr(end($parts), 0, 1));
     }
 }

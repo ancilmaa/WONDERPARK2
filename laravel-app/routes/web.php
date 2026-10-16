@@ -25,7 +25,8 @@ use App\Http\Controllers\BookingCmsController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Admin\SystemLogController;
 use App\Http\Controllers\Admin\MyAccountController;
-
+use App\Http\Controllers\AiPromoController;
+   Route::post('/ai/promo-suggest', [AiPromoController::class, 'suggest'])->name('ai.promo-suggest');
 // Landing page
 Route::get('/', function () {
     return view('landing', [

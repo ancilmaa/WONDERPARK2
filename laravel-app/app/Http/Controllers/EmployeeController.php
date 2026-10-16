@@ -5,9 +5,32 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    // Mga area para sa Team Leader at Staff. Ang Manager ay walang area.
+    private const AREAS = ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+
+    // Nilalagay/inaayos ang `area` bago i-save:
+    //  - Manager ay laging walang area.
+    //  - Kung wala pang `area` column (hindi pa nakapag-migrate), tinatanggal
+    //    ito para hindi mag-error ang pag-save.
+    private function applyArea(array $validated): array
+    {
+        if (!Schema::hasColumn('employees', 'area')) {
+            unset($validated['area']);
+
+            return $validated;
+        }
+
+        $isManager = ($validated['category'] ?? '') === 'Manager';
+        $validated['area'] = $isManager ? null : (($validated['area'] ?? null) ?: null);
+
+        return $validated;
+    }
+
     public function index(Request $request)
     {
         // Always fetch ALL (active and inactive) — the Active / Inactive
@@ -27,9 +50,17 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        // Sa bagong empleyado, kailangang may area ang Team Leader at Staff.
+        // (Hindi ito hinihingi kapag wala pang `area` column.)
+        $areaRules = ['nullable', Rule::in(self::AREAS)];
+        if (Schema::hasColumn('employees', 'area')) {
+            array_unshift($areaRules, 'required_if:category,Team Leader,Staff');
+        }
+
         $validated = $request->validate([
             'employee_name' => 'required|string|max:255|unique:employees,employee_name',
             'category' => 'required|in:Manager,Team Leader,Staff',
+            'area' => $areaRules,
             'date_hired' => 'nullable|date',
             // Optional at creation — HR can set it now or later from the
             // Edit form. Exactly 4 digits when provided.
@@ -37,6 +68,7 @@ class EmployeeController extends Controller
         ]);
 
         $validated['status'] = 'active';
+        $validated = $this->applyArea($validated);
 
         // Never store the PIN in plain text — hash it the same way a
         // password would be hashed. Left blank, pin_code simply stays
@@ -57,6 +89,7 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'employee_name' => 'required|string|max:255|unique:employees,employee_name,' . $employee->id,
             'category' => 'required|in:Manager,Team Leader,Staff',
+            'area' => ['nullable', Rule::in(self::AREAS)],
             'date_hired' => 'nullable|date',
             // Left blank, the employee's existing PIN is kept unchanged —
             // this form field is never pre-filled with the real PIN (it's
@@ -71,6 +104,8 @@ class EmployeeController extends Controller
             // Don't overwrite the existing hash with null/empty.
             unset($validated['pin_code']);
         }
+
+        $validated = $this->applyArea($validated);
 
         $employee->update($validated);
 
@@ -152,6 +187,14 @@ class EmployeeController extends Controller
         $nameIdx = array_search('employee_name', $header);
         $catIdx = array_search('category', $header);
         $dateIdx = array_search('date_hired', $header);
+        $areaIdx = array_search('area', $header);   // opsyonal na column
+
+        $hasAreaColumn = Schema::hasColumn('employees', 'area');
+        // lowercase => tamang pagkaka-spell, para tanggapin ang "field of rides" din
+        $areaLookup = [];
+        foreach (self::AREAS as $a) {
+            $areaLookup[strtolower($a)] = $a;
+        }
 
         if ($nameIdx === false || $catIdx === false) {
             fclose($handle);
@@ -170,6 +213,7 @@ class EmployeeController extends Controller
             $name = trim($row[$nameIdx] ?? '');
             $category = trim($row[$catIdx] ?? '');
             $dateHired = $dateIdx !== false ? trim($row[$dateIdx] ?? '') : null;
+            $areaRaw = $areaIdx !== false ? trim($row[$areaIdx] ?? '') : '';
 
             if ($name === '' || $category === '') {
                 $errors[] = "Row {$rowNum}: missing name or category.";
@@ -187,12 +231,27 @@ class EmployeeController extends Controller
                 continue;
             }
 
-            Employee::create([
+            // Area: para sa Team Leader at Staff lang. Kapag mali ang nakasulat,
+            // ise-save pa rin ang empleyado pero walang area, at ililista sa Issues.
+            $area = null;
+            if ($hasAreaColumn && $areaRaw !== '' && $category !== 'Manager') {
+                $area = $areaLookup[strtolower($areaRaw)] ?? null;
+                if ($area === null) {
+                    $errors[] = "Row {$rowNum}: unknown area '{$areaRaw}' (saved without area).";
+                }
+            }
+
+            $data = [
                 'employee_name' => $name,
                 'category' => $category,
                 'date_hired' => $dateHired ?: null,
                 'status' => 'active',
-            ]);
+            ];
+            if ($hasAreaColumn) {
+                $data['area'] = $area;
+            }
+
+            Employee::create($data);
 
             $inserted++;
         }

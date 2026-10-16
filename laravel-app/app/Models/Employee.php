@@ -14,6 +14,7 @@ class Employee extends Model
     protected $fillable = [
         'employee_name',
         'category',
+        'area',          // Field of Rides / Dino Adventure / Roller Skates (Manager = null)
         'pin_code',
         'qr_token',
         'date_hired',

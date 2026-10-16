@@ -2,723 +2,171 @@
 
 @section('title', 'Salary and Deductions')
 
-@push('head')
-    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap"
-        rel="stylesheet">
-@endpush
-
 @section('styles')
+    @include('partials.ui-theme')
     <style>
-        :root {
-            --danger: #B82850;
-            --danger-soft: #FFE3EB;
-        }
+        html { scroll-behavior: auto; }
+        #salary-summary { scroll-margin-top: 90px; }
 
-        .serif {
-            font-family: 'Source Serif 4', serif;
-        }
-
-        .toolbar {
-            background: var(--card);
-            padding: 22px 26px;
-            margin-bottom: 20px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .toolbar .eyebrow {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .09em;
-            margin-bottom: 6px;
-        }
-
-        .toolbar h2 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        #toast {
-            position: fixed;
-            top: 24px;
-            left: 50%;
-            transform: translate(-50%, -12px);
-            z-index: 9999;
-            max-width: min(420px, calc(100vw - 40px));
-            padding: 14px 20px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 500;
-            line-height: 1.4;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-            display: none;
-            opacity: 0;
-            transition: opacity .2s ease, transform .2s ease;
-        }
-
-        #toast.show {
-            display: block;
-            opacity: 1;
-            transform: translate(-50%, 0);
-        }
-
-        #toast.success {
-            background: var(--ink);
-            color: #fff;
-            border-left: 4px solid var(--pink);
-        }
-
-        #toast.error {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        .pagination {
-            display: none;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            padding-top: 18px;
-            margin-top: 6px;
-            border-top: 1px solid var(--line);
-        }
-
-        .pagination-info {
-            font-size: 11.5px;
-            color: var(--muted);
-            margin-right: 6px;
-        }
-
-        .pagination button {
-            min-width: 30px;
-            padding: 7px 10px;
-            border: 1px solid var(--line-strong);
-            background: #fff;
-            color: var(--ink-soft);
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .pagination button.active {
-            background: var(--pink-deep);
-            border-color: var(--pink-deep);
-            color: #fff;
-        }
-
-        .pagination button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .box {
-            background: var(--card);
-            padding: 26px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .box h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .rate-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin-bottom: 18px;
-        }
-
+        /* ---- Daily rate settings ---- */
+        .rate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
         .rate-box {
             border: 1px solid var(--line);
             border-radius: 14px;
-            padding: 16px;
+            padding: 12px 14px;
             min-width: 0;
             background: var(--bg);
         }
-
-        .pos-badge {
-            display: inline-block;
-            padding: 3px 11px;
-            border-radius: 999px;
-            font-size: 10.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin-bottom: 10px;
-        }
-
-        .pos-manager {
-            background: var(--ink);
-            color: #fff;
-        }
-
-        .pos-tl {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-        }
-
-        .pos-staff {
-            background: var(--card);
-            color: var(--ink-soft);
-            border: 1px solid var(--line-strong);
-        }
-
+        .rate-box .badge { margin-bottom: 8px; }
         .rate-box label {
             font-size: 10.5px;
             font-weight: 700;
             color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: .8px;
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
-
-        .rate-input-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .rate-input-row span {
-            font-family: 'Source Serif 4', serif;
-            font-size: 15px;
-            color: var(--ink-soft);
-        }
-
+        .rate-input-row { display: flex; align-items: center; gap: 6px; }
+        .rate-input-row span { font-family: var(--font-display); font-size: 15px; color: var(--ink-soft); }
         .rate-input-row input {
-            padding: 9px 10px;
+            padding: 6px 10px;
             border: 1px solid var(--line-strong);
             border-radius: 10px;
             font-size: 15px;
             font-weight: 700;
-            font-family: 'Source Serif 4', serif;
+            font-family: var(--font-display);
             color: var(--ink);
             background: var(--card);
             width: 100%;
             min-width: 0;
         }
+        .rate-note { font-size: 11px; color: var(--muted); margin-top: 10px; }
+        .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn-divider { width: 1px; height: 36px; background: var(--line); flex-shrink: 0; }
 
-        .rate-note {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 14px;
-        }
+        table { min-width: 960px; }
 
-        .btn-row {
+        /* ---- Generate Salary modal ---- */
+        .modal-card.wide { max-width: 560px; }
+        .modal-body .form-group { margin-bottom: 14px; }
+
+        .govt-status {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn-divider {
-            width: 1px;
-            height: 36px;
-            background: var(--line);
-            flex-shrink: 0;
-        }
-
-        .btn-save {
-            background: var(--pink-deep);
-            color: #fff;
-            border: none;
-            padding: 12px 22px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            transition: background .15s ease, box-shadow .15s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-save:hover {
-            background: var(--pink-dark);
-            box-shadow: 0 0 0 3px var(--pink-light);
-        }
-
-        .btn-save:disabled {
-            opacity: 0.75;
-            cursor: not-allowed;
-            background: var(--ink);
-        }
-
-        .btn-generate {
-            background: #fff;
-            color: var(--ink);
+            padding: 10px 14px;
+            margin-bottom: 14px;
             border: 1px solid var(--line-strong);
-            padding: 12px 22px;
             border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        .btn-generate:hover {
             background: var(--bg);
-            border-color: var(--pink);
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 13px;
-            height: 13px;
-            border: 2px solid rgba(255, 255, 255, .4);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin .6s linear infinite;
-            margin-right: 8px;
-            vertical-align: -2px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .table-scroll {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 960px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        th {
-            background: var(--ink);
-            color: #fff;
-            padding: 11px 12px;
-            text-align: left;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid var(--line);
-            font-size: 12.5px;
-            color: var(--ink-soft);
-            white-space: nowrap;
-        }
-
-        td strong {
-            color: var(--ink);
-            font-weight: 600;
-        }
-
-        tbody tr:hover:not(.category-row) {
-            background: var(--pink-pale);
-        }
-
-        .money {
-            color: var(--present);
-            font-weight: 700;
-        }
-
-        .deduction {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        .muted {
-            color: var(--muted);
-        }
-
-        .category-row td {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-            font-weight: 700;
-            font-size: 10.5px;
-            padding: 8px 14px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            border-top: 1px solid var(--line-strong);
-            border-bottom: 1px solid var(--line-strong);
-        }
-
-        .btn-payslip {
-            background: #fff;
-            color: var(--ink);
-            border: 1px solid var(--line-strong);
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: background .15s ease, border-color .15s ease;
-            white-space: nowrap;
-        }
-
-        .btn-payslip:hover {
-            background: var(--pink-pale);
-            border-color: var(--pink);
-            color: var(--pink-deep);
-        }
-
-        .card-list {
-            display: none;
-        }
-
-        .salary-card {
-            background: var(--bg);
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            padding: 14px 16px;
-            margin-bottom: 10px;
-        }
-
-        .salary-card:last-child {
-            margin-bottom: 0;
-        }
-
-        .salary-card-name {
-            font-family: 'Source Serif 4', serif;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 10px;
-        }
-
-        .salary-card-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 12px;
-        }
-
-        .scg-label {
-            font-size: 9.5px;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        }
-
-        .scg-val {
             font-size: 13px;
             font-weight: 600;
             color: var(--ink);
-            margin-top: 2px;
+            line-height: 1.4;
         }
+        .govt-status small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+        .govt-status.is-on { background: var(--danger-soft); border-color: var(--danger); }
+        .govt-status.is-on .govt-icon { color: var(--danger); }
+        .govt-status.is-off .govt-icon { color: var(--muted); }
 
-        .scg-val.is-deduct {
-            color: var(--danger);
-        }
-
-        .scg-val.is-muted {
-            color: var(--muted);
-        }
-
-        .scg-val.is-present {
-            color: var(--present);
-            font-size: 15px;
-        }
-
-        .card-category-label {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            padding: 10px 0 6px;
-        }
-
-        .salary-card-footer {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding-top: 10px;
-            margin-top: 10px;
-            border-top: 1px dashed var(--line-strong);
-        }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(26, 21, 35, .55);
-            z-index: 200;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-box {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 26px;
-            max-width: 560px;
-            width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow-md);
-        }
-
-        .modal-box h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 17px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 6px;
-        }
-
-        .modal-sub {
-            font-size: 12px;
-            color: var(--muted);
-            margin-bottom: 18px;
-        }
-
-        .holiday-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
+        .holiday-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 14px; }
         .holiday-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border: 1px solid var(--line);
             border-radius: 10px;
             background: var(--bg);
         }
-
-        .holiday-row .day-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-        .holiday-row select {
-            padding: 7px 10px;
-            border: 1px solid var(--line-strong);
-            border-radius: 8px;
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            color: var(--ink-soft);
-            background: #fff;
-            cursor: pointer;
-            min-width: 150px;
-        }
-
-        .holiday-row select.marked {
-            border-color: var(--pink);
-            color: var(--pink-deep);
-            font-weight: 600;
-            background: var(--pink-pale);
-        }
-
-        .modal-note {
-            font-size: 11px;
+        .holiday-row .hol-info { display: flex; flex-direction: column; min-width: 0; }
+        .holiday-row .day-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+        .holiday-row .hol-name { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+        .holiday-empty {
+            padding: 12px;
+            border: 1px dashed var(--line-strong);
+            border-radius: 10px;
+            background: var(--bg);
             color: var(--muted);
-            margin-bottom: 18px;
-            line-height: 1.5;
+            font-size: 12.5px;
+            text-align: center;
         }
+        .hl-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+        .hl-regular { background: var(--danger-soft); color: var(--danger); }
+        .hl-special { background: var(--pink-light); color: var(--pink-deep); }
+        .holiday-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .modal-note { font-size: 11px; color: var(--muted); line-height: 1.6; }
 
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .btn-cancel {
-            background: #fff;
-            color: var(--ink-soft);
-            border: 1px solid var(--line-strong);
-            padding: 11px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .btn-cancel:hover {
-            background: var(--bg);
-        }
-
-        .btn-confirm {
-            background: var(--ink);
-            color: #fff;
-            border: none;
-            padding: 11px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-confirm:hover {
-            background: #000;
-        }
-
-        .btn-confirm:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .cutoff-select-wrap {
-            margin-bottom: 18px;
-        }
-
-        .cutoff-select-wrap label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--ink);
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .cutoff-select-wrap select {
-            width: 100%;
-            padding: 9px 10px;
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            color: var(--ink-soft);
-            background: #fff;
-            cursor: pointer;
-        }
-
-        .govt-toggle-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            margin-bottom: 18px;
-            border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            background: var(--bg);
-        }
-
-        .govt-toggle-wrap input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--pink-deep);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .govt-toggle-wrap label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--ink);
-            cursor: pointer;
-            margin: 0;
-        }
-
-        @media(max-width:900px) {
-            .toolbar h2 {
-                font-size: 1.05rem;
-            }
-
-            .box {
-                padding: 16px;
-            }
-
-            .rate-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
-            .btn-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .btn-divider {
-                width: 100%;
-                height: 1px;
-            }
-
-            .btn-save,
-            .btn-generate {
-                width: 100%;
-            }
-
-            .table-scroll {
-                display: none;
-            }
-
-            .card-list {
-                display: block;
-            }
-
-            .holiday-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .holiday-row select {
-                min-width: 0;
-                width: 100%;
-            }
-        }
-
-        @media(max-width:520px) {
-            .salary-card-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+        @media (max-width: 900px) {
+            .rate-grid { grid-template-columns: 1fr; }
+            .btn-row { flex-direction: column; align-items: stretch; }
+            .btn-divider { width: 100%; height: 1px; }
+            .btn-row .btn-primary, .btn-row .btn-ghost { width: 100%; }
+            .holiday-row { flex-wrap: wrap; }
         }
     </style>
 @endsection
 
 @section('content')
 
-    <div class="toolbar">
-        <div class="eyebrow">Lipa Branch &middot; Salary and Deductions &middot; {{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }}</div>
-        <h2>Salary and Deductions</h2>
-    </div>
+    @php
+        // Area filter, read from the query string.
+        $area = request('area', '');
 
-    @if (session('success'))
-        <span id="flash-success" data-msg="{{ session('success') }}" style="display:none;"></span>
-    @endif
-    @if (session('error'))
-        <span id="flash-error" data-msg="{{ session('error') }}" style="display:none;"></span>
-    @endif
+        // The full list of areas comes from the employees table (not the filtered attendance),
+        // so the other areas stay available once one is selected.
+        $areas = collect();
+        try {
+            $areas = \Illuminate\Support\Facades\DB::table('employees')
+                ->whereNotNull('area')
+                ->where('area', '!=', '')
+                ->distinct()
+                ->pluck('area');
+        } catch (\Throwable $e) {
+            $areas = collect();
+        }
+        if ($areas->isEmpty()) {
+            $areas = collect($attendance->pluck('area'));
+        }
+        $areas = $areas
+            ->filter(fn($a) => $a && $a !== 'All areas')
+            ->unique()
+            ->sort()
+            ->values();
+        $shown = $area ? $attendance->where('area', $area) : $attendance;
+        $grouped = $shown->groupBy(fn($a) => $a->category ?? 'Staff');
+
+        // Cutoff type is automatic, based on today's date (day 1-15 = 1st, 16-31 = 2nd).
+        $autoCutoff = now()->day <= 15 ? '1st' : '2nd';
+
+        // SSS / PhilHealth / Pag-IBIG are deducted in one lump sum on the 2nd cutoff only.
+        $applyGovt = $autoCutoff === '2nd';
+
+        // Holidays from the `holidays` table (month of the payroll period).
+        $payrollDate = $periodStart ?? now();
+        $daysInMonth = $payrollDate->daysInMonth;
+
+        $holidayData = [];
+        try {
+            $holidayData = \App\Models\Holiday::whereYear('date', $payrollDate->year)
+                ->whereMonth('date', $payrollDate->month)
+                ->get()
+                ->mapWithKeys(fn($h) => [(int) $h->date->day => ['name' => $h->name, 'type' => $h->type]])
+                ->all();
+        } catch (\Throwable $e) {
+            // Table does not exist yet (not migrated) - no holidays will be shown.
+            $holidayData = [];
+        }
+    @endphp
+
+    <div class="toolbar">
+        <div>
+            <div class="eyebrow">Lipa Branch &middot; Salary and Deductions &middot; {{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }}@if ($area) &middot; {{ $area }}@endif</div>
+            <h2>Salary and Deductions</h2>
+        </div>
+    </div>
 
     <div class="box">
         <h3>Daily Rate Settings</h3>
@@ -726,7 +174,7 @@
             @csrf
             <div class="rate-grid">
                 <div class="rate-box">
-                    <span class="pos-badge pos-manager">Manager</span>
+                    <span class="badge badge--manager">Manager</span>
                     <label>Daily Rate</label>
                     <div class="rate-input-row">
                         <span>&#8369;</span>
@@ -735,17 +183,16 @@
                     </div>
                 </div>
                 <div class="rate-box">
-                    <span class="pos-badge pos-tl">Team Leader</span>
+                    <span class="badge badge--team-leader">Team Leader</span>
                     <label>Daily Rate</label>
                     <div class="rate-input-row">
                         <span>&#8369;</span>
                         <input type="number" name="rates[team_leader]"
-                            value="{{ $rates->get('team_leader')?->daily_rate ?? 0 }}" min="0" step="50"
-                            required>
+                            value="{{ $rates->get('team_leader')?->daily_rate ?? 0 }}" min="0" step="50" required>
                     </div>
                 </div>
                 <div class="rate-box">
-                    <span class="pos-badge pos-staff">Staff</span>
+                    <span class="badge badge--staff">Staff</span>
                     <label>Daily Rate</label>
                     <div class="rate-input-row">
                         <span>&#8369;</span>
@@ -756,9 +203,9 @@
             </div>
 
             <div class="btn-row">
-                <button type="submit" class="btn-save" id="btnSaveRates">Save Rates</button>
+                <button type="submit" class="btn-primary" id="btnSaveRates">Save Rates</button>
                 <div class="btn-divider"></div>
-                <button type="button" class="btn-generate" id="openHolidayModal">
+                <button type="button" class="btn-ghost" id="openHolidayModal">
                     &#9654; Generate Salary
                 </button>
             </div>
@@ -771,9 +218,16 @@
     </div>
 
     <div class="box">
-        <h3>Salary Summary</h3>
+        <h3 id="salary-summary">Salary Summary</h3>
 
-        @php $grouped = $attendance->groupBy(fn($a) => $a->category ?? 'Staff'); @endphp
+        <div class="area-chips" role="tablist" aria-label="Filter by area">
+            <a href="{{ request()->fullUrlWithQuery(['area' => null, 'page' => null]) }}#salary-summary"
+                class="area-chip {{ $area === '' ? 'active' : '' }}">All areas</a>
+            @foreach ($areas as $a)
+                <a href="{{ request()->fullUrlWithQuery(['area' => $a, 'page' => null]) }}#salary-summary"
+                    class="area-chip {{ $area === $a ? 'active' : '' }}">{{ $a }}</a>
+            @endforeach
+        </div>
 
         <div class="table-scroll">
             <table>
@@ -796,7 +250,7 @@
                 <tbody>
                     @php $idx = 0; @endphp
                     @forelse($grouped as $category => $group)
-                        <tr class="category-row">
+                        <tr class="category-row" @if ($idx >= 10) style="display:none" @endif>
                             <td colspan="12">{{ $category }}</td>
                         </tr>
                         @foreach ($group as $item)
@@ -805,10 +259,8 @@
                                 $daysWorked = $item->days_worked ?? 0;
                                 $dailyRate = $rates->get(strtolower(str_replace([' ', '-'], '_', $category)))?->daily_rate ?? 0;
                                 $basicPay = $sal ? $sal->basic_salary : $daysWorked * $dailyRate;
-                                // Deductions = everything that reduces net pay, including the
-                                // two attendance-related ones shown in their own columns below
-                                // (Late and Undertime — see AttendanceController for why these
-                                // are priced differently and no longer lumped into one number).
+                                // Deductions = everything that reduces net pay, including the two
+                                // attendance-related ones shown in their own columns (Late and Undertime).
                                 $totalDeductions = $sal
                                     ? $sal->deduction +
                                         ($sal->undertime_deduction ?? 0) +
@@ -818,41 +270,29 @@
                                         $sal->withholding_tax
                                     : 0;
                             @endphp
-                            <tr data-idx="{{ $idx++ }}">
+                            <tr data-idx="{{ $idx }}" @if ($idx >= 10) style="display:none" @endif>
+                                @php $idx++; @endphp
                                 <td><strong>{{ $item->name }}</strong></td>
                                 <td>{{ $daysWorked }}</td>
                                 <td>{{ '₱' . number_format($basicPay, 2) }}</td>
-                                <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}
-                                </td>
-                                <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}
-                                </td>
-                                <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}
-                                </td>
-                                <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
-                                </td>
+                                <td class="{{ $sal ? 'deduction' : 'muted' }}">{{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}</td>
+                                <td class="{{ $sal ? 'deduction' : 'muted' }}">{{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}</td>
+                                <td class="{{ $sal ? 'deduction' : 'muted' }}">{{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}</td>
+                                <td class="{{ $sal ? 'deduction' : 'muted' }}">{{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}</td>
                                 <td class="{{ $sal && $sal->deduction > 0 ? 'deduction' : 'muted' }}"
-                                    title="Naka-shift, dumating pagkatapos ng grace period">
+                                    title="Scheduled shift, arrived after the grace period">
                                     {{ '₱' . number_format($sal?->deduction ?? 0, 2) }}
                                 </td>
                                 <td class="{{ $sal && ($sal->undertime_deduction ?? 0) > 0 ? 'deduction' : 'muted' }}"
-                                    title="Hindi kumpleto ang shift (hal. walang shift na naka-assign pa)">
+                                    title="Incomplete shift (e.g., no shift assigned yet)">
                                     {{ '₱' . number_format($sal?->undertime_deduction ?? 0, 2) }}
                                 </td>
-                                <td class="{{ $sal ? 'deduction' : 'muted' }}">
-                                    {{ '₱' . number_format($totalDeductions, 2) }}
-                                </td>
-                                <td class="{{ $sal ? 'money' : 'muted' }}">
-                                    {{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}
-                                </td>
+                                <td class="{{ $sal ? 'deduction' : 'muted' }}">{{ '₱' . number_format($totalDeductions, 2) }}</td>
+                                <td class="{{ $sal ? 'money' : 'muted' }}">{{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}</td>
                                 <td>
                                     @if ($sal)
-                                        <a href="{{ route('payslip.show', $sal->id) }}" class="btn-payslip">
-                                            <i class="fa-regular fa-file-lines"></i>
-                                            View
+                                        <a href="{{ route('payslip.show', $sal->id) }}" class="btn-ghost btn-sm">
+                                            <i class="fa-regular fa-file-lines"></i> View
                                         </a>
                                     @else
                                         <span class="muted">-</span>
@@ -863,7 +303,11 @@
                     @empty
                         <tr>
                             <td colspan="12" style="text-align:center;padding:24px;color:var(--muted);">
-                                No records yet. Please import a Bio file first.
+                                @if ($area)
+                                    No records found for {{ $area }}.
+                                @else
+                                    No records yet. Please import a Bio file first.
+                                @endif
                             </td>
                         </tr>
                     @endforelse
@@ -874,7 +318,7 @@
         <div class="card-list">
             @php $cidx = 0; @endphp
             @forelse($grouped as $category => $group)
-                <div class="card-category-label">{{ $category }}</div>
+                <div class="card-category-label" @if ($cidx >= 10) style="display:none" @endif>{{ $category }}</div>
                 @foreach ($group as $item)
                     @php
                         $sal = $salaryMap->get($item->name);
@@ -890,7 +334,8 @@
                                 $sal->withholding_tax
                             : 0;
                     @endphp
-                    <div class="salary-card" data-idx="{{ $cidx++ }}">
+                    <div class="salary-card" data-idx="{{ $cidx }}" @if ($cidx >= 10) style="display:none" @endif>
+                        @php $cidx++; @endphp
                         <div class="salary-card-name">{{ $item->name }}</div>
                         <div class="salary-card-grid">
                             <div>
@@ -903,58 +348,41 @@
                             </div>
                             <div>
                                 <div class="scg-label">SSS</div>
-                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->sss_deduction ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">PhilHealth</div>
-                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->philhealth_deduction ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">Pag-IBIG</div>
-                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->pagibig_deduction ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">Withholding tax</div>
-                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->withholding_tax ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">Late</div>
-                                <div class="scg-val {{ $sal && $sal->deduction > 0 ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->deduction ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal && $sal->deduction > 0 ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->deduction ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">Undertime</div>
-                                <div class="scg-val {{ $sal && ($sal->undertime_deduction ?? 0) > 0 ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->undertime_deduction ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal && ($sal->undertime_deduction ?? 0) > 0 ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($sal?->undertime_deduction ?? 0, 2) }}</div>
                             </div>
                             <div>
                                 <div class="scg-label">Deductions</div>
-                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">
-                                    {{ '₱' . number_format($totalDeductions, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-deduct' : 'is-muted' }}">{{ '₱' . number_format($totalDeductions, 2) }}</div>
                             </div>
                             <div style="grid-column:1 / -1;">
                                 <div class="scg-label">Net salary</div>
-                                <div class="scg-val {{ $sal ? 'is-present' : 'is-muted' }}">
-                                    {{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}
-                                </div>
+                                <div class="scg-val {{ $sal ? 'is-present' : 'is-muted' }}">{{ '₱' . number_format($sal?->net_salary ?? 0, 2) }}</div>
                             </div>
                         </div>
                         @if ($sal)
                             <div class="salary-card-footer">
-                                <a href="{{ route('payslip.show', $sal->id) }}" class="btn-payslip">
-                                    <i class="fa-regular fa-file-lines"></i>
-                                    View payslip
+                                <a href="{{ route('payslip.show', $sal->id) }}" class="btn-ghost btn-sm">
+                                    <i class="fa-regular fa-file-lines"></i> View payslip
                                 </a>
                             </div>
                         @endif
@@ -962,81 +390,85 @@
                 @endforeach
             @empty
                 <p style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">
-                    No records yet. Please import a Bio file first.
+                    @if ($area)
+                        No records found for {{ $area }}.
+                    @else
+                        No records yet. Please import a Bio file first.
+                    @endif
                 </p>
             @endforelse
         </div>
 
         <div class="pagination" id="pagination"></div>
-
     </div>
 
+    {{-- Generate Salary modal --}}
     <div class="modal-overlay" id="holidayModalOverlay">
-        <div class="modal-box">
-            <h3>Mark Holidays Before Generating</h3>
-            <p class="modal-sub">Select which day(s) in this cutoff (Day 1&ndash;15) fall on a holiday, if any.</p>
-
-            <div class="cutoff-select-wrap">
-                <label>Cutoff Type</label>
-                <select id="cutoffTypeSelect">
-                    <option value="1st" {{ ($cutoffType ?? '1st') === '1st' ? 'selected' : '' }}>1st Cutoff (Day 1&ndash;15)</option>
-                    <option value="2nd" {{ ($cutoffType ?? '1st') === '2nd' ? 'selected' : '' }}>2nd Cutoff (Day 16&ndash;31)</option>
-                </select>
+        <div class="modal-card wide" role="dialog" aria-modal="true">
+            <div class="modal-head">
+                <div>
+                    <div class="eyebrow">Payroll</div>
+                    <h3>Generate Salary</h3>
+                    <p class="modal-sub" id="holidaySub"></p>
+                </div>
+                <button type="button" class="modal-close" id="closeHolidayModal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
-            <div class="govt-toggle-wrap">
-                <input type="checkbox" id="applyGovtDeductions">
-                <label for="applyGovtDeductions">Apply SSS / PhilHealth / Pag-IBIG deductions this cutoff</label>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="areaSelect">Area to calculate</label>
+                    <select id="areaSelect">
+                        <option value="">All areas (includes Manager)</option>
+                        @foreach ($areas as $a)
+                            <option value="{{ $a }}" {{ $area === $a ? 'selected' : '' }}>{{ $a }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Automatic: SSS / PhilHealth / Pag-IBIG are deducted on the 2nd cutoff only --}}
+                <div class="govt-status {{ $applyGovt ? 'is-on' : 'is-off' }}" id="govtStatus">
+                    <span class="govt-icon">{{ $applyGovt ? '●' : '○' }}</span>
+                    <div>
+                        @if ($applyGovt)
+                            SSS / PhilHealth / Pag-IBIG will be deducted this cutoff
+                            <small>Deducted in one lump sum on the 2nd cutoff.</small>
+                        @else
+                            No SSS / PhilHealth / Pag-IBIG deductions this cutoff
+                            <small>These are deducted in one lump sum on the 2nd cutoff.</small>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="scg-label">Holidays in this cutoff</div>
+                <div class="holiday-list" id="holidayList"></div>
+
+                <div class="holiday-legend">
+                    <span class="hl-chip hl-regular">Regular &middot; 200%</span>
+                    <span class="hl-chip hl-special">Special Non-Working &middot; 130%</span>
+                </div>
+
+                <p class="modal-note">
+                    &#8226; Holidays are pulled automatically from the holidays calendar.<br>
+                    &#8226; Holiday rates apply only to employees who were present on that day.<br>
+                    &#8226; If a single area is selected, only that area is calculated. The Manager is included when "All areas" is selected.
+                </p>
             </div>
 
-            <div class="holiday-list" id="holidayList">
-            </div>
-
-            <p class="modal-note">
-                &#8226; <strong>Regular Holiday</strong> pays 200% of the daily rate for employees present that day.<br>
-                &#8226; <strong>Special Non-Working</strong> pays 130% of the daily rate for employees present that day.<br>
-                &#8226; Leave as "Not a holiday" for ordinary working days.<br>
-                &#8226; Ang SSS/PhilHealth/Pag-IBIG ay ide-deduct lang kapag naka-check ang checkbox sa itaas &mdash; hindi
-                na ito automatic base sa cutoff.
-            </p>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" id="cancelHolidayModal">Cancel</button>
-                <button type="button" class="btn-confirm" id="confirmGenerate">Generate Salary</button>
+            <div class="modal-foot">
+                <button type="button" class="btn-ghost" id="cancelHolidayModal">Cancel</button>
+                <button type="button" class="btn-primary" id="confirmGenerate">Generate Salary</button>
             </div>
         </div>
     </div>
 
-    <div id="toast"></div>
+    @include('partials.ui-toast')
 
 @endsection
 
 @push('scripts')
     <script>
-        (function() {
-            const toast = document.getElementById('toast');
-
-            function showToast(msg, type) {
-                toast.innerText = msg;
-                toast.className = type;
-                toast.style.display = 'block';
-                requestAnimationFrame(() => toast.classList.add('show'));
-                clearTimeout(toast._hideTimer);
-                toast._hideTimer = setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => {
-                        toast.style.display = 'none';
-                    }, 200);
-                }, 5000);
-            }
-
-            const successMsg = document.getElementById('flash-success')?.dataset.msg;
-            const errorMsg = document.getElementById('flash-error')?.dataset.msg;
-
-            if (successMsg) showToast(successMsg, 'success');
-            if (errorMsg) showToast(errorMsg, 'error');
-        })();
-
         (function() {
             const form = document.getElementById('ratesForm');
             const btn = document.getElementById('btnSaveRates');
@@ -1044,76 +476,107 @@
 
             form.addEventListener('submit', function() {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner"></span>Saving rates...';
+                btn.innerHTML = '<span class="spinner"></span> Saving rates...';
             });
         })();
 
         (function() {
             const openBtn = document.getElementById('openHolidayModal');
             const cancelBtn = document.getElementById('cancelHolidayModal');
+            const closeBtn = document.getElementById('closeHolidayModal');
             const confirmBtn = document.getElementById('confirmGenerate');
             const overlayEl = document.getElementById('holidayModalOverlay');
             const listEl = document.getElementById('holidayList');
+            const subEl = document.getElementById('holidaySub');
             const generateForm = document.getElementById('generateForm');
-            const cutoffSelect = document.getElementById('cutoffTypeSelect');
-            const govtCheckbox = document.getElementById('applyGovtDeductions');
+            const areaSelect = document.getElementById('areaSelect');
             if (!openBtn || !generateForm) return;
 
-            for (let d = 1; d <= 15; d++) {
-                const row = document.createElement('div');
-                row.className = 'holiday-row';
-                row.innerHTML = `
-            <span class="day-label">Day ${d}</span>
-            <select data-day="${d}">
-                <option value="">Not a holiday</option>
-                <option value="regular">Regular Holiday (200%)</option>
-                <option value="special">Special Non-Working (130%)</option>
-            </select>
-        `;
-                listEl.appendChild(row);
+            // From the holidays table: {"17": {name, type}, ...}
+            const HOLIDAYS = @json($holidayData);
+            const DAYS_IN_MONTH = {{ $daysInMonth }};
+            const MONTH_LABEL = @json($payrollDate->format('F'));
+
+            // Decided automatically by the server based on today's date.
+            const CUTOFF = @json($autoCutoff);      // '1st' or '2nd'
+            const APPLY_GOVT = @json($applyGovt);   // true only on the 2nd cutoff
+
+            const TYPE_LABEL = {
+                regular: 'Regular · 200%',
+                special: 'Special Non-Working · 130%'
+            };
+
+            function esc(s) {
+                const d = document.createElement('div');
+                d.textContent = s;
+                return d.innerHTML;
             }
 
-            listEl.querySelectorAll('select').forEach(sel => {
-                sel.addEventListener('change', () => {
-                    sel.classList.toggle('marked', sel.value !== '');
-                });
-            });
+            // Only the holidays that fall inside the automatic cutoff.
+            function holidaysInCutoff() {
+                const is1st = CUTOFF === '1st';
+                const start = is1st ? 1 : 16;
+                const end = is1st ? 15 : DAYS_IN_MONTH;
+                const list = [];
+                for (let d = start; d <= end; d++) {
+                    if (HOLIDAYS[d]) list.push({ day: d, name: HOLIDAYS[d].name, type: HOLIDAYS[d].type });
+                }
+                return { start, end, list };
+            }
 
+            function renderHolidays() {
+                const { start, end, list } = holidaysInCutoff();
+
+                subEl.textContent = `Cutoff period: ${MONTH_LABEL} ${start}–${end}`;
+
+                if (!list.length) {
+                    listEl.innerHTML = '<div class="holiday-empty">No holidays in this cutoff.</div>';
+                    return;
+                }
+
+                listEl.innerHTML = list.map(h => `
+                    <div class="holiday-row">
+                        <div class="hol-info">
+                            <span class="day-label">${MONTH_LABEL} ${h.day}</span>
+                            <span class="hol-name">${esc(h.name)}</span>
+                        </div>
+                        <span class="hl-chip hl-${h.type}">${TYPE_LABEL[h.type] ?? h.type}</span>
+                    </div>
+                `).join('');
+            }
+
+            renderHolidays();
+
+            const closeModal = () => overlayEl.classList.remove('active');
             openBtn.addEventListener('click', () => overlayEl.classList.add('active'));
-            cancelBtn.addEventListener('click', () => overlayEl.classList.remove('active'));
+            cancelBtn.addEventListener('click', closeModal);
+            closeBtn?.addEventListener('click', closeModal);
             overlayEl.addEventListener('click', (e) => {
-                if (e.target === overlayEl) overlayEl.classList.remove('active');
+                if (e.target === overlayEl) closeModal();
             });
 
             confirmBtn.addEventListener('click', () => {
                 generateForm.querySelectorAll(
-                    'input[name^="holidays"], input[name="cutoff_type"], input[name="apply_govt_deductions"]'
-                    ).forEach(el => el.remove());
+                    'input[name^="holidays"], input[name="cutoff_type"], input[name="apply_govt_deductions"], input[name="area"]'
+                ).forEach(el => el.remove());
 
-                const cutoffInput = document.createElement('input');
-                cutoffInput.type = 'hidden';
-                cutoffInput.name = 'cutoff_type';
-                cutoffInput.value = cutoffSelect.value;
-                generateForm.appendChild(cutoffInput);
+                const addHidden = (name, value) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    input.value = value;
+                    generateForm.appendChild(input);
+                };
 
-                const govtInput = document.createElement('input');
-                govtInput.type = 'hidden';
-                govtInput.name = 'apply_govt_deductions';
-                govtInput.value = govtCheckbox.checked ? '1' : '0';
-                generateForm.appendChild(govtInput);
+                addHidden('cutoff_type', CUTOFF);
+                addHidden('apply_govt_deductions', APPLY_GOVT ? '1' : '0');
+                addHidden('area', areaSelect ? areaSelect.value : '');
 
-                listEl.querySelectorAll('select').forEach(sel => {
-                    if (sel.value) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = `holidays[${sel.dataset.day}]`;
-                        input.value = sel.value;
-                        generateForm.appendChild(input);
-                    }
-                });
+                // Holidays of the current cutoff are submitted automatically, no manual selection.
+                holidaysInCutoff().list.forEach(h => addHidden(`holidays[${h.day}]`, h.type));
 
                 confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '<span class="spinner"></span>Generating...';
+                confirmBtn.innerHTML = '<span class="spinner"></span> Generating...';
 
                 generateForm.submit();
             });
@@ -1133,10 +596,7 @@
                 let current = null;
                 Array.from(container.children).forEach(el => {
                     if (el.matches(catSelector)) {
-                        current = {
-                            catEl: el,
-                            items: []
-                        };
+                        current = { catEl: el, items: [] };
                         groups.push(current);
                     } else if (el.matches(itemSelector) && current) {
                         current.items.push(el);
@@ -1157,13 +617,11 @@
                 }
                 paginationEl.style.display = 'flex';
                 let html = `<span class="pagination-info">Page ${currentPage} of ${totalPages}</span>`;
-                html +=
-                    `<button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo; Prev</button>`;
+                html += `<button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo; Prev</button>`;
                 for (let p = 1; p <= totalPages; p++) {
                     html += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
                 }
-                html +=
-                    `<button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next &raquo;</button>`;
+                html += `<button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next &raquo;</button>`;
                 paginationEl.innerHTML = html;
                 paginationEl.querySelectorAll('button[data-page]').forEach(b => {
                     b.addEventListener('click', () => {

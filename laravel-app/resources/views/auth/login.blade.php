@@ -4,11 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | WonderPark Amusement Com Inc.</title>
+    <title>Sign In | Pistavora Amusement Park</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <style>
+        .email-login { margin-top: 12px; }
+        .email-login input[type="email"] {
+            width: 100%; box-sizing: border-box; padding: 14px 16px; font-size: 15px;
+            border: 1px solid #e5ddd0; border-radius: 12px; background: #fffdf9; outline: none;
+        }
+        .email-login input[type="email"]:focus { border-color: #111; }
+        .email-login .btn-email {
+            width: 100%; margin-top: 10px; padding: 14px 16px; font-size: 15px; font-weight: 600;
+            color: #fff; background: #000; border: 0; border-radius: 12px; cursor: pointer;
+        }
+        .email-login .btn-email:hover { background: #222; }
+    </style>
 </head>
 
 <body>
@@ -19,16 +33,16 @@
             <div class="bg-slide" data-bg="{{ asset('images/vikings.jpg') }}"></div>
             <div class="bg-slide" data-bg="{{ asset('images/roller-fever.jpg') }}"></div>
             <div class="auth-visual-content">
-                <a href="{{ route('home') }}" class="logo">WonderPark<span class="dot">•</span>Amusement</a>
+                <a href="{{ route('home') }}" class="logo">Pistavora<span class="dot">•</span>Amusement</a>
                 <div class="auth-visual-copy">
                     <span class="ticket-label on-dark">Lipa Branch</span>
                     <h2>Three worlds of thrill, one login away.</h2>
-                    <p>Manage bookings, inventory, and the front desk for Roller Fever, Dino Adventure, and the
-                        Field of Rides — all in one place.</p>
+                    <p>Manage bookings, inventory, and the front desk for Skataya, DinoLakbay, and the
+                        PiyestaRides — all in one place.</p>
                     <div class="auth-visual-stamps">
-                        <span class="stamp">Roller Fever</span>
-                        <span class="stamp">Dino Adventure</span>
-                        <span class="stamp">Field of Rides</span>
+                        <span class="stamp">Skataya</span>
+                        <span class="stamp">DinoLakbay</span>
+                        <span class="stamp">PiyestaRides</span>
                     </div>
                 </div>
             </div>
@@ -73,7 +87,7 @@
                     <button type="submit" class="btn btn-primary">Log In</button>
                 </form>
 
-                <div class="auth-divider">or continue with</div>
+                <div class="auth-divider">or</div>
 
                 <div class="social-row">
                     <a href="{{ url('/auth/google/redirect') }}" class="btn-social google">
@@ -89,14 +103,14 @@
                         </svg>
                         Continue with Google
                     </a>
-                    <a href="{{ url('/auth/facebook/redirect') }}" class="btn-social facebook">
-                        <svg viewBox="0 0 24 24">
-                            <path fill="#1877F2"
-                                d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z" />
-                        </svg>
-                        Continue with Facebook
-                    </a>
                 </div>
+
+                <form method="POST" action="{{ url('/login/email') }}" class="email-login">
+                    @csrf
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter your email"
+                        required autocomplete="email" aria-label="Email address">
+                    <button type="submit" class="btn-email">Continue with email</button>
+                </form>
 
                 <p class="auth-legal">
                     By signing in, you agree to our

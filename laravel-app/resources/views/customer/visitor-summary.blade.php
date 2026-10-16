@@ -2,351 +2,78 @@
 
 @section('title', 'Visitor Login & Booking Summary')
 
-@push('head')
-    <link
-        href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap"
-        rel="stylesheet">
-@endpush
-
 @section('styles')
+    @include('partials.ui-theme')
     <style>
-        .serif {
-            font-family: 'Source Serif 4', serif;
+        :root {
+            --text-sub: var(--ink-soft);
+            --text-faint: var(--muted);
+            --r-sm: 8px;
+            --r-md: 10px;
+            --r-lg: 14px;
         }
 
-        .toolbar {
-            background: var(--card);
-            padding: 22px 26px;
-            margin-bottom: 20px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 18px;
-        }
-
-        .toolbar .eyebrow {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--pink-deep);
-            text-transform: uppercase;
-            letter-spacing: .09em;
-            margin-bottom: 6px;
-        }
-
-        .toolbar h2 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .toolbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .toolbar-actions select,
-        .toolbar-actions input[type="date"] {
+        /* ===== TOOLBAR EXTRAS ===== */
+        .toolbar-actions select {
+            height: 40px;
+            padding: 0 12px;
             font-size: 12.5px;
-            color: var(--ink-soft);
-            font-family: 'Inter', sans-serif;
-            padding: 9px 12px;
+            color: var(--ink);
+            background: #fff;
             border: 1px solid var(--line-strong);
-            border-radius: 10px;
-            background: var(--bg);
+            border-radius: var(--r-md);
             cursor: pointer;
         }
 
-        /* SUMMARY STAT CARDS */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
-        }
+        /* ===== PANEL (same as .table-box.res-box) ===== */
+        .table-box.res-box { padding: 0; border: 1px solid var(--line); margin-bottom: 20px; }
 
-        .stat-card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: var(--shadow-sm);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card .icon-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            color: #fff;
-            background: var(--pink-deep);
-        }
-
-        .stat-card.card-online .icon-badge {
-            background: var(--present);
-        }
-
-        .stat-card.card-age .icon-badge {
-            background: var(--pink);
-        }
-
-        .stat-card.card-total .icon-badge {
-            background: var(--ink);
-        }
-
-        .stat-card .label {
-            font-size: .68rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: 9px;
-            max-width: 90%;
-        }
-
-        .stat-card .value {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1.1;
-        }
-
-        .stat-card .sub {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 7px;
-        }
-
-        .stat-card .sub.up {
-            color: var(--present);
-            font-weight: 600;
-        }
-
-        .stat-card .sub.down {
-            color: var(--deduct);
-            font-weight: 600;
-        }
-
-        /* BOX */
-        .box {
-            background: var(--card);
-            padding: 26px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .box-header {
+        .panel-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--line);
             flex-wrap: wrap;
-        }
-
-        .box-header h3 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .box-header p {
-            font-size: 11.5px;
-            color: var(--muted);
-            margin-top: 3px;
-        }
-
-        /* AGE DISTRIBUTION CHART */
-        .age-chart {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding: 4px 2px 0;
-        }
-
-        .age-row {
-            display: grid;
-            grid-template-columns: 64px 1fr 46px;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .age-row .age-label-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .age-row .age-swatch {
-            width: 8px;
-            height: 28px;
-            border-radius: 999px;
-            background: linear-gradient(180deg, var(--pink) 0%, var(--pink-deep) 100%);
-            flex-shrink: 0;
-        }
-
-        .age-row.is-top .age-swatch {
-            background: linear-gradient(180deg, #FF7A9C 0%, var(--pink-deep) 100%);
-        }
-
-        .age-row .age-label {
-            font-size: 12.5px;
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .age-track {
-            position: relative;
-            height: 26px;
-            border-radius: 999px;
-            background: var(--pink-pale);
-            overflow: hidden;
-        }
-
-        .age-fill {
-            position: absolute;
-            inset: 0;
-            width: 0%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, var(--pink) 0%, var(--pink-deep) 100%);
-            transition: width .6s cubic-bezier(.22, 1, .36, 1);
-            box-shadow: 0 2px 6px rgba(184, 40, 80, .25);
-        }
-
-        .age-row.is-top .age-fill {
-            background: linear-gradient(90deg, #FF7A9C 0%, var(--pink-deep) 55%, #921F42 100%);
-        }
-
-        .age-val {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--ink);
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* TABLES (attractions + visitor logins) */
-        .table-scroll {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 820px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        th {
-            background: var(--ink);
-            color: #fff;
-            padding: 11px 12px;
-            text-align: left;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        th:first-child {
-            border-top-left-radius: 8px;
-        }
-
-        th:last-child {
-            border-top-right-radius: 8px;
-        }
-
-        td {
-            padding: 13px 12px;
+            padding: 16px 20px;
             border-bottom: 1px solid var(--line);
-            font-size: 12.5px;
-            color: var(--ink-soft);
-            vertical-align: middle;
         }
 
-        td strong {
-            color: var(--ink);
-            font-weight: 600;
-        }
+        .panel-head h3 { font-size: 15px; font-weight: 700; color: var(--ink); }
+        .panel-head p { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
 
-        tbody tr:hover {
-            background: var(--pink-pale);
-        }
+        .panel-body { padding: 20px; }
 
-        .attraction-name {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        /* ===== FILTER BAR (same look as reservations) ===== */
+        .filter-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            padding: 14px 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
         }
+        .filter-card .search-wrap { position: relative; flex: 1; min-width: 220px; }
+        .filter-card .search-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12.5px; pointer-events: none; }
+        .filter-card input[type="text"],
+        .filter-card select { height: 40px; background: #fff; color: var(--ink); }
+        .filter-card input[type="text"] { width: 100%; max-width: none; padding: 0 12px 0 36px; }
+        .filter-card select { padding: 0 12px; }
+        .filter-count { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
 
-        .attraction-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
-            background: var(--pink-light);
-            color: var(--pink-deep);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
+        /* ===== TABLES (same pattern as .res-table) ===== */
+        .res-table { table-layout: fixed; min-width: 760px; font-size: 13px; }
+        .res-table th, .res-table td { padding: 12px 16px; }
+        .res-table td { overflow: hidden; }
+        .res-table tbody tr:last-child td { border-bottom: none; }
 
-        .age-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            border-radius: 999px;
-            background: var(--pink-light);
-            color: var(--pink-deep);
-            font-weight: 700;
-            font-size: 11.5px;
-            white-space: nowrap;
-        }
+        .cell-main { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cell-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dash { color: var(--text-faint); }
+        .sub-ok { color: var(--present); font-weight: 600; }
+        .sub-wait { color: var(--amber); font-weight: 600; }
 
-        .age-pill i {
-            font-size: 10px;
-        }
+        .icon-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .icon-name > div { min-width: 0; }
 
-        .bookings-bar-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 150px;
-        }
-
-        .bookings-bar-track {
-            flex: 1;
-            height: 8px;
-            border-radius: 999px;
-            background: var(--line);
-            overflow: hidden;
-        }
-
-        .bookings-bar-fill {
-            height: 100%;
-            border-radius: 999px;
-            background: var(--present);
-        }
 
         .rank-badge {
             width: 24px;
@@ -359,42 +86,23 @@
             font-weight: 700;
             background: var(--bg);
             color: var(--ink-soft);
-            flex-shrink: 0;
         }
+        .rank-badge.rank-1 { background: var(--pink-deep); color: #fff; }
 
-        .rank-badge.rank-1 {
-            background: var(--pink-deep);
-            color: #fff;
-        }
 
-        /* VISITOR LOGINS — clickable rows that expand into a reservation panel */
-        .visitor-row {
-            cursor: pointer;
-            transition: background .12s;
-        }
+        .bar-track { flex: 1; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 999px; background: var(--present); }
 
-        .visitor-row:hover {
-            background: var(--pink-pale);
-        }
-
-        .visitor-row.is-open {
-            background: var(--pink-pale);
-        }
-
-        .visitor-row.is-open td {
-            border-bottom: 1px solid transparent;
-        }
-
-        .visitor-name-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        /* ===== VISITOR LOGINS ===== */
+        .visitor-row { cursor: pointer; transition: background .12s; }
+        .visitor-row:hover,
+        .visitor-row.is-open { background: var(--pink-pale); }
+        .visitor-row.is-open td { border-bottom-color: transparent; }
 
         .visitor-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
             flex-shrink: 0;
             background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
             color: #fff;
@@ -409,46 +117,38 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 999px;
             background: var(--present-soft);
             color: var(--present);
             font-weight: 700;
-            font-size: 11px;
+            font-size: 12px;
         }
-
-        .visitor-status.is-offline {
-            background: var(--bg);
-            color: var(--muted);
-        }
-
-        .visitor-status i {
-            font-size: 8px;
-        }
+        .visitor-status.is-offline { background: var(--bg); color: var(--muted); }
+        .visitor-status i { font-size: 7px; }
 
         .expand-chevron {
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line-strong);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: var(--muted);
-            background: var(--bg);
-            transition: transform .2s ease, color .15s, background .15s;
-            flex-shrink: 0;
+            color: var(--text-sub);
+            background: #fff;
+            font-size: 11px;
+            transition: transform .2s ease, color .15s, background .15s, border-color .15s;
         }
-
         .visitor-row.is-open .expand-chevron {
             transform: rotate(180deg);
             background: var(--pink-light);
+            border-color: var(--pink-light);
             color: var(--pink-deep);
         }
 
-        .reservation-panel-row td {
-            padding: 0;
-            border-bottom: 1px solid var(--line);
-        }
+        .reservation-panel-row td { padding: 0; border-bottom: 1px solid var(--line); }
+        .reservation-panel-row:last-child td { border-bottom: none; }
 
         .reservation-panel {
             display: grid;
@@ -456,31 +156,18 @@
             transition: grid-template-rows .28s ease;
             background: var(--pink-pale);
         }
-
-        .reservation-panel-row.is-open .reservation-panel {
-            grid-template-rows: 1fr;
-        }
-
-        .reservation-panel-inner {
-            overflow: hidden;
-        }
+        .reservation-panel-row.is-open .reservation-panel { grid-template-rows: 1fr; }
+        .reservation-panel-inner { overflow: hidden; }
 
         .reservation-panel-content {
-            padding: 18px 22px 22px 58px;
+            padding: 18px 22px 22px 66px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
+            box-shadow: inset 3px 0 0 var(--pink-light);
         }
 
-        .reservation-loading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12.5px;
-            color: var(--ink-soft);
-            padding: 6px 0;
-        }
-
+        .reservation-loading { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-soft); padding: 6px 0; }
         .reservation-loading .spinner {
             width: 15px;
             height: 15px;
@@ -489,39 +176,29 @@
             border-top-color: var(--pink-deep);
             animation: spin .7s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+        .reservation-summary { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+        .reservation-field { display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
+        .reservation-field .k { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+        .reservation-field .v { font-size: 13px; font-weight: 600; color: var(--ink); }
 
-        .reservation-summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 26px;
+        /* status pill inside the reservation preview */
+        .res-badge {
+            display: inline-flex; align-items: center; align-self: flex-start;
+            padding: 3px 12px; border-radius: 999px;
+            font-size: 12px; font-weight: 700; text-transform: capitalize;
+            background: var(--bg); color: var(--ink-soft);
         }
-
-        .reservation-field {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 120px;
-        }
-
-        .reservation-field .k {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .06em;
-        }
-
-        .reservation-field .v {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--ink);
-        }
+        .res-badge[data-s="pending"]  { background: var(--amber-light); color: var(--amber); }
+        .res-badge[data-s="approved"],
+        .res-badge[data-s="confirmed"] { background: var(--present-soft); color: var(--present); }
+        .res-badge[data-s="done"],
+        .res-badge[data-s="completed"],
+        .res-badge[data-s="redeemed"],
+        .res-badge[data-s="paid"]     { background: var(--sky-soft); color: var(--sky); }
+        .res-badge[data-s="rejected"],
+        .res-badge[data-s="cancelled"] { background: var(--danger-soft); color: var(--danger); }
 
         .reservation-link-btn {
             align-self: flex-start;
@@ -529,275 +206,100 @@
             align-items: center;
             gap: 8px;
             padding: 9px 16px;
-            border-radius: 10px;
+            border-radius: var(--r-md);
             background: var(--ink);
             color: #fff;
             font-weight: 600;
             font-size: 12.5px;
-            margin-top: 4px;
+            text-decoration: none;
+            transition: .15s;
         }
+        .reservation-link-btn:hover { background: var(--pink-deep); }
+        .reservation-error { font-size: 12.5px; color: var(--danger); font-weight: 600; padding: 6px 0; }
 
-        .reservation-link-btn:hover {
-            background: var(--pink-deep);
-        }
+        .empty-row td { text-align: center; color: var(--muted); padding: 28px 16px !important; }
 
-        .reservation-error {
-            font-size: 12.5px;
-            color: var(--deduct);
-            padding: 6px 0;
+        /* ===== AI PROMO RECOMMENDATIONS ===== */
+        .ai-panel { position: relative; overflow: hidden; }
+        .ai-panel::before {
+            content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; z-index: 1;
+            background: linear-gradient(90deg, var(--pink-deep), var(--pink), var(--pink-deep));
+            background-size: 200% 100%;
+            animation: aiFlow 4s linear infinite;
         }
+        @keyframes aiFlow { to { background-position: -200% 0; } }
 
-        /* SERVICE DISTRIBUTION SPLIT */
-        .service-split {
-            display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 32px;
-            align-items: start;
+        .ai-head {
+            background: linear-gradient(135deg, var(--pink-pale) 0%, #fff 100%);
+            border-bottom-color: var(--pink-light);
+            padding-top: 20px;
         }
+        .ai-head-title { display: flex; align-items: center; gap: 12px; }
+        .ai-orb {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+            color: #fff; font-size: 16px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 0 4px var(--pink-light);
+            animation: aiPulse 2.6s ease-in-out infinite;
+        }
+        @keyframes aiPulse {
+            0%, 100% { box-shadow: 0 0 0 4px var(--pink-light); }
+            50%      { box-shadow: 0 0 0 9px transparent; }
+        }
+        .ai-head h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ai-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+            padding: 3px 9px; border-radius: 999px;
+            background: var(--ink); color: #fff;
+        }
+        .ai-chip i { font-size: 9px; color: var(--pink-light); }
 
-        .service-pie-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 22px;
+        .ai-status {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 600; color: var(--ink-soft);
+            padding: 6px 14px; border-radius: 999px;
+            background: #fff; border: 1px solid var(--pink-light);
         }
+        .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--present); animation: aiBlink 1.6s ease-in-out infinite; }
+        @keyframes aiBlink { 50% { opacity: .3; } }
 
-        .service-pie-wrap {
-            position: relative;
-            width: 200px;
-            height: 200px;
+        .ai-summary-strip {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 20px; font-size: 13px; line-height: 1.6; color: var(--ink-soft);
+            background: var(--pink-pale); border-bottom: 1px solid var(--pink-light);
         }
-
-        .service-pie-svg {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-            /* start segments at 12 o'clock */
-        }
-
-        .service-pie-track {
-            fill: none;
-            stroke: var(--line, #E5E7EB);
-            stroke-width: 34;
-        }
-
-        .service-pie-segment {
-            fill: none;
-            stroke-width: 34;
-            stroke-linecap: butt;
-            cursor: pointer;
-            transition: filter 0.15s ease;
-        }
-
-        .service-pie-segment:hover {
-            filter: brightness(1.1);
-        }
-
-        .service-pie-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-        }
-
-        .service-pie-total {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .service-pie-total-label {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            margin-top: 6px;
-        }
-
-        .service-pie-tooltip {
-            position: absolute;
-            transform: translate(-50%, -100%);
-            background: #1F2430;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 12px;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.12s ease;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-            z-index: 20;
-        }
-
-        .service-pie-tooltip.is-visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .service-pie-tooltip-name {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-
-        .service-pie-tooltip-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .service-pie-tooltip-value {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 11px;
-        }
-
-        .service-legend {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .service-legend-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12.5px;
-        }
-
-        .service-legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .service-legend-name {
-            color: var(--ink);
-            font-weight: 600;
-            flex: 1;
-        }
-
-        .service-legend-pct {
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        .service-legend-count {
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .service-rank-title {
-            font-family: 'Source Serif 4', serif;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 14px;
-        }
-
-        .rank-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .rank-item:last-child {
-            border-bottom: none;
-        }
-
-        .rank-item-num {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            background: var(--bg);
-            color: var(--ink-soft);
-            font-size: 11px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .rank-item-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
-
-        .rank-item-body {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .rank-item-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 4px;
-        }
-
-        .rank-item-service {
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 999px;
-        }
-
-        .rank-item-count {
-            font-family: 'Source Serif 4', serif;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--ink);
-            flex-shrink: 0;
-        }
-
-        /* AI RECOMMENDATIONS */
-        .ai-box {
-            background: linear-gradient(135deg, var(--card) 0%, var(--pink-pale) 100%);
-            border: 1px solid var(--pink-light);
-        }
+        .ai-summary-strip > i { color: var(--pink-deep); margin-top: 3px; }
+        .ai-summary-strip strong { color: var(--ink); }
 
         .ai-rec-card {
-            display: flex;
-            gap: 14px;
-            padding: 16px;
-            border-radius: 12px;
-            background: var(--card);
+            position: relative; overflow: hidden;
+            display: flex; gap: 14px;
+            padding: 16px 16px 14px;
+            border-radius: var(--r-lg);
+            background: #fff;
+            border: 1px solid var(--line);
             margin-bottom: 12px;
-            box-shadow: var(--shadow-sm);
+            opacity: 0; transform: translateY(8px);
+            animation: aiReveal .5s ease forwards;
+            animation-delay: calc(var(--i, 0) * .22s + .15s);
         }
-
-        .ai-rec-card:last-child {
-            margin-bottom: 0;
+        .ai-rec-card::after {
+            content: ""; position: absolute; top: 0; left: -60%; width: 50%; height: 100%;
+            background: linear-gradient(100deg, transparent, var(--pink-light), transparent);
+            opacity: .55; pointer-events: none;
+            animation: aiShimmer 1s ease forwards;
+            animation-delay: calc(var(--i, 0) * .22s + .3s);
         }
+        .ai-rec-card:last-child { margin-bottom: 0; }
+        @keyframes aiReveal { to { opacity: 1; transform: none; } }
+        @keyframes aiShimmer { from { left: -60%; } to { left: 130%; } }
 
         .ai-rec-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--r-md);
             color: #fff;
             display: flex;
             align-items: center;
@@ -805,65 +307,300 @@
             font-size: 15px;
             flex-shrink: 0;
         }
-
+        .ai-rec-main { min-width: 0; flex: 1; }
+        .ai-rec-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
         .ai-rec-tag {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--pink-deep);
             background: var(--pink-light);
             padding: 3px 10px;
             border-radius: 999px;
-            margin-bottom: 6px;
+        }
+        .ai-rec-tag.is-ai { background: var(--ink); color: #fff; }
+        .ai-rec-tag.is-ai i { color: var(--pink-light); }
+        .ai-rec-body h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+        .ai-rec-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.55; }
+
+        .ai-why {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+            margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line-strong);
+            font-size: 11.5px; color: var(--muted);
+        }
+        .ai-why-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--pink-deep); }
+        .ai-why span b { color: var(--ink); font-weight: 700; }
+
+        .ai-foot {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 20px; border-top: 1px solid var(--line);
+            font-size: 11.5px; color: var(--muted);
+        }
+        .ai-foot i { color: var(--pink-deep); }
+
+
+        /* ===== AI CHAT ASSISTANT ===== */
+        .ai-chat { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); background: #fff; }
+        .ai-chat-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+        .ai-chat-label i { color: var(--pink-deep); }
+        .ai-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .ai-prompt {
+            all: unset; box-sizing: border-box; cursor: pointer;
+            font-size: 12px; font-weight: 600; color: var(--pink-deep);
+            padding: 6px 12px; border-radius: 999px;
+            background: var(--pink-pale); border: 1px solid var(--pink-light); transition: .15s;
+        }
+        .ai-prompt:hover { background: var(--pink-light); }
+        .ai-prompt:focus-visible { box-shadow: 0 0 0 3px var(--pink-light); }
+        .ai-input-row { display: flex; gap: 8px; }
+        .ai-input-row input {
+            flex: 1; min-width: 0; height: 44px; padding: 0 16px;
+            border: 1px solid var(--line-strong); border-radius: 999px;
+            font-size: 13px; color: var(--ink); background: #fff;
+        }
+        .ai-input-row input:focus { outline: none; border-color: var(--pink-deep); box-shadow: 0 0 0 3px var(--pink-light); }
+        .ai-send {
+            all: unset; box-sizing: border-box; cursor: pointer;
+            height: 44px; padding: 0 20px; border-radius: 999px;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+            color: #fff; font-size: 13px; font-weight: 700; transition: .15s;
+        }
+        .ai-send:hover { filter: brightness(1.06); }
+        .ai-send:focus-visible { box-shadow: 0 0 0 3px var(--pink-light); }
+        .ai-send[disabled] { opacity: .55; cursor: not-allowed; }
+
+        .ai-thread { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+        .ai-thread:empty { display: none; }
+        .ai-msg { display: flex; gap: 10px; max-width: 100%; }
+        .ai-msg.is-user { justify-content: flex-end; }
+        .ai-bubble { padding: 10px 16px; border-radius: 16px; font-size: 13px; line-height: 1.65; max-width: 88%; }
+        .ai-msg.is-user .ai-bubble { background: var(--ink); color: #fff; border-bottom-right-radius: 4px; }
+        .ai-msg.is-ai .ai-bubble { background: var(--pink-pale); color: var(--ink); border: 1px solid var(--pink-light); border-top-left-radius: 4px; }
+        .ai-msg.is-ai .ai-bubble.is-error { background: var(--danger-soft); border-color: transparent; color: var(--danger); font-weight: 600; }
+        .ai-avatar {
+            width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0; font-size: 12px; color: #fff;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ai-bubble p { margin: 0 0 8px; }
+        .ai-bubble p:last-child { margin-bottom: 0; }
+        .ai-bubble ul { margin: 0 0 8px; padding-left: 18px; }
+        .ai-bubble li { margin-bottom: 4px; }
+        .ai-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+        .ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--pink-deep); animation: aiBounce 1s infinite ease-in-out; }
+        .ai-typing span:nth-child(2) { animation-delay: .15s; }
+        .ai-typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes aiBounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-5px); opacity: 1; } }
+        .ai-sub-title { padding: 14px 20px 0; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+        @media (max-width: 520px) { .ai-send span { display: none; } .ai-bubble { max-width: 100%; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ai-typing span { animation: none; }
+            .ai-panel::before, .ai-orb, .ai-dot, .ai-rec-card, .ai-rec-card::after { animation: none; }
+            .ai-rec-card { opacity: 1; transform: none; }
+            .ai-rec-card::after { display: none; }
         }
 
-        .ai-rec-body h4 {
-            font-family: 'Source Serif 4', serif;
-            font-size: 13.5px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 4px;
+
+        /* ===== ONLINE PERFORMANCE (master / detail) ===== */
+        .perf-total {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 14px; border-radius: 999px;
+            background: var(--bg); border: 1px solid var(--line);
+            font-size: 12px; font-weight: 700; color: var(--ink);
+        }
+        .perf-total i { color: var(--pink-deep); }
+
+        .perf-summary {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px;
+            background: var(--pink-pale);
+            border-bottom: 1px solid var(--pink-light);
+            font-size: 13px; color: var(--ink-soft); line-height: 1.6;
+        }
+        .perf-summary > i { color: var(--pink-deep); }
+        .perf-summary strong { color: var(--ink); }
+
+        .perf-layout { display: grid; grid-template-columns: 340px 1fr; }
+
+        /* left: attraction list */
+        .perf-list {
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 16px; border-right: 1px solid var(--line); background: var(--bg);
+        }
+        .perf-item {
+            all: unset; box-sizing: border-box; cursor: pointer;
+            display: grid; grid-template-columns: 24px 36px 1fr auto; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: var(--r-lg);
+            background: #fff; border: 1px solid var(--line);
+            transition: .15s;
+        }
+        .perf-item:hover { border-color: var(--pink); }
+        .perf-item:focus-visible { box-shadow: 0 0 0 3px var(--pink-light); }
+        .perf-item.is-active {
+            border-color: var(--pink-deep);
+            background: var(--pink-pale);
+            box-shadow: 0 0 0 3px var(--pink-light);
+        }
+        .perf-item-icon {
+            width: 36px; height: 36px; border-radius: var(--r-md); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .perf-item-body { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+        .perf-item-name { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .perf-item-body .bar-track { display: block; flex: none; height: 6px; }
+        .perf-item-body .bar-fill { display: block; }
+        .perf-item-num { text-align: right; font-size: 1.2rem; font-weight: 700; color: var(--ink); line-height: 1.1; }
+        .perf-item-num small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+
+        /* right: selected attraction */
+        .perf-pane { display: none; padding: 22px 26px 26px; }
+        .perf-pane.is-active { display: block; }
+
+        .perf-pane-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+        .perf-pane-icon {
+            width: 44px; height: 44px; border-radius: 12px; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+        }
+        .perf-pane-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+        .perf-best {
+            margin-left: auto;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+            background: var(--pink-deep); color: #fff; padding: 4px 11px; border-radius: 999px; white-space: nowrap;
         }
 
-        .ai-rec-desc {
-            font-size: 12px;
-            color: var(--ink-soft);
-            line-height: 1.55;
+        .perf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .perf-kpi { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; min-width: 0; }
+        .perf-kpi .k { display: block; font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+        .perf-kpi .v { display: block; font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .perf-pane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+        .perf-block-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--ink); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+        .perf-block-title i { color: var(--pink-deep); }
+
+        .origin-row { display: grid; grid-template-columns: 24px 1fr 56px; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+        .origin-row:last-child { border-bottom: none; }
+        .origin-place { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .origin-place.has-bar { margin-bottom: 6px; }
+        .origin-count { text-align: right; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+        .origin-count span { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+
+        .perf-empty {
+            margin-top: 12px; padding: 22px 16px; text-align: center;
+            border: 1px dashed var(--line-strong); border-radius: var(--r-md);
+            font-size: 12.5px; color: var(--muted);
+        }
+        .perf-empty i { display: block; font-size: 18px; margin-bottom: 8px; color: var(--pink); }
+
+        @media (max-width: 900px) {
+            .perf-layout { grid-template-columns: 1fr; }
+            .perf-list { border-right: none; border-bottom: 1px solid var(--line); }
+            .perf-pane-grid { grid-template-columns: 1fr; }
+            .perf-kpis { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 520px) {
+            .perf-pane { padding: 18px 16px 20px; }
+            .perf-total { width: 100%; justify-content: center; }
         }
 
-        @media(max-width:900px) {
-            .toolbar h2 {
-                font-size: 1.05rem;
-            }
+        /* ===== TOP ONLINE BOOKERS ===== */
+        .place-tag {
+            display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+            padding: 5px 12px; border-radius: 999px;
+            background: var(--bg); border: 1px solid var(--line);
+            font-size: 12px; font-weight: 600; color: var(--ink);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .place-tag i { color: var(--pink-deep); font-size: 11px; }
+        .place-none { font-size: 12.5px; color: var(--text-faint); font-style: italic; }
 
-            .box {
-                padding: 16px;
-            }
-
-            .service-split {
-                grid-template-columns: 1fr;
-            }
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .res-table { min-width: 700px; font-size: 12.5px; }
+            .res-table th, .res-table td { padding: 10px 12px; }
         }
 
-        @media(max-width:520px) {
-            .stats-row {
-                grid-template-columns: 1fr 1fr;
+        @media (max-width: 520px) {
+            .filter-card { padding: 12px 14px; }
+            .filter-card select { flex: 1; }
+            .toolbar-actions, .toolbar-actions select { width: 100%; }
+            .panel-body { padding: 14px; }
+            .ai-rec-card { flex-direction: column; }
+        }
+
+        /* card view on very small screens */
+        @media (max-width: 480px) {
+            .table-box.res-box.table-card { background: transparent; border: none; box-shadow: none; overflow: visible; }
+            .table-card .panel-head { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: 12px; }
+
+            .table-card .res-table,
+            .table-card .res-table thead,
+            .table-card .res-table tbody,
+            .table-card .res-table th,
+            .table-card .res-table td,
+            .table-card .res-table tr { display: block; }
+            .table-card .res-table colgroup,
+            .table-card .res-table thead { display: none; }
+            .table-card .res-table { min-width: unset; }
+
+            .table-card .res-table tbody tr {
+                border: 1px solid var(--line);
+                border-radius: var(--r-lg);
+                margin-bottom: 12px;
+                padding: 12px 14px;
+                background: var(--card);
+                box-shadow: var(--shadow-sm);
             }
+            .table-card .res-table tbody tr.reservation-panel-row { padding: 0; margin-top: -12px; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; }
+            .table-card .res-table tbody tr.reservation-panel-row:not(.is-open) { border: none; margin: 0; box-shadow: none; }
+
+            .table-card .res-table td { border: none; padding: 5px 0; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; overflow: visible; }
+            .table-card .res-table td > div { min-width: 0; }
+            .table-card .cell-main, .table-card .cell-sub { white-space: normal; }
+
+            .table-card .res-table td[data-label]::before {
+                content: attr(data-label);
+                font-weight: 700;
+                color: var(--text-sub);
+                min-width: 80px;
+                font-size: 10.5px;
+                text-transform: uppercase;
+                letter-spacing: .04em;
+                padding-top: 2px;
+            }
+
+            .reservation-panel-content { padding: 14px; box-shadow: none; }
+            .pagination { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
         }
     </style>
 @endsection
 
 @section('content')
 
+    @php
+        // Display names (the data may still use the old names; this renames them on screen).
+        $serviceRename = [
+            'Dino Adventure' => 'Dino Lakbay',
+            'Roller Fever'   => 'Skataya',
+            'RollerFever'    => 'Skataya',
+            'Field of Rides' => 'Piyesta Rides',
+        ];
+        $rename     = fn ($n) => $serviceRename[$n] ?? $n;
+        $renameText = fn ($t) => strtr((string) $t, $serviceRename);
+    @endphp
+
+    <!-- TOOLBAR -->
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Visitors</div>
-            <h2>Visitor Login & Booking Summary</h2>
+            <h2>Visitor Login &amp; Booking Summary</h2>
+            <p class="sub">Online bookings, visitor activity and promo insights</p>
         </div>
         <div class="toolbar-actions">
-            <select id="periodFilter">
+            <select id="periodFilter" aria-label="Period">
                 <option value="7" {{ ($days ?? 30) == 7 ? 'selected' : '' }}>Last 7 days</option>
                 <option value="30" {{ ($days ?? 30) == 30 ? 'selected' : '' }}>Last 30 days</option>
                 <option value="90" {{ ($days ?? 30) == 90 ? 'selected' : '' }}>Last 3 months</option>
@@ -872,96 +609,216 @@
         </div>
     </div>
 
-    <!-- SUMMARY -->
-    <div class="stats-row">
-        <div class="stat-card card-online">
-            <span class="icon-badge"><i class="fa-solid fa-globe"></i></span>
-            <div class="label">Online Bookings</div>
-            <div class="value">{{ $totalOnlineBookings ?? 0 }}</div>
-            <div class="sub {{ $trends['online']['direction'] ?? '' }}">
-                Booked via website / app
-                @isset($trends['online'])
-                    &middot; {{ $trends['online']['direction'] === 'up' ? '▲' : '▼' }} {{ $trends['online']['value'] }} vs last period
-                @endisset
+    <!-- ONLINE PERFORMANCE -->
+    @php
+        $perfTotal = (int) ($totalOnlineBookings ?? 0);
+        $packageRanking = $packageRanking ?? [];
+        $attractionRanking = $attractionRanking ?? [];
+        $originsByService = $originsByService ?? [];   // ['Dino Adventure' => [['place' => 'Lipa City', 'count' => 5], ...]]
+
+        $norm = fn ($v) => preg_replace('/[^a-z0-9]/', '', strtolower((string) $v));
+        $originsNorm = collect($originsByService)->mapWithKeys(fn ($v, $k) => [$norm($k) => $v]);
+
+        $perfCards = collect($serviceDistribution ?? [])->sortByDesc('count')->values()->map(function ($s) use ($packageRanking, $attractionRanking, $originsNorm, $norm, $rename) {
+            $pkgs = collect($packageRanking ?? [])->where('service', $s['name'])->sortByDesc('count')->values();
+            $attr = collect($attractionRanking ?? [])->firstWhere('name', $s['name']);
+            $origins = collect($originsNorm->get($norm($s['name'])) ?? $originsNorm->get($norm($rename($s['name']))) ?? [])->sortByDesc('count')->values();
+            return [
+                'name'         => $s['name'],
+                'label'        => $rename($s['name']),
+                'count'        => $s['count'],
+                'pct'          => $s['percentage'],
+                'color'        => $s['color'],
+                'icon'         => $pkgs->first()['icon'] ?? 'fa-ticket',
+                'age'          => $attr['top_age_group'] ?? '—',
+                'packages'     => $pkgs,
+                'origins'      => $origins,
+                'origin_total' => $origins->sum('count'),
+            ];
+        });
+        $perfLeader = $perfCards->first();
+        $perfOthers = $perfCards->slice(1);
+        $perfOtherNames = $perfOthers->pluck('label')->map(fn ($n) => '<strong>' . e($n) . '</strong>')->values();
+        $perfOthersText = $perfOtherNames->count() > 1
+            ? $perfOtherNames->slice(0, -1)->implode(', ') . ' and ' . $perfOtherNames->last()
+            : ($perfOtherNames->first() ?? '');
+    @endphp
+
+    <div class="table-box res-box">
+        <div class="panel-head">
+            <div>
+                <h3>Online Performance</h3>
+                <p>How each attraction is doing online &middot; select one to see details</p>
+            </div>
+            <span class="perf-total"><i class="fa-solid fa-globe"></i> {{ $perfTotal }} online bookings</span>
+        </div>
+
+        <div class="perf-summary">
+            <i class="fa-solid fa-chart-line"></i>
+            <div>
+                @if ($perfLeader)
+                    <strong>{{ $perfLeader['label'] }}</strong> is the best seller online this period{!! $perfOthersText ? ', followed by ' . $perfOthersText : '' !!}.
+                @else
+                    No online bookings yet this period.
+                @endif
             </div>
         </div>
-        <div class="stat-card card-age">
-            <span class="icon-badge"><i class="fa-solid fa-users"></i></span>
-            <div class="label">Most Active Age Group</div>
-            <div class="value">{{ $topOverallAgeGroup ?? '—' }}</div>
-            <div class="sub">Across all attractions</div>
-        </div>
-        <div class="stat-card card-total">
-            <span class="icon-badge"><i class="fa-solid fa-user-plus"></i></span>
-            <div class="label">New Accounts</div>
-            <div class="value">{{ $totalNewAccounts ?? 0 }}</div>
-            <div class="sub {{ $trends['new_accounts']['direction'] ?? '' }}">
-                Registered this period
-                @isset($trends['new_accounts'])
-                    &middot; {{ $trends['new_accounts']['direction'] === 'up' ? '▲' : '▼' }} {{ $trends['new_accounts']['value'] }} vs last period
-                @endisset
+
+        @if ($perfCards->count())
+            <div class="perf-layout">
+                <!-- LEFT: attractions -->
+                <div class="perf-list" id="perfList" role="tablist">
+                    @foreach ($perfCards as $c)
+                        <button type="button" role="tab" class="perf-item {{ $loop->first ? 'is-active' : '' }}" data-target="perfPane{{ $loop->index }}">
+                            <span class="rank-badge {{ $loop->first ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
+                            <span class="perf-item-icon" style="background: {{ $c['color'] }};"><i class="fa-solid {{ $c['icon'] }}"></i></span>
+                            <span class="perf-item-body">
+                                <span class="perf-item-name">{{ $c['label'] }}</span>
+                                <span class="bar-track"><span class="bar-fill" style="width: {{ $c['pct'] }}%; background: {{ $c['color'] }};"></span></span>
+                            </span>
+                            <span class="perf-item-num">{{ $c['count'] }}<small>{{ $c['pct'] }}%</small></span>
+                        </button>
+                    @endforeach
+                </div>
+
+                <!-- RIGHT: selected attraction -->
+                <div class="perf-panes">
+                    @foreach ($perfCards as $c)
+                        <div class="perf-pane {{ $loop->first ? 'is-active' : '' }}" id="perfPane{{ $loop->index }}" role="tabpanel">
+                            <div class="perf-pane-head">
+                                <span class="perf-pane-icon" style="background: {{ $c['color'] }};"><i class="fa-solid {{ $c['icon'] }}"></i></span>
+                                <h4 class="perf-pane-title">{{ $c['label'] }}</h4>
+                                @if ($loop->first)
+                                    <span class="perf-best"><i class="fa-solid fa-crown"></i> Best seller</span>
+                                @endif
+                            </div>
+
+                            <div class="perf-kpis">
+                                <div class="perf-kpi"><span class="k">Bookings</span><span class="v">{{ $c['count'] }}</span></div>
+                                <div class="perf-kpi"><span class="k">All Bookings</span><span class="v">{{ $c['pct'] }}%</span></div>
+                                <div class="perf-kpi"><span class="k">Top package</span><span class="v" title="{{ $c['packages']->first()['package'] ?? '' }}">{{ $c['packages']->first()['package'] ?? '—' }}</span></div>
+                                <div class="perf-kpi"><span class="k">Top age group</span><span class="v">{{ $c['age'] }}</span></div>
+                            </div>
+
+                            <div class="perf-pane-grid">
+                                <div>
+                                    <div class="perf-block-title"><i class="fa-solid fa-location-dot"></i> Where visitors are from</div>
+                                    @forelse ($c['origins'] as $o)
+                                        @php $oPct = $c['origin_total'] > 0 ? round(($o['count'] / $c['origin_total']) * 100) : 0; @endphp
+                                        <div class="origin-row">
+                                            <span class="rank-badge {{ $loop->first ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
+                                            <div>
+                                                <div class="origin-place has-bar">{{ $o['place'] }}</div>
+                                                <div class="bar-track"><div class="bar-fill" style="width: {{ $oPct }}%; background: {{ $c['color'] }};"></div></div>
+                                            </div>
+                                            <div class="origin-count">{{ $o['count'] }}<span>{{ $oPct }}%</span></div>
+                                        </div>
+                                    @empty
+                                        <div class="perf-empty"><i class="fa-solid fa-map-location-dot"></i> No location data yet for this attraction.</div>
+                                    @endforelse
+                                </div>
+
+                                <div>
+                                    <div class="perf-block-title"><i class="fa-solid fa-ranking-star"></i> Best-selling packages</div>
+                                    @forelse ($c['packages'] as $pkg)
+                                        <div class="origin-row">
+                                            <span class="rank-badge {{ $loop->first ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
+                                            <div class="origin-place">{{ $pkg['package'] }}</div>
+                                            <div class="origin-count">{{ $pkg['count'] }}</div>
+                                        </div>
+                                    @empty
+                                        <div class="perf-empty"><i class="fa-solid fa-box-open"></i> No package data yet.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
-        </div>
-        <div class="stat-card">
-            <span class="icon-badge"><i class="fa-solid fa-ticket"></i></span>
-            <div class="label">Top Attraction</div>
-            <div class="value" style="font-size:1.15rem;">{{ $topAttraction ?? '—' }}</div>
-            <div class="sub">Most booked this period</div>
-        </div>
+        @endif
     </div>
 
-    <!-- TOP ATTRACTIONS -->
-    <div class="box">
-        <div class="box-header">
+    <!-- TOP ONLINE BOOKERS -->
+    @php
+        $topBookers = collect($topBookers ?? [])->values();
+        $topBooker  = $topBookers->first();
+
+        // Location comes from the visitor's saved address (falls back to 'place' if the controller sends that).
+        $placeOf = fn ($b) => trim((string) ($b['place'] ?? $b['address'] ?? ''));
+        $topBookerPlace = $topBooker ? $placeOf($topBooker) : '';
+    @endphp
+
+    <div class="table-box res-box table-card">
+        <div class="panel-head">
             <div>
-                <h3>Top Attractions</h3>
-                <p>Ranked by bookings, with each attraction's most-active age group</p>
+                <h3>Top Online Bookers</h3>
+                <p>Who booked online the most, and where they're from</p>
             </div>
         </div>
 
-        <div class="table-scroll">
-            <table>
+        @if ($topBooker)
+            <div class="perf-summary">
+                <i class="fa-solid fa-trophy"></i>
+                <div>
+                    <strong>{{ $topBooker['name'] }}</strong>
+                    @if ($topBookerPlace !== '')
+                        from <strong>{{ $topBookerPlace }}</strong>
+                    @endif
+                    has the most online bookings this period ({{ $topBooker['bookings'] }}).
+                </div>
+            </div>
+        @endif
+
+        <div class="table-scroll" style="overflow-x:auto;">
+            <table class="res-table">
+                <colgroup>
+                    <col style="width:64px">
+                    <col style="width:42%">
+                    <col>
+                    <col style="width:150px">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="width:48px;">#</th>
-                        <th>Attraction</th>
-                        <th>Top Age Group</th>
-                        <th>Bookings</th>
-                        <th style="width:220px;">Share</th>
+                        <th>#</th>
+                        <th>Visitor</th>
+                        <th>Location</th>
+                        <th>Last Booking</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $topAttractionCount = isset($attractionRanking) && count($attractionRanking) ? collect($attractionRanking)->max('bookings') : 0; @endphp
-                    @forelse(($attractionRanking ?? []) as $a)
-                        @php $barPct = $topAttractionCount > 0 ? max(4, round(($a['bookings'] / $topAttractionCount) * 100)) : 0; @endphp
+                    @forelse ($topBookers as $b)
+                        @php
+                            $bPlace = $placeOf($b);
+                            $bInitials = collect(preg_split('/\s+/', trim($b['name'] ?? '')))->filter()->take(2)
+                                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') ?: '?';
+                        @endphp
                         <tr>
-                            <td>
-                                <span class="rank-badge {{ $loop->iteration == 1 ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
+                            <td data-label="Rank">
+                                <span class="rank-badge {{ $loop->first ? 'rank-1' : '' }}">{{ $loop->iteration }}</span>
                             </td>
-                            <td>
-                                <div class="attraction-name">
-                                    <span class="attraction-icon">
-                                        <i class="fa-solid {{ $a['icon'] ?? 'fa-ticket' }}"></i>
-                                    </span>
-                                    <strong>{{ $a['name'] }}</strong>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="age-pill"><i class="fa-solid fa-user"></i> {{ $a['top_age_group'] ?? '—' }}</span>
-                            </td>
-                            <td><strong>{{ $a['bookings'] }}</strong></td>
-                            <td>
-                                <div class="bookings-bar-wrap">
-                                    <div class="bookings-bar-track">
-                                        <div class="bookings-bar-fill" style="width: {{ $barPct }}%;"></div>
+                            <td data-label="Visitor">
+                                <div class="icon-name">
+                                    <span class="visitor-avatar">{{ $bInitials }}</span>
+                                    <div>
+                                        <div class="cell-main">{{ $b['name'] ?? '—' }}</div>
+                                        <div class="cell-sub">{{ $b['email'] ?? 'No email' }}</div>
                                     </div>
-                                    <span style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ $barPct }}%</span>
                                 </div>
+                            </td>
+                            <td data-label="Location">
+                                @if ($bPlace !== '')
+                                    <span class="place-tag" title="{{ $bPlace }}"><i class="fa-solid fa-location-dot"></i> {{ $bPlace }}</span>
+                                @else
+                                    <span class="place-none">Not provided</span>
+                                @endif
+                            </td>
+                            <td data-label="Last Booking">
+                                <div class="cell-main">{{ !empty($b['last_booking']) ? \Carbon\Carbon::parse($b['last_booking'])->format('M d, Y') : '—' }}</div>
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">No attraction bookings yet this period.</td>
+                        <tr class="empty-row">
+                            <td colspan="4"><i class="fa-solid fa-circle-info"></i> No online bookers yet this period.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -969,45 +826,91 @@
         </div>
     </div>
 
+    <!-- FILTER BAR (visitor logins) -->
+    <div class="filter-bar filter-card">
+        <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="visitorSearch" placeholder="Search visitor by name or email...">
+        </div>
+
+        <select id="visitorStatusFilter">
+            <option value="">All Status</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+        </select>
+
+        <button type="button" class="btn-ghost" id="visitorClearBtn">
+            <i class="fa-solid fa-arrow-rotate-left"></i> Clear
+        </button>
+
+        <span class="filter-count" id="visitorCount"></span>
+    </div>
+
     <!-- RECENT VISITOR LOGINS -->
-    <div class="box">
-        <div class="box-header">
+    <div class="table-box res-box table-card">
+        <div class="panel-head">
             <div>
                 <h3>Recent Visitor Logins</h3>
-                <p>Click a row to view that visitor's linked reservation</p>
+                <p>Click a row to preview that visitor's linked reservation</p>
             </div>
         </div>
 
-        <div class="table-scroll">
-            <table>
+        <div class="table-scroll" style="overflow-x:auto;">
+            <table class="res-table">
+                <colgroup>
+                    <col style="width:34%">
+                    <col style="width:180px">
+                    <col style="width:140px">
+                    <col>
+                    <col style="width:64px">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Visitor</th>
-                        <th>Email</th>
                         <th>Last Login</th>
                         <th>Status</th>
-                        <th style="width:40px;"></th>
+                        <th>Reservation</th>
+                        <th></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="visitorBody">
                     @forelse(($visitorLogins ?? []) as $v)
-                        <tr class="visitor-row" data-reservation-id="{{ $v['reservation_id'] ?? '' }}">
-                            <td>
-                                <div class="visitor-name-wrap">
+                        @php $isOnline = (bool) ($v['online'] ?? false); @endphp
+                        <tr class="visitor-row"
+                            data-reservation-id="{{ $v['reservation_id'] ?? '' }}"
+                            data-name="{{ $v['name'] }}"
+                            data-email="{{ $v['email'] ?? '' }}"
+                            data-online="{{ $isOnline ? 'online' : 'offline' }}">
+                            <td data-label="Visitor">
+                                <div class="icon-name">
                                     <span class="visitor-avatar">{{ $v['initials'] ?? '?' }}</span>
-                                    <strong>{{ $v['name'] }}</strong>
+                                    <div>
+                                        <div class="cell-main">{{ $v['name'] }}</div>
+                                        <div class="cell-sub">{{ $v['email'] ?? 'No email' }}</div>
+                                    </div>
                                 </div>
                             </td>
-                            <td>{{ $v['email'] ?? '—' }}</td>
-                            <td>{{ $v['last_login'] ?? '—' }}</td>
-                            <td>
-                                @if(($v['online'] ?? false))
+                            <td data-label="Last Login">
+                                <div class="cell-main">{{ $v['last_login'] ?? '—' }}</div>
+                            </td>
+                            <td data-label="Status">
+                                @if ($isOnline)
                                     <span class="visitor-status"><i class="fa-solid fa-circle"></i> Online</span>
                                 @else
                                     <span class="visitor-status is-offline"><i class="fa-solid fa-circle"></i> Offline</span>
                                 @endif
                             </td>
-                            <td>
+                            <td data-label="Reservation">
+                                @if (!empty($v['reservation_id']))
+                                    <div>
+                                        <div class="cell-main">Reservation linked</div>
+                                        <div class="cell-sub sub-ok">Click to view details</div>
+                                    </div>
+                                @else
+                                    <span class="dash">&mdash;</span>
+                                @endif
+                            </td>
+                            <td data-label="">
                                 <span class="expand-chevron"><i class="fa-solid fa-chevron-down"></i></span>
                             </td>
                         </tr>
@@ -1021,169 +924,216 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">No visitor logins recorded yet.</td>
+                        <tr class="empty-row">
+                            <td colspan="5"><i class="fa-solid fa-circle-info"></i> No visitor logins recorded yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- SERVICE DISTRIBUTION + TOP PACKAGES -->
-    <div class="box">
-        <div class="box-header">
-            <div>
-                <h3>Per-Service Booking Breakdown</h3>
-                <p>Share of bookings per service, and the most-availed packages overall</p>
-            </div>
-        </div>
-
-        <div class="service-split">
-            <!-- LEFT: pie chart -->
-            <div class="service-pie-col">
-                <div class="service-pie-wrap">
-                    <svg viewBox="0 0 200 200" class="service-pie-svg">
-                        <circle cx="100" cy="100" r="80" class="service-pie-track" />
-                        @php $cumulative = 0; @endphp
-                        @foreach(($serviceDistribution ?? []) as $s)
-                            @php
-                                $circumference = 2 * M_PI * 80;
-                                $fraction = ($totalOnlineBookings ?? 0) > 0 ? ($s['count'] / $totalOnlineBookings) : 0;
-                                $segmentLength = $fraction * $circumference;
-                                $offset = $circumference - ($cumulative * $circumference);
-                                $cumulative += $fraction;
-                            @endphp
-                            <circle
-                                cx="100" cy="100" r="80"
-                                class="service-pie-segment"
-                                style="stroke: {{ $s['color'] }};"
-                                stroke-dasharray="{{ round($segmentLength, 2) }} {{ round($circumference - $segmentLength, 2) }}"
-                                stroke-dashoffset="{{ round($offset, 2) }}"
-                                data-name="{{ $s['name'] }}"
-                                data-percentage="{{ $s['percentage'] }}"
-                                data-count="{{ $s['count'] }}"
-                                data-color="{{ $s['color'] }}"
-                            ></circle>
-                        @endforeach
-                    </svg>
-
-                    <div class="service-pie-center">
-                        <span class="service-pie-total">{{ $totalOnlineBookings ?? 0 }}</span>
-                        <span class="service-pie-total-label">Total Bookings</span>
-                    </div>
-
-                    <div class="service-pie-tooltip" id="servicePieTooltip">
-                        <div class="service-pie-tooltip-name">
-                            <span class="service-pie-tooltip-dot" id="tooltipDot"></span>
-                            <span id="tooltipName"></span>
-                        </div>
-                        <div class="service-pie-tooltip-value" id="tooltipValue"></div>
-                    </div>
-                </div>
-
-                <div class="service-legend">
-                    @forelse(($serviceDistribution ?? []) as $s)
-                        <div class="service-legend-row">
-                            <span class="service-legend-dot" style="background:{{ $s['color'] }};"></span>
-                            <span class="service-legend-name">{{ $s['name'] }}</span>
-                            <span class="service-legend-pct">{{ $s['percentage'] }}%</span>
-                            <span class="service-legend-count">({{ $s['count'] }})</span>
-                        </div>
-                    @empty
-                        <p style="color:var(--muted);font-size:12px;">No bookings yet this period.</p>
-                    @endforelse
-                </div>
-            </div>
-
-            <!-- RIGHT: ranked top packages -->
-            <div class="service-rank-col">
-                <h4 class="service-rank-title">Most Availed Packages</h4>
-
-                @forelse(($packageRanking ?? []) as $pkg)
-                    <div class="rank-item">
-                        <span class="rank-item-num">{{ $loop->iteration }}</span>
-                        <span class="rank-item-icon" style="background: {{ $pkg['color'] }};">
-                            <i class="fa-solid {{ $pkg['icon'] }}"></i>
-                        </span>
-                        <div class="rank-item-body">
-                            <div class="rank-item-name">{{ $pkg['package'] }}</div>
-                            <span class="rank-item-service" style="background: {{ $pkg['color'] }}22; color: {{ $pkg['color'] }};">
-                                {{ $pkg['service'] }}
-                            </span>
-                        </div>
-                        <span class="rank-item-count">{{ $pkg['count'] }}</span>
-                    </div>
-                @empty
-                    <p style="color:var(--muted);font-size:12.5px;">No package data yet.</p>
-                @endforelse
-            </div>
-        </div>
+        <div class="pagination no-print" id="visitorPagination"></div>
     </div>
 
     <!-- AI PROMO RECOMMENDATIONS -->
-    <div class="box ai-box">
-        <div class="box-header">
-            <div>
-                <h3><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--pink-deep);margin-right:6px;"></i> Promo Recommendations</h3>
-                <p>Suggested promos based on each attraction's top-booking age group</p>
-            </div>
-        </div>
+    @php
+        $recs = collect($recommendations ?? [])->values();
+        // look up each attraction's stats so the AI can "show its reasoning"
+        $perfByKey = $perfCards->mapWithKeys(fn ($c) => [$norm($c['name']) => $c, $norm($c['label']) => $c]);
 
-        @forelse(($recommendations ?? []) as $rec)
-            <div class="ai-rec-card">
-                <span class="ai-rec-icon" style="background: {{ $rec['color'] }};">
-                    <i class="fa-solid {{ $rec['icon'] }}"></i>
-                </span>
-                <div class="ai-rec-body">
-                    <span class="ai-rec-tag"><i class="fa-solid fa-cake-candles"></i> {{ $rec['attraction'] }} &middot; {{ $rec['age_group'] }}</span>
-                    <h4>{{ $rec['title'] }}</h4>
-                    <p class="ai-rec-desc">{{ $rec['desc'] }}</p>
+        // data the AI assistant can reason about (sent along with the question)
+        $aiContext = [
+            'branch'          => 'Lipa Branch (theme park)',
+            'period_days'     => (int) ($days ?? 30),
+            'total_online'    => $perfTotal,
+            'attractions'     => $perfCards->map(fn ($c) => [
+                'name'         => $c['label'],
+                'bookings'     => $c['count'],
+                'share_pct'    => $c['pct'],
+                'top_age'      => $c['age'],
+                'top_packages' => $c['packages']->take(3)->map(fn ($p) => ['package' => $p['package'], 'count' => $p['count']])->values(),
+                'top_origins'  => $c['origins']->take(3)->map(fn ($o) => ['place' => $o['place'], 'count' => $o['count']])->values(),
+            ])->values(),
+            'current_suggestions' => $recs->map(fn ($r) => $rename($r['attraction']) . ' (' . $r['age_group'] . '): ' . $renameText($r['title']))->values(),
+        ];
+    @endphp
+
+    <div class="table-box res-box ai-panel">
+        <div class="panel-head ai-head">
+            <div class="ai-head-title">
+                <span class="ai-orb"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                <div>
+                    <h3>Promo Recommendations <span class="ai-chip"><i class="fa-solid fa-sparkles"></i> AI-powered</span></h3>
+                    <p>Ask the AI for promo ideas based on your real booking data</p>
                 </div>
             </div>
-        @empty
-            <p style="text-align:center;padding:24px;color:var(--muted);">No recommendations yet — need more booking data first.</p>
-        @endforelse
+            <span class="ai-status"><span class="ai-dot"></span> {{ $recs->count() ? 'Ready' : 'Waiting for data' }}</span>
+        </div>
+
+        @if ($recs->count())
+            <div class="ai-summary-strip">
+                <i class="fa-solid fa-lightbulb"></i>
+                <div>
+                    AI reviewed <strong>{{ $perfTotal }} online booking{{ $perfTotal == 1 ? '' : 's' }}</strong>
+                    across <strong>{{ $perfCards->count() }} attraction{{ $perfCards->count() == 1 ? '' : 's' }}</strong>
+                    and prepared <strong>{{ $recs->count() }} promo suggestion{{ $recs->count() == 1 ? '' : 's' }}</strong> for you.
+                </div>
+            </div>
+        @endif
+
+        <div class="ai-chat" id="aiChat" data-url="{{ url('/ai/promo-suggest') }}" data-context="{{ json_encode($aiContext) }}">
+            <div class="ai-chat-label"><i class="fa-solid fa-comments"></i> Ask the AI</div>
+            <div class="ai-prompts">
+                <button type="button" class="ai-prompt">Anong age group ang dapat i-target?</button>
+                <button type="button" class="ai-prompt">Suggest ng promo para sa pinakamababang attraction</button>
+                <button type="button" class="ai-prompt">Promo idea para sa 18-24</button>
+                <button type="button" class="ai-prompt">Paano dadami ang weekday bookings?</button>
+            </div>
+            <div class="ai-input-row">
+                <input type="text" id="aiQuestion" maxlength="400" placeholder="Hal. Anong promo ang bagay sa 35-44 ng Skataya?" autocomplete="off">
+                <button type="button" class="ai-send" id="aiSend"><i class="fa-solid fa-paper-plane"></i> <span>Ask AI</span></button>
+            </div>
+            <div class="ai-thread" id="aiThread" aria-live="polite"></div>
+        </div>
+
+        @if ($recs->count())
+            <div class="ai-sub-title">Auto-generated suggestions</div>
+        @endif
+
+        <div class="panel-body">
+            @forelse ($recs as $rec)
+                @php $st = $perfByKey->get($norm($rec['attraction'])) ?? $perfByKey->get($norm($rename($rec['attraction']))); @endphp
+                <div class="ai-rec-card" style="--i: {{ $loop->index }};">
+                    <span class="ai-rec-icon" style="background: {{ $rec['color'] }};">
+                        <i class="fa-solid {{ $rec['icon'] }}"></i>
+                    </span>
+                    <div class="ai-rec-main">
+                        <div class="ai-rec-tags">
+                            <span class="ai-rec-tag is-ai"><i class="fa-solid fa-sparkles"></i> AI suggestion</span>
+                            <span class="ai-rec-tag"><i class="fa-solid fa-cake-candles"></i> {{ $rename($rec['attraction']) }} &middot; {{ $rec['age_group'] }}</span>
+                        </div>
+                        <div class="ai-rec-body">
+                            <h4>{{ $renameText($rec['title']) }}</h4>
+                            <p class="ai-rec-desc">{{ $renameText($rec['desc']) }}</p>
+                        </div>
+                        <div class="ai-why">
+                            <span class="ai-why-label"><i class="fa-solid fa-brain"></i> Why this promo</span>
+                            <span>Top age group: <b>{{ $rec['age_group'] }}</b></span>
+                            @if ($st)
+                                <span>Online bookings: <b>{{ $st['count'] }}</b></span>
+                                <span>Share of all bookings: <b>{{ $st['pct'] }}%</b></span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <p style="text-align:center;padding:24px;color:var(--muted);font-size:12.5px;">
+                    <i class="fa-solid fa-circle-info"></i> No recommendations yet — the AI needs more booking data first.
+                </p>
+            @endforelse
+        </div>
+
+        @if ($recs->count())
+            <div class="ai-foot">
+                <i class="fa-solid fa-circle-info"></i>
+                Suggestions update automatically when you change the period above. Review them before launching a promo.
+            </div>
+        @endif
     </div>
 
 @endsection
 
 @push('scripts')
     <script>
-        // Period filter — reloads with a query param; wire this to your
-        // controller's date range logic.
-        document.getElementById('periodFilter').addEventListener('change', function() {
-            const days = this.value;
+        // Period filter — reloads with a ?days= query param (handled by the controller).
+        document.getElementById('periodFilter')?.addEventListener('change', function () {
             const url = new URL(window.location.href);
-            url.searchParams.set('days', days);
+            url.searchParams.set('days', this.value);
             window.location.href = url.toString();
         });
 
-        // Animate the age-distribution bars in from 0 on load.
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.age-fill').forEach(el => {
-                const pct = el.getAttribute('data-pct') || 0;
-                requestAnimationFrame(() => { el.style.width = pct + '%'; });
-            });
-        });
+        function escapeHtml(str) {
+            return String(str ?? '—').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
 
-        // Expandable visitor login rows — fetch reservation details on demand.
-        (function() {
-            document.querySelectorAll('.visitor-row').forEach(row => {
+        // first non-empty value from a list of possible field names
+        function pick(obj, keys) {
+            for (const k of keys) {
+                const v = obj?.[k];
+                if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+            }
+            return null;
+        }
+
+        // "rides_60" -> "Rides 60"
+        function prettyPackage(s) {
+            if (!s) return '—';
+            return String(s).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        // "2026-10-05" -> "Oct 05, 2026"
+        function prettyDate(s) {
+            if (!s) return '—';
+            if (/^\d{4}-\d{2}-\d{2}/.test(String(s))) {
+                const d = new Date(String(s).substring(0, 10) + 'T00:00:00');
+                if (!isNaN(d)) return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+            }
+            return String(s);
+        }
+
+        // "13:30:00" -> "1:30 PM"
+        function prettyTime(s) {
+            if (!s) return '—';
+            const m = String(s).match(/^(\d{1,2}):(\d{2})/);
+            if (!m) return String(s);
+            let h = parseInt(m[1], 10);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h}:${m[2]} ${ampm}`;
+        }
+
+        // ── Visitor logins: expandable rows + search/filter + pagination ──
+        (function () {
+            const tbody = document.getElementById('visitorBody');
+            if (!tbody) return;
+
+            const pagination = document.getElementById('visitorPagination');
+            const searchInput = document.getElementById('visitorSearch');
+            const statusFilter = document.getElementById('visitorStatusFilter');
+            const clearBtn = document.getElementById('visitorClearBtn');
+            const countEl = document.getElementById('visitorCount');
+            const COL_COUNT = 5;
+            const PAGE_SIZE = 10;
+            let currentPage = 1;
+
+            const pairs = Array.from(tbody.querySelectorAll('tr.visitor-row')).map(row => ({
+                row,
+                panel: row.nextElementSibling
+            }));
+
+            if (!pairs.length) {
+                if (pagination) pagination.style.display = 'none';
+                return;
+            }
+
+            // expand / collapse + lazy-load the reservation
+            pairs.forEach(({ row, panel }) => {
                 row.addEventListener('click', () => {
-                    const panelRow = row.nextElementSibling;
-                    const content = panelRow.querySelector('.reservation-panel-content');
+                    const content = panel.querySelector('.reservation-panel-content');
                     const isOpen = row.classList.contains('is-open');
 
-                    document.querySelectorAll('.visitor-row.is-open').forEach(openRow => {
-                        if (openRow !== row) {
-                            openRow.classList.remove('is-open');
-                            openRow.nextElementSibling.classList.remove('is-open');
+                    pairs.forEach(p => {
+                        if (p.row !== row) {
+                            p.row.classList.remove('is-open');
+                            p.panel.classList.remove('is-open');
                         }
                     });
 
                     row.classList.toggle('is-open', !isOpen);
-                    panelRow.classList.toggle('is-open', !isOpen);
+                    panel.classList.toggle('is-open', !isOpen);
 
                     if (isOpen || content.dataset.loaded) return;
 
@@ -1202,15 +1152,22 @@
                             return res.json();
                         })
                         .then(data => {
+                            // tolerant of different field names coming from the controller
+                            const pkg    = prettyPackage(pick(data, ['package_label', 'package', 'package_name']));
+                            const pax    = pick(data, ['pax', 'display_pax', 'guests', 'number_of_pax']) ?? '—';
+                            const date   = prettyDate(pick(data, ['reservation_date', 'display_date', 'date']));
+                            const time   = prettyTime(pick(data, ['reservation_time', 'display_time', 'time']));
+                            const status = String(pick(data, ['status', 'approval_status']) ?? '—').toLowerCase();
+
                             content.innerHTML = `
                                 <div class="reservation-summary">
-                                    <div class="reservation-field"><span class="k">Package</span><span class="v">${data.package ?? '—'}</span></div>
-                                    <div class="reservation-field"><span class="k">Pax</span><span class="v">${data.pax ?? '—'}</span></div>
-                                    <div class="reservation-field"><span class="k">Date</span><span class="v">${data.reservation_date ?? '—'}</span></div>
-                                    <div class="reservation-field"><span class="k">Time</span><span class="v">${data.reservation_time ?? '—'}</span></div>
-                                    <div class="reservation-field"><span class="k">Status</span><span class="v">${data.status ?? '—'}</span></div>
+                                    <div class="reservation-field"><span class="k">Package</span><span class="v">${escapeHtml(pkg)}</span></div>
+                                    <div class="reservation-field"><span class="k">Pax</span><span class="v">${escapeHtml(pax)}</span></div>
+                                    <div class="reservation-field"><span class="k">Date</span><span class="v">${escapeHtml(date)}</span></div>
+                                    <div class="reservation-field"><span class="k">Time</span><span class="v">${escapeHtml(time)}</span></div>
+                                    <div class="reservation-field"><span class="k">Status</span><span class="v"><span class="res-badge" data-s="${escapeHtml(status)}">${escapeHtml(status)}</span></span></div>
                                 </div>
-                                <a class="reservation-link-btn" href="/reservations#${reservationId}">
+                                <a class="reservation-link-btn" href="/reservations#${encodeURIComponent(reservationId)}">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Reservations
                                 </a>
                             `;
@@ -1221,44 +1178,192 @@
                         });
                 });
             });
-        })();
-    </script>
-    <script>
-        (function () {
-            const wrap = document.querySelector('.service-pie-wrap');
-            const tooltip = document.getElementById('servicePieTooltip');
-            if (!wrap || !tooltip) return;
 
-            const tooltipName = document.getElementById('tooltipName');
-            const tooltipValue = document.getElementById('tooltipValue');
-            const tooltipDot = document.getElementById('tooltipDot');
+            // "no results" row
+            const noMatchRow = document.createElement('tr');
+            noMatchRow.className = 'empty-row';
+            noMatchRow.style.display = 'none';
+            noMatchRow.innerHTML = `<td colspan="${COL_COUNT}"><i class="fa-solid fa-circle-info"></i> No visitors match your search or filters.</td>`;
+            tbody.appendChild(noMatchRow);
 
-            function showTooltip(segment, clientX, clientY) {
-                tooltipName.textContent = segment.dataset.name;
-                tooltipValue.textContent = segment.dataset.count + ' bookings · ' + segment.dataset.percentage + '%';
-                tooltipDot.style.background = segment.dataset.color;
-
-                const rect = wrap.getBoundingClientRect();
-                tooltip.style.left = (clientX - rect.left) + 'px';
-                tooltip.style.top = (clientY - rect.top - 12) + 'px';
-                tooltip.classList.add('is-visible');
-            }
-
-            function hideTooltip() {
-                tooltip.classList.remove('is-visible');
-            }
-
-            document.querySelectorAll('.service-pie-segment').forEach(function (segment) {
-                segment.addEventListener('mouseenter', (e) => showTooltip(segment, e.clientX, e.clientY));
-                segment.addEventListener('mousemove', (e) => showTooltip(segment, e.clientX, e.clientY));
-                segment.addEventListener('mouseleave', hideTooltip);
-                segment.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    showTooltip(segment, e.clientX, e.clientY);
+            function getFiltered() {
+                const q = (searchInput?.value || '').toLowerCase().trim();
+                const st = statusFilter?.value || '';
+                return pairs.filter(({ row }) => {
+                    const name = (row.dataset.name || '').toLowerCase();
+                    const email = (row.dataset.email || '').toLowerCase();
+                    const okSearch = !q || name.includes(q) || email.includes(q);
+                    const okStatus = !st || row.dataset.online === st;
+                    return okSearch && okStatus;
                 });
+            }
+
+            function renderPagination(totalPages) {
+                if (totalPages <= 1) {
+                    pagination.style.display = 'none';
+                    pagination.innerHTML = '';
+                    return;
+                }
+                pagination.style.display = 'flex';
+                let html = `<span class="pagination-info">Page ${currentPage} of ${totalPages}</span>`;
+                html += `<button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">&laquo; Prev</button>`;
+                for (let p = 1; p <= totalPages; p++) {
+                    html += `<button class="${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
+                }
+                html += `<button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">Next &raquo;</button>`;
+                pagination.innerHTML = html;
+                pagination.querySelectorAll('button[data-page]').forEach(b => {
+                    b.addEventListener('click', () => {
+                        currentPage = parseInt(b.dataset.page, 10);
+                        render();
+                    });
+                });
+            }
+
+            function render() {
+                const filtered = getFiltered();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+                currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const visible = new Set(filtered.slice(start, start + PAGE_SIZE));
+
+                pairs.forEach(p => {
+                    const show = visible.has(p);
+                    p.row.style.display = show ? '' : 'none';
+                    p.panel.style.display = show ? '' : 'none';
+                    if (!show) {
+                        p.row.classList.remove('is-open');
+                        p.panel.classList.remove('is-open');
+                    }
+                });
+
+                noMatchRow.style.display = filtered.length === 0 ? '' : 'none';
+
+                const hasFilter = (searchInput?.value || '') || statusFilter?.value;
+                if (countEl) countEl.textContent = hasFilter ? `${filtered.length} of ${pairs.length} visitors shown` : '';
+
+                renderPagination(totalPages);
+            }
+
+            searchInput?.addEventListener('input', () => { currentPage = 1; render(); });
+            statusFilter?.addEventListener('change', () => { currentPage = 1; render(); });
+            clearBtn?.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                if (statusFilter) statusFilter.value = '';
+                currentPage = 1;
+                render();
             });
 
-            document.addEventListener('click', hideTooltip);
+            render();
+        })();
+
+        // ── Online performance: select an attraction to see its details ──
+        (function () {
+            const list = document.getElementById('perfList');
+            if (!list) return;
+            const items = list.querySelectorAll('.perf-item');
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    items.forEach(i => i.classList.toggle('is-active', i === item));
+                    document.querySelectorAll('.perf-pane').forEach(p => {
+                        p.classList.toggle('is-active', p.id === item.dataset.target);
+                    });
+                });
+            });
+        })();
+
+        // ── AI promo assistant ──
+        (function () {
+            const box = document.getElementById('aiChat');
+            if (!box) return;
+            const input = document.getElementById('aiQuestion');
+            const sendBtn = document.getElementById('aiSend');
+            const thread = document.getElementById('aiThread');
+            const url = box.dataset.url;
+            let context = {};
+            try { context = JSON.parse(box.dataset.context || '{}'); } catch (e) {}
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            let busy = false;
+
+            // tiny formatter: **bold**, "- " bullets, paragraphs (input is escaped first)
+            function format(text) {
+                const lines = escapeHtml(text).split(/\n/);
+                let html = '', inList = false;
+                lines.forEach(l => {
+                    l = l.trim().replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                    if (/^[-•*]\s+/.test(l)) {
+                        if (!inList) { html += '<ul>'; inList = true; }
+                        html += '<li>' + l.replace(/^[-•*]\s+/, '') + '</li>';
+                    } else {
+                        if (inList) { html += '</ul>'; inList = false; }
+                        if (l) html += '<p>' + l + '</p>';
+                    }
+                });
+                if (inList) html += '</ul>';
+                return html;
+            }
+
+            function addUser(text) {
+                const d = document.createElement('div');
+                d.className = 'ai-msg is-user';
+                d.innerHTML = '<div class="ai-bubble">' + escapeHtml(text) + '</div>';
+                thread.appendChild(d);
+            }
+
+            function addAi() {
+                const d = document.createElement('div');
+                d.className = 'ai-msg is-ai';
+                d.innerHTML = '<span class="ai-avatar"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div class="ai-bubble"><span class="ai-typing"><span></span><span></span><span></span></span></div>';
+                thread.appendChild(d);
+                return d.querySelector('.ai-bubble');
+            }
+
+            // reveal the answer word by word
+            function reveal(bubble, text) {
+                if (reduceMotion) { bubble.innerHTML = format(text); return Promise.resolve(); }
+                const words = text.split(/(\s+)/);
+                let i = 0, shown = '';
+                return new Promise(resolve => {
+                    const t = setInterval(() => {
+                        shown += words.slice(i, i + 3).join('');
+                        i += 3;
+                        bubble.innerHTML = format(shown);
+                        if (i >= words.length) { clearInterval(t); resolve(); }
+                    }, 28);
+                });
+            }
+
+            async function ask(question) {
+                question = (question || '').trim();
+                if (!question || busy) return;
+                busy = true; sendBtn.disabled = true; input.value = '';
+                addUser(question);
+                const bubble = addAi();
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ question, context })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data.answer) throw new Error(data.message || 'AI request failed');
+                    await reveal(bubble, data.answer);
+                } catch (err) {
+                    bubble.classList.add('is-error');
+                    bubble.textContent = 'Hindi makakuha ng sagot ngayon. Subukan ulit mamaya.';
+                } finally {
+                    busy = false; sendBtn.disabled = false; input.focus();
+                    thread.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            sendBtn.addEventListener('click', () => ask(input.value));
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
+            box.querySelectorAll('.ai-prompt').forEach(b => b.addEventListener('click', () => ask(b.textContent)));
         })();
     </script>
 @endpush

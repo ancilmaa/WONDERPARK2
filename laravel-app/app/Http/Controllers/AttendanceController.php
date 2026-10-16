@@ -30,6 +30,10 @@ class AttendanceController extends Controller
     // So OT is always a whole or half hour (1, 1.5, 2, 2.5, ...).
     private const OT_STEP_MINUTES = 30;
 
+    // Mga area na pwedeng i-assign sa Team Leader at Staff.
+    // Ang Manager ay walang area. Ito rin ang pagkakasunod-sunod sa sheet.
+    private const AREAS = ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+
     // ─── SYSTEM LOG HELPER ─────────────────────────────────
     // A single place that calls SystemLogger::record().
     // - The app uses sessions (not Laravel Auth), so the user_id and email
@@ -84,10 +88,13 @@ class AttendanceController extends Controller
             return redirect('/login');
         }
 
-        // The sheet can be pointed at a specific half-month with
-        // ?period=YYYY-MM-DD (the "View" dropdown, and the redirect after an
-        // import). Without it, fall back to auto-detect
-        // (the half that contains the most recent attendance_date).
+        // The sheet always shows the CURRENT half-month (based on today's
+        // date), so it is always up to date: Days 1–15 until the 15th,
+        // Days 16–end of month after that.
+        //
+        // ?period=YYYY-MM-DD is still honored (the redirect after an import
+        // and the live-update polling use it), but there is no longer a
+        // dropdown on the page for picking an older period.
         $requestedPeriod = $request->query('period');
         $range = null;
         if ($requestedPeriod && preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedPeriod)) {
@@ -97,7 +104,7 @@ class AttendanceController extends Controller
                 $range = null;
             }
         }
-        [$periodStart, $periodEnd, $cutoffType] = $range ?? $this->latestCutoffRange();
+        [$periodStart, $periodEnd, $cutoffType] = $range ?? $this->currentCutoffRange();
 
         // How many actual days are in THIS period — always 15 for the 1st
         // half, but 13/14/15/16 for the 2nd half depending on the month.
@@ -110,13 +117,18 @@ class AttendanceController extends Controller
 
         // Pivot into day_1..day_N shape, since that's what the view expects
         $pendingNames = [];
-        $records = $attendance->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays, &$pendingNames) {
+        $areaMap = $this->employeeAreaMap();
+        $records = $attendance->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays, &$pendingNames, $areaMap) {
             $first = $recs->first();
             $obj = new \stdClass();
             $obj->name = $name;
             // Normalized so "Manager", "MANAGER", "manager" all collapse
             // into one group.
             $obj->category = $first->category ? ucwords(strtolower(trim($first->category))) : 'Staff';
+            // Area ay galing sa Employees table. Ang Manager ay walang area.
+            $obj->area = $obj->category === 'Manager'
+                ? ''
+                : ($areaMap[strtolower(trim($name))] ?? '');
 
             for ($i = 1; $i <= $periodDays; $i++) {
                 $obj->{"day_{$i}"} = null;
@@ -160,9 +172,6 @@ class AttendanceController extends Controller
         $currentToken = DB::table('app_settings')->where('key', 'checkin_qr_token')->value('value');
         $qrDate = DB::table('app_settings')->where('key', 'checkin_qr_date')->value('value') ?? now()->format('Y-m-d');
 
-        // Choices for the "View period" dropdown.
-        $periodOptions = $this->periodOptionsAround($periodStart);
-
         // Employees who timed in via QR but haven't timed out yet (shown as "IN").
         $pendingNames = array_values(array_unique($pendingNames));
 
@@ -172,11 +181,108 @@ class AttendanceController extends Controller
         $employeeShifts = $this->employeeShiftMap();
         $shiftEmployees = Employee::active()->orderBy('employee_name')->pluck('employee_name')->unique()->values()->all();
 
+        // Area setup (Field of Rides / Dino Adventure / Roller Skates).
+        $areaOptions = self::AREAS;
+        $areaReady = $this->columnExists('employees', 'area');
+        $areaEmployees = $this->areaEmployeeList();
+
         return view('attendance.attendance', compact(
             'records', 'cutoffType', 'periodStart', 'periodEnd', 'periodDays',
-            'currentToken', 'qrDate', 'periodOptions', 'pendingNames',
-            'shiftSettings', 'employeeShifts', 'shiftEmployees', 'shiftReady'
+            'currentToken', 'qrDate', 'pendingNames',
+            'shiftSettings', 'employeeShifts', 'shiftEmployees', 'shiftReady',
+            'areaOptions', 'areaReady', 'areaEmployees'
         ));
+    }
+
+    // ═══════════════ AREAS (Field of Rides / Dino Adventure / Roller Skates) ═══════════════
+
+    // [lowercase trimmed name => area]. Walang laman kung wala pang `area` column.
+    private function employeeAreaMap(): array
+    {
+        if (!$this->columnExists('employees', 'area')) {
+            return [];
+        }
+
+        $map = [];
+        foreach (DB::table('employees')->whereNotNull('area')->where('area', '!=', '')->get(['employee_name', 'area']) as $r) {
+            $map[strtolower(trim($r->employee_name))] = $r->area;
+        }
+
+        return $map;
+    }
+
+    // Mga Team Leader / Staff na pwedeng bigyan ng area (para sa modal).
+    private function areaEmployeeList(): array
+    {
+        if (!$this->columnExists('employees', 'area')) {
+            return [];
+        }
+
+        return DB::table('employees')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->whereRaw("LOWER(TRIM(COALESCE(category, ''))) != 'manager'")
+            ->orderBy('category')
+            ->orderBy('employee_name')
+            ->get(['employee_name', 'category', 'area'])
+            ->map(fn($r) => [
+                'name' => $r->employee_name,
+                'category' => ucwords(strtolower(trim((string) $r->category))) ?: 'Staff',
+                'area' => $r->area ?: '',
+            ])
+            ->all();
+    }
+
+    // ─── SAVE AREA ASSIGNMENTS ───
+    // POST /attendance/areas
+    public function saveAreas(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        if (!$this->columnExists('employees', 'area')) {
+            return back()->with('error', 'Hindi pa nai-save ang area. Patakbuhin muna ang "php artisan migrate".');
+        }
+
+        $validated = $request->validate([
+            'employees' => 'required|array',
+            'employees.*.name' => 'required|string',
+            'employees.*.area' => ['nullable', Rule::in(self::AREAS)],
+        ]);
+
+        $before = $this->employeeAreaMap();
+        $changed = 0;
+
+        foreach ($validated['employees'] as $row) {
+            $area = $row['area'] ?? null;
+            $area = $area === '' ? null : $area;
+            $key = strtolower(trim($row['name']));
+
+            if (($before[$key] ?? null) === $area) {
+                continue;
+            }
+
+            DB::table('employees')
+                ->where('employee_name', $row['name'])
+                ->update(['area' => $area]);
+            $changed++;
+        }
+
+        if ($changed > 0) {
+            $this->audit(
+                'employee_areas_updated',
+                "Area of {$changed} employee(s) updated",
+                'info',
+                ['employees_changed' => $changed],
+                false,
+                'attendance'
+            );
+        }
+
+        return back()->with('success', $changed > 0
+            ? "Na-save ang area ng {$changed} empleyado."
+            : 'Walang binago sa mga area.');
     }
 
     // ─── Live check for the Attendance sheet ───
@@ -201,7 +307,7 @@ class AttendanceController extends Controller
                 $range = null;
             }
         }
-        [$periodStart, $periodEnd] = $range ?? $this->latestCutoffRange();
+        [$periodStart, $periodEnd] = $range ?? $this->currentCutoffRange();
 
         $rows = Attendance::whereBetween('attendance_date', [
                 $periodStart->format('Y-m-d'),
@@ -217,54 +323,14 @@ class AttendanceController extends Controller
         ]);
     }
 
-    // ─── Half-month periods for the "View" dropdown ───
-    // Includes: the period on screen, the one before and after it, today's
-    // period, and every period that already has attendance data. Newest
-    // first. The one on screen is marked selected.
-    private function periodOptionsAround(Carbon $displayedStart): array
-    {
-        $starts = [];
-        $add = function (Carbon $d) use (&$starts) {
-            [$ps] = $this->cutoffRangeForDate($d);
-            $starts[$ps->format('Y-m-d')] = true;
-        };
-
-        $displayed = $this->cutoffRangeForDate($displayedStart)[0];
-        $add($displayed);
-
-        if ($displayed->day === 1) {
-            $add($displayed->copy()->subMonthNoOverflow()->day(16));
-            $add($displayed->copy()->day(16));
-        } else {
-            $add($displayed->copy()->day(1));
-            $add($displayed->copy()->addMonthNoOverflow()->day(1));
-        }
-
-        $add(now());
-
-        Attendance::query()->select('attendance_date')->distinct()->pluck('attendance_date')
-            ->each(fn($d) => $add(Carbon::parse($d)));
-
-        krsort($starts);
-
-        $options = [];
-        foreach (array_keys($starts) as $key) {
-            [$ps, $pe] = $this->cutoffRangeForDate(Carbon::parse($key));
-            $options[] = [
-                'value' => $ps->format('Y-m-d'),
-                'label' => ($ps->day === 1 ? '1st half' : '2nd half')
-                    . ' (' . $ps->format('M j') . '–' . $pe->format('j, Y') . ')',
-                'selected' => $key === $displayed->format('Y-m-d'),
-            ];
-        }
-
-        return $options;
-    }
-
-    // ─── Which half-month period to show, based on the latest import ───
+    // ─── Which half-month period has the most recent attendance data ───
     // Uses MAX(attendance_date) (import and QR check-in both write to this
     // column) rather than updated_at/created_at, since the `attendance`
     // table doesn't have timestamp columns.
+    //
+    // NOTE: the Attendance sheet itself no longer uses this — it always
+    // shows today's period (see currentCutoffRange()). This is kept for
+    // anything else that wants "the period of the latest data".
     private function latestCutoffRange()
     {
         $latestDate = Attendance::max('attendance_date');
@@ -277,8 +343,8 @@ class AttendanceController extends Controller
     }
 
     // ─── Same as latestCutoffRange(), but can force a half ───
-    // Used by the Salary page and Generate Salary so Attendance, Salary,
-    // and Payroll always look at the same period.
+    // Used by the Salary page and Generate Salary so Salary and Payroll
+    // always look at the same period.
     private function latestCutoffRangeFor($cutoffType = null)
     {
         $latestDate = $this->completedOnly(Attendance::query())->max('attendance_date');
@@ -801,16 +867,21 @@ class AttendanceController extends Controller
     }
 
     // ─── SALARY PAGE ───────────────────────────────
-    public function salary()
+    // GET /attendance/salary?area=Dino Adventure
+    // Kapag may ?area=, ang Team Leader at Staff lang ng area na iyon ang
+    // lalabas. Ang Manager ay walang area, kaya sa "Lahat ng area" lang siya.
+    public function salary(Request $request)
     {
         if (!session()->has('user_id')) {
             return redirect('/login');
         }
 
+        $area = $this->requestedArea($request->query('area'));
+
         $rates = SalaryRate::all()->keyBy('position');
         $settings = PayrollSetting::current();
 
-        // Same period as the Attendance page (latest imported data).
+        // Period of the latest attendance data.
         [$periodStart, $periodEnd, $cutoffType] = $this->latestCutoffRangeFor();
 
         // Total days in THIS half (a 31-day month's 2nd cutoff has 16 days).
@@ -826,12 +897,18 @@ class AttendanceController extends Controller
             $periodEnd->format('Y-m-d'),
         ])->get();
 
+        $areaMap = $this->employeeAreaMap();
+
         // Pivot attendance rows into day_1..day_N shape
-        $attendance = $records->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays) {
+        $attendance = $records->groupBy('employee_name')->map(function ($recs, $name) use ($periodStart, $periodDays, $areaMap) {
             $first = $recs->first();
             $obj = new \stdClass();
             $obj->name = $name;
             $obj->category = $first->category ? ucwords(strtolower(trim($first->category))) : 'Staff';
+            // Area ay galing sa Employees table. Ang Manager ay walang area.
+            $obj->area = $obj->category === 'Manager'
+                ? ''
+                : ($areaMap[strtolower(trim($name))] ?? '');
             $obj->days_worked = 0;
 
             for ($i = 1; $i <= $periodDays; $i++) {
@@ -855,6 +932,11 @@ class AttendanceController extends Controller
             return $obj;
         })->values();
 
+        // Piliin lang ang napiling area (kung may napili).
+        if ($area !== null) {
+            $attendance = $attendance->filter(fn($o) => $o->area === $area)->values();
+        }
+
         // Payroll generated FOR THIS PERIOD, and generated AFTER the last
         // import of attendance for this period (older ones are stale but
         // stay in Payroll History).
@@ -870,15 +952,29 @@ class AttendanceController extends Controller
             $salaryQuery->where('generated_at', '>=', $importedAt);
         }
 
+        // Per empleyado ang pagkuha ng pinakabagong payroll, kaya ang
+        // pag-generate ng isang area ay hindi nakakaapekto sa iba.
         $salaryMap = $salaryQuery
             ->orderByDesc('generated_at')
             ->get()
             ->unique('name')
             ->keyBy('name');
 
+        $areaOptions = self::AREAS;
+
         return view('attendance.salary', compact(
-            'rates', 'attendance', 'salaryMap', 'periodStart', 'periodEnd', 'cutoffType', 'settings', 'periodDays', 'secondCutoffDays'
+            'rates', 'attendance', 'salaryMap', 'periodStart', 'periodEnd', 'cutoffType', 'settings',
+            'periodDays', 'secondCutoffDays', 'area', 'areaOptions'
         ));
+    }
+
+    // Ibabalik ang area kung valid (Field of Rides / Dino Adventure / Roller Skates),
+    // kung hindi ay null (= lahat ng area).
+    private function requestedArea($value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+
+        return in_array($value, self::AREAS, true) ? $value : null;
     }
 
     public function updateRates(Request $request)
@@ -927,7 +1023,8 @@ class AttendanceController extends Controller
             );
         }
 
-        return redirect()->route('salary')->with('success', 'Daily rates updated successfully.');
+        return redirect()->route('salary', array_filter(['area' => $request->input('area')]))
+            ->with('success', 'Daily rates updated successfully.');
     }
 
     // ─── UPDATE OVERTIME / LATE / HOLIDAY-OT SETTINGS ───────────
@@ -982,6 +1079,9 @@ class AttendanceController extends Controller
     }
 
     // ─── GENERATE PAYROLL ───────────────────────────
+    // Kung may `area` sa request (Field of Rides / Dino Adventure /
+    // Roller Skates), ang Team Leader at Staff lang ng area na iyon ang
+    // kakalkulahin. Walang `area` = lahat (kasama ang Manager), gaya ng dati.
     public function storePayroll(Request $request)
     {
         if (!session()->has('user_id')) {
@@ -991,6 +1091,7 @@ class AttendanceController extends Controller
         $cutoffType = $request->input('cutoff_type', '1st');
         $applyGovt = $request->input('apply_govt_deductions') === '1';
         $holidays = $request->input('holidays', []); // [day_number => 'regular'|'special']
+        $area = $this->requestedArea($request->input('area'));
 
         [$periodStart, $periodEnd] = $this->latestCutoffRangeFor($cutoffType);
 
@@ -1009,8 +1110,20 @@ class AttendanceController extends Controller
             $periodEnd->format('Y-m-d'),
         ])->get();
 
+        // Isang area lang: itira ang mga empleyadong nasa area na iyon.
+        // (Ang Manager ay walang area, kaya hindi siya kasama dito.)
+        if ($area !== null) {
+            $areaMap = $this->employeeAreaMap();
+            $records = $records->filter(
+                fn($r) => ($areaMap[strtolower(trim($r->employee_name))] ?? null) === $area
+                    && strtolower(trim((string) $r->category)) !== 'manager'
+            )->values();
+        }
+
         if ($records->isEmpty()) {
-            return redirect()->route('salary')->with('error', 'No attendance records found for this cutoff period.');
+            return redirect()->route('salary', array_filter(['area' => $area]))->with('error', $area !== null
+                ? "Walang attendance records para sa {$area} sa cutoff na ito. Siguraduhing may area ang mga empleyado (Attendance > Areas)."
+                : 'No attendance records found for this cutoff period.');
         }
 
         // Does the payrolls table have the undertime_deduction column yet?
@@ -1146,12 +1259,14 @@ class AttendanceController extends Controller
         // the details are already in Payroll History. batch_id = generated_at.
         $this->audit(
             'payroll_generated',
-            "Payroll generated ({$cutoffType} cutoff, {$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}) "
+            "Payroll generated ({$cutoffType} cutoff, {$periodStart->format('M j')}–{$periodEnd->format('M j, Y')}"
+                . ($area !== null ? ", {$area}" : '') . ") "
                 . "for {$count} employee(s)",
             'info',
             [
                 'batch_id'          => $generatedAt->format('Y-m-d H:i:s'),
                 'cutoff_type'       => $cutoffType,
+                'area'              => $area ?? 'all',
                 'period_start'      => $periodStart->format('Y-m-d'),
                 'period_end'        => $periodEnd->format('Y-m-d'),
                 'employees'         => $count,
@@ -1168,7 +1283,10 @@ class AttendanceController extends Controller
             ? ''
             : ' (Note: "php artisan migrate" has not been run yet — Late and Undertime are temporarily combined in one column.)';
 
-        return redirect()->route('salary')->with('success', "Payroll generated for {$count} employee(s)." . $note);
+        $scope = $area !== null ? " ({$area})" : '';
+
+        return redirect()->route('salary', array_filter(['area' => $area]))
+            ->with('success', "Payroll generated for {$count} employee(s){$scope}." . $note);
     }
 
     // ─── PAYROLL HISTORY ────────────────────────────
@@ -1678,6 +1796,16 @@ class AttendanceController extends Controller
     }
 
     // ─── BIO FILE IMPORT (CSV or Excel) ─────────────
+    //
+    // Expected columns (header row, case-insensitive):
+    //   name | category | 1, 2, 3 ... N   (or day1, day2 ... dayN)
+    // Cell values:
+    //   P       present
+    //   +N      present + overtime hours
+    //   -N      present, late by N minutes
+    //   Nh      present, short day — N hours actually worked (undertime),
+    //           e.g. 7h, 5h, 6.5h
+    //   -       absent
     public function importAttendance(Request $request)
     {
         if (!session()->has('user_id')) {
@@ -1697,12 +1825,11 @@ class AttendanceController extends Controller
 
         // Which half of the month this file's day-1..day-N columns map
         // onto: the period currently on screen. If none was sent, default
-        // to the period currently shown on the Attendance sheet, and only
-        // fall back to today's period when there is no data at all.
+        // to the current half-month (based on today's date).
         if ($request->filled('period_start')) {
             [$periodStart, $periodEnd, $cutoffType] = $this->cutoffRangeForDate(Carbon::parse($request->input('period_start')));
         } else {
-            [$periodStart, $periodEnd, $cutoffType] = $this->latestCutoffRange();
+            [$periodStart, $periodEnd, $cutoffType] = $this->currentCutoffRange();
         }
         $periodDays = $periodStart->diffInDays($periodEnd) + 1;
 
@@ -1713,7 +1840,7 @@ class AttendanceController extends Controller
         // sheet groups them into a single row per person.
         $knownNames = Employee::active()
             ->pluck('employee_name')
-            ->mapWithKeys(fn($n) => [strtolower(trim($n)) => $n]);
+            ->mapWithKeys(fn($n) => [strtolower(preg_replace('/\s+/', ' ', trim($n))) => $n]);
 
         $allRows = [];
         $unmatchedNames = []; // rows skipped because the name isn't a known active employee
@@ -1730,7 +1857,10 @@ class AttendanceController extends Controller
                     fclose($handle);
                     return redirect()->route('attendance')->with('error', 'The uploaded CSV file is empty or invalid.');
                 }
-                $header = array_map(fn($h) => strtolower(trim($h)), $header);
+                $header = array_map(
+                    fn($h) => strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $h))),
+                    $header
+                );
 
                 while (($row = fgetcsv($handle)) !== false) {
                     // Guard against column count mismatch (avoids array_combine() crash)
@@ -1750,7 +1880,10 @@ class AttendanceController extends Controller
                     return redirect()->route('attendance')->with('error', 'The uploaded file is empty or invalid.');
                 }
 
-                $header = array_map(fn($h) => strtolower(trim($h ?? '')), $rows[0]);
+                $header = array_map(
+                    fn($h) => strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) ($h ?? '')))),
+                    $rows[0]
+                );
 
                 for ($i = 1; $i < count($rows); $i++) {
                     $row = $rows[$i];
@@ -1936,17 +2069,30 @@ class AttendanceController extends Controller
         ?\Illuminate\Support\Collection $knownNames = null,
         array &$unmatchedNames = []
     ): array {
-        $name = $rowData['name'] ?? null;
-        if (!$name) return [];
+        // Accept the common header names for the employee name column.
+        $name = null;
+        foreach (['name', 'name of employee', 'employee name', 'employee', 'full name'] as $key) {
+            if (isset($rowData[$key]) && trim((string) $rowData[$key]) !== '') {
+                $name = trim((string) $rowData[$key]);
+                break;
+            }
+        }
+        if ($name === null) return [];
+
+        // Skip title/footer/legend rows ("Hours per full day", "Legend", "P", "-", ...).
+        // Real employee rows have a numeric NO. Files without a NO column are still accepted.
+        if (array_key_exists('no', $rowData)) {
+            $no = trim((string) $rowData['no']);
+            if ($no === '' || !is_numeric($no)) return [];
+        }
 
         // Use the canonical, Employees-table casing of this name for
         // everything we save, so bio and QR rows group together.
         $canonicalName = $name;
 
-        // Skip rows for names that aren't a known, active employee.
-        // $knownNames being null skips this check entirely.
         if ($knownNames !== null) {
-            $key = strtolower(trim($name));
+            // Collapse repeated spaces so "Juan  Dela Cruz" still matches.
+            $key = strtolower(preg_replace('/\s+/', ' ', $name));
 
             if (!$knownNames->has($key)) {
                 $unmatchedNames[] = $name;
@@ -1956,36 +2102,50 @@ class AttendanceController extends Controller
             $canonicalName = $knownNames->get($key);
         }
 
-        $category = $rowData['category'] ?? 'Staff';
+        $category = trim((string) ($rowData['category'] ?? '')) ?: 'Staff';
         $rows = [];
 
         for ($day = 1; $day <= $periodDays; $day++) {
-            // Supports both header formats of the bio export: "day1",
-            // "day2"... or plain "1", "2"...
-            $val = trim((string)($rowData["day{$day}"] ?? $rowData[(string)$day] ?? ''));
+            // Supports "day1", "day 1", "d1" or plain "1" headers.
+            $val = $rowData["day{$day}"]
+                ?? $rowData["day {$day}"]
+                ?? $rowData["d{$day}"]
+                ?? $rowData[(string) $day]
+                ?? '';
+            $val = trim((string) $val);
+
+            // Normalize look-alike dash characters that Excel/Word may produce
+            // (en dash, em dash, unicode minus) into a plain "-".
+            $val = str_replace(["\u{2212}", "\u{2013}", "\u{2014}"], '-', $val);
+
+            // "p" / "P " -> "P"
+            if (strtoupper($val) === 'P') $val = 'P';
+
             if ($val === '') continue;
 
-            $status = null;
-            if ($val === 'P' || str_starts_with($val, '+')) {
+            if ($val === 'P' || (str_starts_with($val, '+') && is_numeric(substr($val, 1)))) {
+                // "P" = present, "+1", "+2" = present with overtime.
                 $status = 'present';
             } elseif ($val === '-') {
                 // A bare dash with no number = genuinely absent that day.
                 $status = 'absent';
             } elseif (str_starts_with($val, '-') && is_numeric(substr($val, 1))) {
-                // "-15", "-30", etc. = late / undertime by that many minutes
-                // — still present for Days Worked and payroll purposes.
+                // "-5", "-30" = late / undertime in minutes; still present.
+                $status = 'present';
+            } elseif (preg_match('/^\d+(\.\d+)?h$/i', $val)) {
+                // "6h", "7h" = short day (hours actually worked); still present.
                 $status = 'present';
             } else {
                 continue;
             }
 
             $rows[] = [
-                'employee_name' => $canonicalName,
+                'employee_name'   => $canonicalName,
                 'attendance_date' => $periodStart->copy()->addDays($day - 1)->format('Y-m-d'),
-                'category' => $category,
-                'status' => $status,
-                'remarks' => $val,
-                'source' => 'bio',
+                'category'        => $category,
+                'status'          => $status,
+                'remarks'         => $val,
+                'source'          => 'bio',
             ];
         }
 
