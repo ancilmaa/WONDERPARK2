@@ -10,12 +10,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ZoneForecastController extends Controller
 {
-    private const ZONES = ['Roller Fever', 'Field of Rides', 'Dino Adventure'];
+    private const ZONES = ['Skataya', 'Piyestarides', 'Dinolakbay'];
 
 private const ZONE_SERVICES = [
-    'Roller Fever'   => ['rollerfever'],
-    'Field of Rides' => ['field_of_rides'],
-    'Dino Adventure' => ['dino_adventure'],
+    'Skataya'   => ['rollerfever'],
+    'Piyestarides' => ['field_of_rides'],
+    'Dinolakbay' => ['dino_adventure'],
 ];
     public function index(string $zone)
     {

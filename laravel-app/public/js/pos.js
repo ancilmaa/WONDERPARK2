@@ -34,9 +34,9 @@ const PAYMENT_LABELS = {
   online:   'Online'
 };
 
-const ZONE_ROLLER_FEVER   = 'roller fever';
-const ZONE_FIELD_OF_RIDES = 'field of rides';
-const ZONE_DINO_ADVENTURE = 'dino adventure';
+const ZONE_ROLLER_FEVER   = 'skataya';
+const ZONE_FIELD_OF_RIDES = 'piyestarides';
+const ZONE_DINO_ADVENTURE = 'dinolakbay';
 
 
 const CATEGORIES_SKATES = [

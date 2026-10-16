@@ -253,11 +253,11 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
 
     // Zone Forecast pages
     Route::get('/fieldOfRides', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Field of Rides')->name('zone.fieldOfRides');
+        ->defaults('zone', 'Piyestarides')->name('zone.fieldOfRides');
     Route::get('/RollerFever', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Roller Fever')->name('zone.rollerFever');
+        ->defaults('zone', 'Skataya')->name('zone.rollerFever');
     Route::get('/DinoAdventure', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Dino Adventure')->name('zone.dinoAdventure');
+        ->defaults('zone', 'Dinolakbay')->name('zone.dinoAdventure');
 });
 
 /*

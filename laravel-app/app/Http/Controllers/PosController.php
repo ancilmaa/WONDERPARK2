@@ -1014,10 +1014,10 @@ class PosController extends Controller
         // ng mga zone sa report kahit walang benta sa isa (mafi-filter out
         // na lang mamaya kung walang laman).
         $byZone = [
-            'roller fever'   => ['zone_label' => 'Skataya',   'items' => [], 'total_sales' => 0],
+            'skataya'        => ['zone_label' => 'Skataya',   'items' => [], 'total_sales' => 0],
             'snackbar'       => ['zone_label' => 'Snackbar',       'items' => [], 'total_sales' => 0],
-            'field of rides' => ['zone_label' => 'PiyestaRides', 'items' => [], 'total_sales' => 0],
-            'dino adventure' => ['zone_label' => 'DinoLakbay', 'items' => [], 'total_sales' => 0],
+            'piyestarides'   => ['zone_label' => 'PiyestaRides', 'items' => [], 'total_sales' => 0],
+            'dinolakbay'     => ['zone_label' => 'DinoLakbay', 'items' => [], 'total_sales' => 0],
         ];
 
         foreach ($transactions as $t) {
@@ -1046,7 +1046,7 @@ class PosController extends Controller
 
                 // Roller Fever zone -> hatiin pa: Snackbar categories vs.
                 // skates/rides/rentals/billiards/massage/socks
-                $zoneKey = ($rawZone === 'roller fever' && in_array($category, $snackbarCategories))
+                $zoneKey = ($rawZone === 'skataya' && in_array($category, $snackbarCategories))
                     ? 'snackbar'
                     : $rawZone;
 
