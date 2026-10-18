@@ -81,7 +81,7 @@
         <article class="mt-ticket">
             <div class="mt-top">
                 <div>
-                    <small>{{ $emoji }} WonderPark Admit Pass &middot; {{ $booking['service_name'] }}</small>
+                    <small>{{ $emoji }} Pistavora Admit Pass &middot; {{ $booking['service_name'] }}</small>
                     <h3>{{ $booking['reference'] }}</h3>
                     <div class="mt-when">📅 {{ $booking['date'] }}{{ $booking['time'] ? ' · ' . $booking['time'] : '' }} · {{ $guests }}</div>
                 </div>

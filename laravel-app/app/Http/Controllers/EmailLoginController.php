@@ -126,9 +126,9 @@ class EmailLoginController extends Controller
 
         try {
             Mail::raw(
-                "Your WonderPark login code is: {$code}\n\nThis code expires in " . self::CODE_MINUTES . " minutes. If you didn't request this, you can ignore this email.",
+                "Your Pistavora login code is: {$code}\n\nThis code expires in " . self::CODE_MINUTES . " minutes. If you didn't request this, you can ignore this email.",
                 function ($message) use ($email) {
-                    $message->to($email)->subject('Your WonderPark login code');
+                    $message->to($email)->subject('Your Pistavora login code');
                 }
             );
             return true;

@@ -5,7 +5,7 @@
            GET  /app/booking/{id}/status     -> user.booking.status   (BookingController@status, polled by step 5)
 
     Steps: 1 Who's coming (solo / duo / group / party)
-           2 Pick ONE attraction first (Dino Adventure / Field of Rides / RollerFever), then pick rides
+           2 Pick ONE attraction first (DinoLakbay / PiyestaRides / Skataya), then pick rides
              from that attraction only + live receipt on the right
            3 Date & time   4 Pay by QR Ph (QR on the left, receipt on the right) + upload proof   5 Voucher (blurred until admin approves)
 
@@ -15,17 +15,17 @@
       - The other two attractions are greyed out; tapping one switches attraction (current picks are cleared after a confirm).
 
     Party rules:
-      - "Party" in step 1  -> step 2 lets you choose only attractions that have party packages (Dino Adventure, RollerFever);
+      - "Party" in step 1  -> step 2 lets you choose only attractions that have party packages (DinoLakbay, Skataya);
                               the others are greyed out and locked. Only party packages (flat-price items) are shown.
       - Solo / Duo / Group -> party packages are shown greyed out and cannot be clicked.
 
       - A Party needs at least 10 guests (PARTY_MIN): the guest stepper cannot go below 10.
 
     Pack rules:
-      - RollerFever shows 4 boxes: 1-hour pass, 2-hour pass, all-day pass and the Group Bundle (P996).
+      - Skataya shows 4 boxes: 1-hour pass, 2-hour pass, all-day pass and the Group Bundle (P996).
       - When the guest count reaches an item's "recommend_min" (the Group Bundle = 5+), that box glows,
         gets a "Recommended" ribbon and a floating "Best for your group" bubble. The attraction card gets a glowing dot too.
-      - Field of Rides has an extra TER box (Try Every Ride): max 10 rides except Viking, shareable, no expiration.
+      - PiyestaRides has an extra TER box (Try Every Ride): max 10 rides except Viking, shareable, no expiration.
       - "Pack" items (bundle / TER ticket) are NOT per person: the quantity is the number of bundles / tickets.
 
     Expects: $catalog (BookingWizard::catalog + BookingController::withExtraItems), $deals (BookingWizard::deals),
@@ -36,7 +36,7 @@
 
 @section('title', 'Book a Visit')
 @section('page-title', 'Plan your adventure')
-@section('page-subtitle', 'Book your WonderPark day in 5 easy steps')
+@section('page-subtitle', 'Book your Pistavora day in 5 easy steps')
 @section('hide-page-title', '1')
 @section('body-class', 'page-uniform')
 
@@ -461,7 +461,7 @@
         <div class="pg-hero-text">
             <span class="pg-hero-badge">🎟️ PLAN YOUR VISIT</span>
             <h2>Plan your adventure</h2>
-            <p>Book your WonderPark day in 5 easy steps</p>
+            <p>Book your Pistavora day in 5 easy steps</p>
         </div>
 
         <button type="button" class="pg-theme-toggle" id="pgThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -1032,7 +1032,7 @@ window.BW = {
       : (party ? 'Party packages are a flat price based on how many guests are coming.'
                : 'Tap to pick as many rides as you like \u2014 passes are per person, bundles and tickets are per pack.');
 
-    /* The chosen attraction must still be allowed in this mode (e.g. Field of Rides has no party packages) */
+    /* The chosen attraction must still be allowed in this mode (e.g. PiyestaRides has no party packages) */
     if (state.tab && visibleTabs().indexOf(state.tab) === -1) { state.tab = null; state.items = {}; state.extras = {}; }
 
     /* Drop picks that don't belong to the chosen attraction / mode, or don't fit the party size */
@@ -1276,7 +1276,7 @@ window.BW = {
     var disc = b.discount ? '<div class="bw-row disc"><span>\uD83C\uDF89 Deals applied</span><span>\u2212' + money(b.discount) + '</span></div>' : '';
     var locked = !b.approved;
     $('#bwDone').innerHTML =
-      '<div class="bw-ticket"><div class="bw-ticket-top"><small>WONDERPARK ADMIT PASS</small><h3>' + esc(b.reference) + '</h3>' +
+      '<div class="bw-ticket"><div class="bw-ticket-top"><small>PISTAVORA ADMIT PASS</small><h3>' + esc(b.reference) + '</h3>' +
       '<div style="opacity:.9;font-size:13px;margin-top:4px">\uD83D\uDCC5 ' + esc(b.date_label) + (b.time_label ? ' \u00B7 ' + esc(b.time_label) : '') + ' \u00B7 ' + plural(b.guests, 'guest') + '</div></div>' +
       '<div class="bw-ticket-mid">' + rows + disc + '<div class="bw-row sum"><span>Total</span><span>' + money(b.total) + '</span></div></div>' +
       '<div class="bw-perf"></div><div class="bw-ticket-bot"><div class="bw-vlabel">YOUR VOUCHER CODE</div>' +

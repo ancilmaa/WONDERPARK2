@@ -524,7 +524,7 @@ class ReservationController extends Controller
                  . "Guests: {$pax}\n";
 
         if ($approved) {
-            $subject = 'Your WonderPark booking is confirmed';
+            $subject = 'Your Pistavora booking is confirmed';
             $body = "Hi {$name},\n\n"
                   . "Good news! We checked your proof of payment and your booking is now confirmed.\n\n"
                   . $details
@@ -532,9 +532,9 @@ class ReservationController extends Controller
                   . "Show this voucher code to the cashier when you arrive.\n"
                   . "Please note that confirmed bookings can no longer be rescheduled.\n\n"
                   . "You can view your booking here: {$myBookings}\n\n"
-                  . "See you at WonderPark!";
+                  . "See you at Pistavora!";
         } else {
-            $subject = 'Action needed: your WonderPark payment proof was not accepted';
+            $subject = 'Action needed: your Pistavora payment proof was not accepted';
             $body = "Hi {$name},\n\n"
                   . "We could not accept the proof of payment you sent for this booking.\n\n"
                   . $details
@@ -542,7 +542,7 @@ class ReservationController extends Controller
                   . "Please open My Bookings, tap \"Upload New Proof\", and send a clear screenshot or photo of your payment. "
                   . "You can still reschedule or cancel this booking while it is not yet approved.\n\n"
                   . "My Bookings: {$myBookings}\n\n"
-                  . "Thank you,\nWonderPark";
+                  . "Thank you,\nPistavora";
         }
 
         try {

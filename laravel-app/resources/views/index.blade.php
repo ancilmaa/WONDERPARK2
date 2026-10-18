@@ -406,9 +406,9 @@
                         </button>
                     </div>
                     <div class="forecast-sublist" id="forecastCardSublist">
-                        <a href="/fieldOfRides"><i class="fa-solid fa-ferris-wheel"></i> Field of Rides</a>
-                        <a href="/RollerFever"><i class="fa-solid fa-bolt"></i> Roller Fever</a>
-                        <a href="/DinoAdventure"><i class="fa-solid fa-dragon"></i> Dino Adventure</a>
+                        <a href="/fieldOfRides"><i class="fa-solid fa-ferris-wheel"></i> PiyestaRides</a>
+                        <a href="/RollerFever"><i class="fa-solid fa-bolt"></i> Skataya</a>
+                        <a href="/DinoAdventure"><i class="fa-solid fa-dragon"></i> DinoLakbay</a>
                     </div>
                 </div>
             @else
@@ -416,24 +416,24 @@
                 <a href="/fieldOfRides" class="app-card">
                     <div class="app-card-icon"><i class="fa-solid fa-ferris-wheel"></i></div>
                     <div class="app-card-text">
-                        <h2>Field of Rides</h2>
-                        <p>Sales in Field of Rides</p>
+                        <h2>PiyestaRides</h2>
+                        <p>Sales in PiyestaRides</p>
                     </div>
                     <i class="fa-solid fa-chevron-right app-card-arrow"></i>
                 </a>
                 <a href="/RollerFever" class="app-card">
                     <div class="app-card-icon"><i class="fa-solid fa-bolt"></i></div>
                     <div class="app-card-text">
-                        <h2>Roller Fever</h2>
-                        <p>Sales in Roller Fever</p>
+                        <h2>Skataya</h2>
+                        <p>Sales in Skataya</p>
                     </div>
                     <i class="fa-solid fa-chevron-right app-card-arrow"></i>
                 </a>
                 <a href="/DinoAdventure" class="app-card">
                     <div class="app-card-icon"><i class="fa-solid fa-dragon"></i></div>
                     <div class="app-card-text">
-                        <h2>Dino Adventure</h2>
-                        <p>Sales in Dino Adventure</p>
+                        <h2>DinoLakbay</h2>
+                        <p>Sales in DinoLakbay</p>
                     </div>
                     <i class="fa-solid fa-chevron-right app-card-arrow"></i>
                 </a>

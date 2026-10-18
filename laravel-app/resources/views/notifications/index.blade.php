@@ -1078,7 +1078,7 @@
             <span class="notif-statusbar-dot"></span>
             <span>Synced</span>
         </div>
-        <div>&copy; {{ date('Y') }} WonderPark Corporation. All rights reserved.</div>
+        <div>&copy; {{ date('Y') }} Pistavora Corporation. All rights reserved.</div>
     </div>
 
     <script>

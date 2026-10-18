@@ -20,8 +20,8 @@ class WaiverController extends Controller
      */
     protected array $waivers = [
         'dino_adventure' => [
-            'park_name' => 'Dino Adventure',
-            'intro' => 'In consideration for being permitted to enter REKS Amusement Facilities, (hereinafter referred to as the "Park"), the undersigned, on behalf of themselves and any minors under their supervision, hereby acknowledges and agrees as follows:',
+            'park_name' => 'DinoLakbay',
+            'intro' => 'In consideration for being permitted to enter Pistavora Amusement Park facilities, (hereinafter referred to as the "Park"), the undersigned, on behalf of themselves and any minors under their supervision, hereby acknowledges and agrees as follows:',
             'sections' => [
                 ['title' => '1. Assumption of Risks', 'body' => 'The undersigned acknowledges and understands that the activities and attractions at the Park involve inherent risks, including but not limited to, the risk of injury or harm, and hereby assumes all such risks.'],
                 ['title' => '2. Release and Waiver', 'body' => 'The undersigned, on behalf of themselves and any minors under their supervision, hereby releases, waives, discharges, and covenants not to sue the Park, its owners, employees, agents, and representatives (hereinafter collectively referred to as the "Released Parties") from any and all liability, claims, demands, actions, and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by the undersigned or any minor under their supervision while in or upon the Park premises.'],
@@ -34,8 +34,8 @@ class WaiverController extends Controller
         ],
 
         'rollerfever' => [
-            'park_name' => 'Roller Fever',
-            'intro' => 'In consideration for being permitted to enter Roller Fever, (hereinafter referred to as the "Park"), the undersigned, on behalf of themselves and any minors under their supervision, hereby acknowledges and agrees as follows:',
+            'park_name' => 'Skataya',
+            'intro' => 'In consideration for being permitted to enter Skataya, (hereinafter referred to as the "Park"), the undersigned, on behalf of themselves and any minors under their supervision, hereby acknowledges and agrees as follows:',
             'sections' => [
                 ['title' => '1. Assumption of Risks', 'body' => 'The undersigned acknowledges and understands that the activities and attractions at the Park involve inherent risks, including but not limited to, the risk of injury or harm, and hereby assumes all such risks.'],
                 ['title' => '2. Release and Waiver', 'body' => 'The undersigned, on behalf of themselves and any minors under their supervision, hereby releases, waives, discharges, and covenants not to sue the Park, its owners, employees, agents, and representatives (hereinafter collectively referred to as the "Released Parties") from any and all liability, claims, demands, actions, and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by the undersigned or any minor under their supervision while in or upon the Park premises.'],
@@ -64,7 +64,7 @@ class WaiverController extends Controller
         }
 
         // Which service this booking was for (set in BookingController@store).
-        // Defaults to Dino Adventure if, for whatever reason, nothing was
+        // Defaults to DinoLakbay if, for whatever reason, nothing was
         // stored in session (e.g. the customer jumped straight to /user/waiver).
         $service = session('booking_service', 'dino_adventure');
 

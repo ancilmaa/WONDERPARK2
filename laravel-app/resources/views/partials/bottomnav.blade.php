@@ -49,9 +49,9 @@
         <button type="button" class="nav-toggle" id="navToggle" aria-label="Collapse or expand menu" aria-expanded="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
         </button>
-        <div class="brand-mark"><img src="{{ asset('images/wonderpark1logo.png') }}" alt="Wonder Park"></div>
+        <div class="brand-mark"><img src="{{ asset('images/pistavora-mark.svg') }}" alt="Pistavora"></div>
         <div class="brand-text">
-            <span class="brand-name">WonderPark</span>
+            <span class="brand-name">Pistavora</span>
             <span class="brand-sub">Lipa Branch &middot; Customer</span>
         </div>
     </div>

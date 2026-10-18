@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class VisitorSummaryController extends Controller
 {
-    // Added '0-12' so young children (e.g. 5-8 y/o at Dino Adventure) have a
+    // Added '0-12' so young children (e.g. 5-8 y/o at DinoLakbay) have a
     // bracket to fall into. Without this bracket they either get silently
     // dropped or lumped into 'Unknown'.
     protected array $ageBrackets = [
@@ -25,9 +25,9 @@ class VisitorSummaryController extends Controller
 
     // Keyed by the actual raw value stored in bookings.service (confirmed via screenshot: snake_case slugs)
     protected array $attractionMeta = [
-        'field_of_rides'  => ['name' => 'Field of Rides',  'icon' => 'fa-circle-half-stroke', 'color' => '#4C6FFF'],
-        'dino_adventure'  => ['name' => 'Dino Adventure',  'icon' => 'fa-water',              'color' => '#1FA37A'],
-        'rollerfever'     => ['name' => 'Roller Fever',    'icon' => 'fa-bolt',                'color' => '#FF7A45'],
+        'field_of_rides'  => ['name' => 'PiyestaRides',  'icon' => 'fa-circle-half-stroke', 'color' => '#4C6FFF'],
+        'dino_adventure'  => ['name' => 'DinoLakbay',  'icon' => 'fa-water',              'color' => '#1FA37A'],
+        'rollerfever'     => ['name' => 'Skataya',    'icon' => 'fa-bolt',                'color' => '#FF7A45'],
     ];
 
     // Each age bracket maps to a LIST of promo variants so different

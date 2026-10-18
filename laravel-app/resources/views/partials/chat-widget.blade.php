@@ -1,12 +1,12 @@
 {{--
     resources/views/partials/chat-widget.blade.php
-    Floating "Wonder Park" chat button + panel, shared across every user page.
+    Floating "Pistavora" chat button + panel, shared across every user page.
     Wired up to ChatController via public/js/reks-assist.js
 --}}
 <div class="chat-window" id="chatWindow">
     <div class="chat-head">
         <div>
-            Wonder Park
+            Pistavora
             <small>AI chatbot</small>
         </div>
         <span style="cursor:pointer;" onclick="document.getElementById('chatWindow').classList.remove('open')">&times;</span>
@@ -14,16 +14,16 @@
     <div class="chat-body" id="chatMessages">
         <div class="chat-row bot">
             <span class="chat-avatar">
-                <img src="{{ asset('images/wonderpark1logo.png') }}" alt="Wonder Park">
+                <img src="{{ asset('images/pistavora-mark-dark.svg') }}" alt="Pistavora">
             </span>
             <div class="bubble bot">
-                Hi! I'm the Wonder Park assistant 👋 Ask me about our packages, pricing, or how booking works — happy to help you plan your visit!
+                Hi! I'm the Pistavora assistant 👋 Ask me about our packages, pricing, or how booking works — happy to help you plan your visit!
             </div>
         </div>
         <div id="chatQuickActions">
-            <span class="quick" data-msg="What's included in Dino Adventure?">What's included in Dino Adventure?</span>
-            <span class="quick" data-msg="How much is RollerFever?">How much is RollerFever?</span>
-            <span class="quick" data-msg="How much is Field of Rides?">How much is Field of Rides?</span>
+            <span class="quick" data-msg="What's included in DinoLakbay?">What's included in DinoLakbay?</span>
+            <span class="quick" data-msg="How much is Skataya?">How much is Skataya?</span>
+            <span class="quick" data-msg="How much is PiyestaRides?">How much is PiyestaRides?</span>
         </div>
     </div>
     <div class="chat-input">

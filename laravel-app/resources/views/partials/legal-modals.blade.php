@@ -9,14 +9,14 @@
         <div class="lg-head">
             <div>
                 <h2 id="termsTitle">Terms &amp; Conditions</h2>
-                <p>WonderPark Amusement Com Inc. &middot; Last updated October 2026</p>
+                <p>Pistavora Amusement Park &middot; Last updated October 2026</p>
             </div>
             <button type="button" class="lg-x" data-close aria-label="Close">&times;</button>
         </div>
 
         <div class="lg-body" tabindex="0">
             <p class="lg-intro">
-                Please read these Terms &amp; Conditions before creating an account, booking or visiting Wonder Park.
+                Please read these Terms &amp; Conditions before creating an account, booking or visiting Pistavora.
                 By using this website or our venue, you agree to be bound by them.
             </p>
 
@@ -25,8 +25,8 @@
                 <div class="lg-sec">
                     <h3>Acceptance of Terms</h3>
                     <p>
-                        By accessing this website, creating an account or booking a visit with WonderPark Amusement Com Inc.
-                        (&ldquo;Wonder Park&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;), you agree to these Terms and to our
+                        By accessing this website, creating an account or booking a visit with Pistavora Amusement Park
+                        (&ldquo;Pistavora&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;), you agree to these Terms and to our
                         <a href="#" data-open="privacyModal">Privacy Notice</a>. If you do not agree, please do not use the
                         website or make a booking.
                     </p>
@@ -77,8 +77,8 @@
                     <h3>Minors and Guardians</h3>
                     <ul>
                         <li>Guests under 18 need parent or guardian consent. Consent can be given in person, by call, text or online chat.</li>
-                        <li>Dino Adventure: only children 12 and under may use the play areas, and children aged 1 to 5 must always have a guardian with them.</li>
-                        <li>Roller Fever: children aged 4 to 6 must have a guardian inside the rink, and the guardian must also wear roller skates.</li>
+                        <li>DinoLakbay: only children 12 and under may use the play areas, and children aged 1 to 5 must always have a guardian with them.</li>
+                        <li>Skataya: children aged 4 to 6 must have a guardian inside the rink, and the guardian must also wear roller skates.</li>
                         <li>Guardians must supervise young children at all times.</li>
                     </ul>
                 </div>
@@ -102,7 +102,7 @@
                 <div class="lg-sec">
                     <h3>Limitation of Liability</h3>
                     <p>
-                        To the extent permitted by law, Wonder Park is not liable for the loss, theft or damage of personal
+                        To the extent permitted by law, Pistavora is not liable for the loss, theft or damage of personal
                         belongings, or for injuries that result from not following ride rules, posted instructions or staff
                         directions. Nothing in these Terms limits any liability that cannot be limited by law.
                     </p>
@@ -140,14 +140,14 @@
         <div class="lg-head">
             <div>
                 <h2 id="privacyTitle">Privacy Notice</h2>
-                <p>WonderPark Amusement Com Inc. &middot; Last updated October 2026</p>
+                <p>Pistavora Amusement Park &middot; Last updated October 2026</p>
             </div>
             <button type="button" class="lg-x" data-close aria-label="Close">&times;</button>
         </div>
 
         <div class="lg-body" tabindex="0">
             <p class="lg-intro">
-                Wonder Park respects your privacy. This notice explains what personal information we collect, why we collect it,
+                Pistavora respects your privacy. This notice explains what personal information we collect, why we collect it,
                 and your rights under the Data Privacy Act of 2012 (Republic Act No. 10173).
             </p>
 

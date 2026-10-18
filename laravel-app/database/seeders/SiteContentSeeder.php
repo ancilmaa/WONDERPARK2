@@ -12,33 +12,33 @@ class SiteContentSeeder extends Seeder
     {
         // ---- HERO ----
         SiteContent::set('hero', 'title', 'Three worlds of thrill,<br><span class="accent">one ticket away.</span>');
-        SiteContent::set('hero', 'description', "From the gravity-defying loops of Roller Fever to the prehistoric trails of Dino Adventure, Wonder Park is built for a full day of family fun — now bookable, trackable, and paid for online.");
+        SiteContent::set('hero', 'description', "From the gravity-defying loops of Skataya to the prehistoric trails of DinoLakbay, Pistavora is built for a full day of family fun — now bookable, trackable, and paid for online.");
         SiteContent::set('hero', 'price_teaser', '₱149');
         SiteContent::set('hero', 'video_path', '/videos/landing.mp4');
 
         // ---- SPLIT SECTION ----
         SiteContent::set('split', 'tag', 'Plan Your Day');
         SiteContent::set('split', 'title', 'Make it a full day out — not just a stop-by');
-        SiteContent::set('split', 'description', "Wonder Park sits inside the Lima Technology Center complex, so a booking here pairs easily with a longer family day: grab a meal nearby, then swing through all three zones before closing.");
+        SiteContent::set('split', 'description', "Pistavora sits inside the Lima Technology Center complex, so a booking here pairs easily with a longer family day: grab a meal nearby, then swing through all three zones before closing.");
         SiteContent::set('split', 'location_tag', 'Lima Technology Center · Lipa City / Malvar');
 
         // ---- CONTACT ----
         SiteContent::set('contact', 'location', 'Lima Technology Center, Lipa City/Malvar, Batangas');
         SiteContent::set('contact', 'hours_weekend', '10:00 AM – 9:00 PM Weekends');
         SiteContent::set('contact', 'hours_weekday', '11:00 AM – 9:00 PM Weekdays');
-        SiteContent::set('contact', 'zones', 'Field of Rides · Roller Fever · Dino Adventure');
+        SiteContent::set('contact', 'zones', 'PiyestaRides · Skataya · DinoLakbay');
 
         // ---- FOOTER ----
-        SiteContent::set('footer', 'tagline', 'From thrilling rides to prehistoric adventures and endless skating fun, Wonder Park is your destination for unforgettable family experiences.');
+        SiteContent::set('footer', 'tagline', 'From thrilling rides to prehistoric adventures and endless skating fun, Pistavora is your destination for unforgettable family experiences.');
 
         // ---- PASSES ----
         SiteCard::updateOrCreate(['slug' => 'pass-dino'], [
-            'type' => 'pass', 'badge_label' => 'Dino Adventure', 'title' => 'Dino Day Pass',
+            'type' => 'pass', 'badge_label' => 'DinoLakbay', 'title' => 'Dino Day Pass',
             'price_display' => '₱599', 'button_text' => 'Book Now', 'sort_order' => 1,
             'features' => [
                 'Unlimited all-day access',
                 'Includes 1 child + 1 guardian',
-                'Access to all Dino Adventure play areas',
+                'Access to all DinoLakbay play areas',
                 'Perfect for ages 4–12',
             ],
             'modal_list' => [
@@ -48,7 +48,7 @@ class SiteContentSeeder extends Seeder
         ]);
 
         SiteCard::updateOrCreate(['slug' => 'pass-roller'], [
-            'type' => 'pass', 'badge_label' => 'Most Popular', 'title' => 'Roller Fever Pass',
+            'type' => 'pass', 'badge_label' => 'Most Popular', 'title' => 'Skataya Pass',
             'price_display' => '₱599', 'button_text' => 'Book Now', 'is_featured' => true, 'sort_order' => 2,
             'features' => [
                 'Unlimited all-day skating access',
@@ -64,7 +64,7 @@ class SiteContentSeeder extends Seeder
         ]);
 
         SiteCard::updateOrCreate(['slug' => 'pass-fields'], [
-            'type' => 'pass', 'badge_label' => 'Field of Rides', 'title' => 'Ride-All-You-Can',
+            'type' => 'pass', 'badge_label' => 'PiyestaRides', 'title' => 'Ride-All-You-Can',
             'price_display' => 'Promo', 'button_text' => 'View Promos', 'sort_order' => 3,
             'features' => [
                 'Ride-all-you-can packages available',
@@ -84,8 +84,8 @@ class SiteContentSeeder extends Seeder
 
         // ---- ATTRACTIONS ----
         SiteCard::updateOrCreate(['slug' => 'attraction-field-of-rides'], [
-            'type' => 'attraction', 'badge_label' => 'Field of Rides', 'icon' => 'coral',
-            'title' => 'Field of Rides', 'sort_order' => 1,
+            'type' => 'attraction', 'badge_label' => 'PiyestaRides', 'icon' => 'coral',
+            'title' => 'PiyestaRides', 'sort_order' => 1,
             'description' => 'Enjoy exciting amusement rides ranging from family attractions to high-thrill experiences designed for adventure seekers.',
             'features' => ['Multiple Attractions', 'Ride-Specific Rules'],
             'modal_list' => [
@@ -97,8 +97,8 @@ class SiteContentSeeder extends Seeder
         ]);
 
         SiteCard::updateOrCreate(['slug' => 'attraction-roller-fever'], [
-            'type' => 'attraction', 'badge_label' => 'Roller Fever', 'icon' => 'teal',
-            'title' => 'Roller Fever Skating Rink', 'sort_order' => 2,
+            'type' => 'attraction', 'badge_label' => 'Skataya', 'icon' => 'teal',
+            'title' => 'Skataya Skating Rink', 'sort_order' => 2,
             'description' => 'Experience all-day roller skating fun in a safe and family-friendly environment. Perfect for beginners and experienced skaters alike.',
             'features' => ['All-Day Access', 'Family Friendly'],
             'modal_list' => [
@@ -110,8 +110,8 @@ class SiteContentSeeder extends Seeder
         ]);
 
         SiteCard::updateOrCreate(['slug' => 'attraction-dino-adventure'], [
-            'type' => 'attraction', 'badge_label' => 'Dino Adventure', 'icon' => 'amber',
-            'title' => 'Dino Adventure Playground', 'sort_order' => 3,
+            'type' => 'attraction', 'badge_label' => 'DinoLakbay', 'icon' => 'amber',
+            'title' => 'DinoLakbay Playground', 'sort_order' => 3,
             'description' => 'Explore a prehistoric-themed indoor playground featuring slides, climbing areas, obstacle courses, and interactive play zones.',
             'features' => ['Max Age: 12', 'Indoor Playground'],
             'modal_list' => [
@@ -123,19 +123,19 @@ class SiteContentSeeder extends Seeder
         ]);
 
         SiteCard::updateOrCreate(['slug' => 'celebrate'], [
-            'type' => 'attraction', 'badge_label' => 'Roller Fever', 'icon' => 'teal',
-            'title' => 'Celebrate at Wonder Park', 'sort_order' => 4, 'button_link' => '#',
-            'description' => 'Both Roller Fever and Dino Adventure welcome birthdays and group celebrations — skate under the neon photo-booth corner or gather the kids around the giant ball pit inside the prehistoric playhouse.',
+            'type' => 'attraction', 'badge_label' => 'Skataya', 'icon' => 'teal',
+            'title' => 'Celebrate at Pistavora', 'sort_order' => 4, 'button_link' => '#',
+            'description' => 'Both Skataya and DinoLakbay welcome birthdays and group celebrations — skate under the neon photo-booth corner or gather the kids around the giant ball pit inside the prehistoric playhouse.',
             'features' => ['All ages', 'Party Add-on'],
         ]);
 
         // ---- GUEST SERVICES ----
         SiteCard::updateOrCreate(['slug' => 'party'], [
             'type' => 'service', 'icon' => '🎉', 'title' => 'Birthday & Party Packages', 'sort_order' => 1,
-            'description' => 'Celebrate special occasions at Field of Rides, Dino Adventure, or Roller Fever. Available for birthdays, school groups, and team-building events.',
+            'description' => 'Celebrate special occasions at PiyestaRides, DinoLakbay, or Skataya. Available for birthdays, school groups, and team-building events.',
             'badge_label' => 'Guest Services',
             'modal_list' => [
-                '• Available at Field of Rides, Dino Adventure, or Roller Fever',
+                '• Available at PiyestaRides, DinoLakbay, or Skataya',
                 '• Options for small family celebrations up to large group events',
                 '• Suited for birthdays, school field trips, and team-building activities',
                 '• Coordinated in advance with our reservations team',
@@ -158,10 +158,10 @@ class SiteContentSeeder extends Seeder
 
         SiteCard::updateOrCreate(['slug' => 'channels'], [
             'type' => 'service', 'icon' => '🌐', 'title' => 'Multiple Booking Channels', 'sort_order' => 3,
-            'description' => 'Book directly with Wonder Park, or through trusted partners including Klook and StarDeals for selected attractions and promos.',
+            'description' => 'Book directly with Pistavora, or through trusted partners including Klook and StarDeals for selected attractions and promos.',
             'badge_label' => 'Guest Services',
             'modal_list' => [
-                '• Book directly on the Wonder Park website for full flexibility',
+                '• Book directly on the Pistavora website for full flexibility',
                 '• Book through Klook for select attractions and promos',
                 '• Book through StarDeals for seasonal discounts and vouchers',
                 '• Voucher-based bookings are redeemed at the gate',
@@ -201,7 +201,7 @@ class SiteContentSeeder extends Seeder
             'description' => 'Choose your date, zone, and headcount.',
             'modal_list' => [
                 '• Pick your preferred date and time',
-                '• Choose your zone: Field of Rides, Roller Fever, or Dino Adventure',
+                '• Choose your zone: PiyestaRides, Skataya, or DinoLakbay',
                 '• Enter your headcount, including children and guardians',
                 '• Receive an e-ticket once your booking is confirmed',
                 '• Walk-ins are welcome too, subject to capacity',
@@ -224,7 +224,7 @@ class SiteContentSeeder extends Seeder
         SiteCard::updateOrCreate(['slug' => 'step-ride'], [
             'type' => 'step', 'icon' => '3️⃣', 'title' => 'Ride all day', 'sort_order' => 3,
             'badge_label' => 'How it works',
-            'description' => 'Enjoy Field of Rides, Roller Fever, and Dino Adventure access.',
+            'description' => 'Enjoy PiyestaRides, Skataya, and DinoLakbay access.',
             'modal_list' => [
                 '• Enjoy unlimited access within your booked zone',
                 "• Ride eligibility follows each attraction's height and safety rules",

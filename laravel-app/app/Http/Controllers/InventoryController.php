@@ -131,7 +131,7 @@ class InventoryController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Inventory');
 
-        $sheet->setCellValue('A1', 'REKS Amusement Com Inc. — Inventory Report');
+        $sheet->setCellValue('A1', 'Pistavora Amusement Park — Inventory Report');
         $sheet->mergeCells('A1:F1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D63E63');
@@ -193,7 +193,7 @@ class InventoryController extends Controller
             $sheet->getColumnDimension($c)->setWidth($w);
         }
 
-        $filename = 'REKS_Inventory_' . date('Y-m-d_His') . '.xlsx';
+        $filename = 'Pistavora_Inventory_' . date('Y-m-d_His') . '.xlsx';
         $writer = new Xlsx($spreadsheet);
 
         return response()->streamDownload(function () use ($writer) {

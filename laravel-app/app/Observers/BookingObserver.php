@@ -47,7 +47,7 @@ class BookingObserver
     }
 
     /**
-     * Turns "dino_adventure" / "pending_payment" into "Dino Adventure" /
+     * Turns "dino_adventure" / "pending_payment" into "DinoLakbay" /
      * "Pending Payment" for display in the notification popup.
      */
     private function readable(?string $value): string

@@ -6,7 +6,7 @@
 --}}
 <nav class="bottomnav">
     <div class="nav-brand" aria-hidden="true">
-        <img src="{{ asset('images/wonderpark1logo.png') }}" alt="Wonder Park" class="nav-brand-logo">
+        <img src="{{ asset('images/pistavora-logo-dark.svg') }}" alt="Pistavora" class="nav-brand-logo">
     </div>
 
     <span class="nav-section-label only-desktop">My Visit</span>

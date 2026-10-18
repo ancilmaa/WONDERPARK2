@@ -17,21 +17,21 @@ namespace App\Support;
  */
 class BookingWizard
 {
-    /** Individual Field of Rides attractions, grouped by the price package they belong to. */
+    /** Individual PiyestaRides attractions, grouped by the price package they belong to. */
     protected const FOR_RIDES = [
         'rides_60' => [
-            ['Tiger Train', '🚂'], ['Mini Carousel', '🎠'], ['Star Speed', '⭐'],
-            ['Little Chicken', '🐔'], ['Boat Pool', '🚤'], ['Carousel', '🎠'],
-            ['Flying Chair', '🪑'], ['Mini Ferris Wheel', '🎡'], ['Samba Balloon', '🎈'],
-            ['Crazy Plane', '✈️'],
+            ['Tiger Train', '🚂', 'tiger-train.jpg'], ['Mini Carousel', '🎠', 'mini-carousel.jpg'], ['Star Speed', '⭐', 'star-speed.jpg'],
+            ['Little Chicken', '🐔', 'little-chicken.jpg'], ['Boat Pool', '🚤', 'boat-pool.jpg'], ['Carousel', '🎠', 'carousel.jpg'],
+            ['Flying Chair', '🪑', 'flying-chair.jpg'], ['Mini Ferris Wheel', '🎡', 'mini-ferris-wheel.jpg'], ['Samba Balloon', '🎈', 'samba-balloon.jpg'],
+            ['Crazy Plane', '✈️', 'crazy-plane.jpg'],
         ],
         'rides_120' => [
-            ['Vikings', '⚓', 'vikings.jpg'], ['Go-Kart', '🏎️'],
+            ['Vikings', '⚓', 'ride-vikings.jpg'], ['Go-Kart', '🏎️', 'go-kart.jpg'],
         ],
         'rides_150' => [
-            ['Inflatable Playground (30 mins)', '🏰'], ['Mini Trampoline (30 mins)', '🤸'],
-            ['Rev & Roll (per car)', '🚗'], ['Happy Cars (per ride)', '🚙'],
-            ['Jurassic Adventure (per ride)', '🦖'],
+            ['Inflatable Playground (30 mins)', '🏰', 'inflatable-playground-30-mins.jpg'], ['Mini Trampoline (30 mins)', '🤸', 'mini-trampoline-30-mins.jpg'],
+            ['Rev & Roll (per car)', '🚗', 'rev-and-roll-per-car.jpg'], ['Happy Cars (per ride)', '🚙', 'happy-cars-per-ride.jpg'],
+            ['Jurassic Adventure (per ride)', '🦖', 'jurassic-adventure-per-ride.jpg'],
         ],
     ];
 
@@ -72,16 +72,16 @@ class BookingWizard
     {
         $tabs = [];
 
-        // ---- Dino Adventure: per-guest play passes -------------------
+        // ---- DinoLakbay: per-guest play passes -------------------
         $tabs['dino_adventure'] = [
-            'label'   => $services['dino_adventure']['name'] ?? 'Dino Adventure',
+            'label'   => $services['dino_adventure']['name'] ?? 'DinoLakbay',
             'tagline' => 'Softplay & dino fun',
             'emoji'   => '🦖',
             'items'   => self::passItems('dino_adventure', $packages, '🦖'),
             'extras'  => self::extras('dino_adventure', $addons),
         ];
 
-        // ---- Field of Rides: one card per ride -----------------------
+        // ---- PiyestaRides: one card per ride -----------------------
         $forItems = [];
         foreach (self::FOR_RIDES as $code => $rides) {
             $unit = self::unitPrice($packages['field_of_rides'][$code] ?? null);
@@ -119,16 +119,16 @@ class BookingWizard
             ]);
         }
         $tabs['field_of_rides'] = [
-            'label'   => $services['field_of_rides']['name'] ?? 'Field of Rides',
+            'label'   => $services['field_of_rides']['name'] ?? 'PiyestaRides',
             'tagline' => 'Rides & games',
             'emoji'   => '🎡',
             'items'   => $forItems,
             'extras'  => [],
         ];
 
-        // ---- RollerFever: per-guest skate passes ---------------------
+        // ---- Skataya: per-guest skate passes ---------------------
         $tabs['rollerfever'] = [
-            'label'   => $services['rollerfever']['name'] ?? 'RollerFever',
+            'label'   => $services['rollerfever']['name'] ?? 'Skataya',
             'tagline' => 'Skate rink',
             'emoji'   => '🛼',
             'items'   => self::passItems('rollerfever', $packages, '🛼'),

@@ -1319,7 +1319,7 @@ function buildVoucherReceipt(dateStr, items, count, total, isReprint = false) {
     <div class="report-receipt">
       <div class="receipt-header">
         ${reprintBanner}
-        <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+        <div class="receipt-store">PISTAVORA AMUSEMENT PARK</div>
         <div class="receipt-title">ONLINE BOOKINGS REDEEMED</div>
       </div>
       <hr class="dashed">
@@ -1351,7 +1351,7 @@ function buildReportReceipt(title, dateStr, items, totalSales, totalDiscount, pa
     <div class="report-receipt">
       <div class="receipt-header">
         ${reprintBanner}
-        <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+        <div class="receipt-store">PISTAVORA AMUSEMENT PARK</div>
         <div class="receipt-title">${title}</div>
       </div>
       <hr class="dashed">

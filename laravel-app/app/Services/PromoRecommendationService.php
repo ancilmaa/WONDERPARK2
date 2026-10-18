@@ -80,9 +80,9 @@ class PromoRecommendationService
      * more categories.
      */
     protected array $attractionStyle = [
-        'Dino Adventure'  => ['icon' => 'fa-water', 'color' => '#16A34A'],
-        'Roller Fever'    => ['icon' => 'fa-bolt', 'color' => '#F97316'],
-        'Field of Rides'  => ['icon' => 'fa-circle-half-stroke', 'color' => '#6366F1'],
+        'DinoLakbay'  => ['icon' => 'fa-water', 'color' => '#16A34A'],
+        'Skataya'    => ['icon' => 'fa-bolt', 'color' => '#F97316'],
+        'PiyestaRides'  => ['icon' => 'fa-circle-half-stroke', 'color' => '#6366F1'],
     ];
 
     /**

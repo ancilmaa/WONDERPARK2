@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | WonderPark Amusement Com Inc.</title>
+    <title>Sign In | Pistavora Amusement Park</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -33,16 +33,16 @@
             <div class="bg-slide" data-bg="{{ asset('images/vikings.jpg') }}"></div>
             <div class="bg-slide" data-bg="{{ asset('images/roller-fever.jpg') }}"></div>
             <div class="auth-visual-content">
-                <a href="{{ route('home') }}" class="logo">WonderPark<span class="dot">•</span>Amusement</a>
+                <a href="{{ route('home') }}" class="logo">Pistavora<span class="dot">•</span>Amusement</a>
                 <div class="auth-visual-copy">
                     <span class="ticket-label on-dark">Lipa Branch</span>
                     <h2>Three worlds of thrill, one login away.</h2>
-                    <p>Manage bookings, inventory, and the front desk for Roller Fever, Dino Adventure, and the
-                        Field of Rides — all in one place.</p>
+                    <p>Manage bookings, inventory, and the front desk for Skataya, DinoLakbay, and the
+                        PiyestaRides — all in one place.</p>
                     <div class="auth-visual-stamps">
-                        <span class="stamp">Roller Fever</span>
-                        <span class="stamp">Dino Adventure</span>
-                        <span class="stamp">Field of Rides</span>
+                        <span class="stamp">Skataya</span>
+                        <span class="stamp">DinoLakbay</span>
+                        <span class="stamp">PiyestaRides</span>
                     </div>
                 </div>
             </div>

@@ -10,7 +10,7 @@
 
 @section('title', 'Account')
 @section('page-title', 'Account & Profile')
-@section('page-subtitle', 'Manage your WonderPark account')
+@section('page-subtitle', 'Manage your Pistavora account')
 @section('hide-page-title', '1')
 
 @section('body-class', 'page-uniform')
@@ -98,7 +98,7 @@
         <div class="pg-hero-text">
             <span class="pg-hero-badge">👤 YOUR PROFILE</span>
             <h2>Account &amp; Profile</h2>
-            <p>Manage your WonderPark account</p>
+            <p>Manage your Pistavora account</p>
         </div>
 
         <button type="button" class="pg-theme-toggle" id="pgThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">

@@ -24,17 +24,17 @@ class BookingCatalog
     {
         return [
             'dino_adventure' => [
-                'name'    => 'Dino Adventure',
+                'name'    => 'DinoLakbay',
                 'tagline' => 'Kids Party & Softplay',
                 'image'   => 'dino_1.jpg',
             ],
             'rollerfever' => [
-                'name'    => 'RollerFever',
+                'name'    => 'Skataya',
                 'tagline' => 'Skate Rink Parties',
                 'image'   => 'roller-fever.jpg',
             ],
             'field_of_rides' => [
-                'name'    => 'Field of Rides',
+                'name'    => 'PiyestaRides',
                 'tagline' => 'Amusement Rides & Games',
                 'image'   => 'field-of-rides-icon.jpg',
             ],
@@ -54,7 +54,7 @@ class BookingCatalog
                 'walkin_1hour' => [
                     'name'  => '1 Hour Play Pass',
                     'desc'  => '1 hour of softplay access per guest',
-                    'image' => 'dino_1.jpg',
+                    'image' => '1-hour-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -65,7 +65,7 @@ class BookingCatalog
                 'walkin_2hour' => [
                     'name'  => '2 Hour Play Pass',
                     'desc'  => '2 hours of softplay access per guest',
-                    'image' => 'dino_1.jpg',
+                    'image' => '2-hour-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -76,7 +76,7 @@ class BookingCatalog
                 'walkin_allday' => [
                     'name'  => 'All Day Play Pass',
                     'desc'  => 'Unlimited-time softplay access per guest for the day',
-                    'image' => 'dino_1.jpg',
+                    'image' => 'all-day-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -87,7 +87,7 @@ class BookingCatalog
                 'non_exclusive' => [
                     'name'  => 'Non-Exclusive — Shared Play Area',
                     'desc'  => 'Shared softplay & party area · 1-hr Dino mascot appearance included',
-                    'image' => 'dino_1.jpg',
+                    'image' => 'shared-play-area.jpg',
                     'badge' => 'Most affordable',
                     'category' => 'packages',
                     'tiers' => [10 => 15000, 20 => 28000, 30 => 39000],
@@ -95,7 +95,7 @@ class BookingCatalog
                 'exclusive_weekdays' => [
                     'name'  => 'Exclusive — Private Party (Mon–Fri)',
                     'desc'  => 'Private use of the whole play area, weekdays only · 1-hr Dino mascot appearance',
-                    'image' => 'dino-venue.jpg',
+                    'image' => 'private-party-weekday.jpg',
                     'badge' => 'Weekdays only',
                     'category' => 'packages',
                     'tiers' => [40 => 62000, 50 => 75000, 60 => 88000, 70 => 97500, 80 => 110000],
@@ -103,7 +103,7 @@ class BookingCatalog
                 'exclusive_weekends' => [
                     'name'  => 'Exclusive — Private Party (Sat, Sun & Holidays)',
                     'desc'  => 'Private use of the whole play area, weekends & holidays · 1-hr Dino mascot appearance',
-                    'image' => 'dino-venue.jpg',
+                    'image' => 'private-party-weekend.jpg',
                     'badge' => 'Weekends & holidays',
                     'category' => 'packages',
                     'tiers' => [40 => 67000, 50 => 80000, 60 => 93000, 70 => 102500, 80 => 115000],
@@ -114,7 +114,7 @@ class BookingCatalog
                 'walkin_1hour' => [
                     'name'  => '1 Hour Skate Pass',
                     'desc'  => '1 hour of skating per guest',
-                    'image' => 'roller-fever.jpg',
+                    'image' => '1-hour-skate-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -125,7 +125,7 @@ class BookingCatalog
                 'walkin_2hour' => [
                     'name'  => '2 Hour Skate Pass',
                     'desc'  => '2 hours of skating per guest',
-                    'image' => 'roller-fever.jpg',
+                    'image' => '2-hour-skate-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -136,7 +136,7 @@ class BookingCatalog
                 'walkin_allday' => [
                     'name'  => 'All Day Skate Pass',
                     'desc'  => 'Unlimited-time skating per guest for the day',
-                    'image' => 'roller-fever.jpg',
+                    'image' => 'all-day-skate-pass.jpg',
                     'badge' => 'Per guest',
                     'category' => 'solo',
                     'tiers' => [
@@ -147,7 +147,7 @@ class BookingCatalog
                 'group_bundle_1hour' => [
                     'name'  => 'Group Bundle — 1 Hour (4+1 Free)',
                     'desc'  => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (1 hour skating)',
-                    'image' => 'roller-fever.jpg',
+                    'image' => 'group-bundle.jpg',
                     'badge' => 'Group promo',
                     'category' => 'bundle',
                     'tiers' => [5 => 996],
@@ -155,7 +155,7 @@ class BookingCatalog
                 'group_bundle_2hour' => [
                     'name'  => 'Group Bundle — 2 Hours (4+1 Free)',
                     'desc'  => 'Buy 4 guest passes, get 1 free — good for barkada or family groups (2 hours skating)',
-                    'image' => 'roller-fever.jpg',
+                    'image' => 'group-bundle.jpg',
                     'badge' => 'Group promo',
                     'category' => 'bundle',
                     'tiers' => [5 => 1596],
@@ -163,7 +163,7 @@ class BookingCatalog
                 'weekday' => [
                     'name'  => 'Weekday Rates',
                     'desc'  => 'Skate rink party packages by number of guests (Mon–Fri)',
-                    'image' => 'roller-fever.jpg',
+                    'image' => 'weekday-rates.jpg',
                     'badge' => 'Weekdays',
                     'category' => 'packages',
                     'tiers' => [
@@ -174,7 +174,7 @@ class BookingCatalog
                 'weekend' => [
                     'name'  => 'Weekend Rates',
                     'desc'  => 'Skate rink party packages by number of guests (Sat–Sun)',
-                    'image' => 'roller-skates.jpg',
+                    'image' => 'weekend-rates.jpg',
                     'badge' => 'Weekends',
                     'category' => 'packages',
                     'tiers' => [
@@ -221,7 +221,7 @@ class BookingCatalog
                 'try_every_ride' => [
                     'name'  => 'Try Every Ride — All Access Pass',
                     'desc'  => 'One ride each on every attraction listed on the price board (Tiger Train, Mini Carousel, Star Speed, Little Chicken, Boat Pool, Carousel, Flying Chair, Mini Ferris Wheel, Samba Baloon, Crazy Plane, Vikings, Go-Kart)',
-                    'image' => 'field-of-rides.jpg',
+                    'image' => 'try-every-ride-all-access-pass.jpg',
                     'badge' => 'Best value',
                     'category' => 'bundle',
                     'tiers' => [

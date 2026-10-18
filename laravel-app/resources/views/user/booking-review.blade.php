@@ -131,7 +131,7 @@
                     <div class="rb-merchant-box">
                         <div class="rb-merchant-row">
                             <span>Merchant Name:</span>
-                            <b>WONDER PARK AMUSEMENT INC.</b>
+                            <b>PISTAVORA AMUSEMENT PARK</b>
                         </div>
                         <div class="rb-merchant-row">
                             <span>Booking Reference:</span>
@@ -160,7 +160,7 @@
                     </div>
                     <img src="{{ asset('images/instapay-qr.png') }}" alt="QR Ph code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
                     <div style="text-align:center;margin-top:10px;">
-                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
+                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">PISTAVORA PH</span>
                         <span style="font-size:10px;color:var(--muted);">Scan via Any Banking App</span>
                     </div>
                 </div>
@@ -200,7 +200,7 @@
                     <div class="rb-merchant-box">
                         <div class="rb-merchant-row">
                             <span>Merchant Name:</span>
-                            <b>WONDER PARK AMUSEMENT INC.</b>
+                            <b>PISTAVORA AMUSEMENT PARK</b>
                         </div>
                         <div class="rb-merchant-row">
                             <span>Booking Reference:</span>
@@ -229,7 +229,7 @@
                     </div>
                     <img src="{{ asset('images/instapay-qr.png') }}" alt="GCash / InstaPay QR code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
                     <div style="text-align:center;margin-top:10px;">
-                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
+                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">PISTAVORA PH</span>
                         <span style="font-size:10px;color:var(--muted);">Scan via GCash or Any Banking App</span>
                     </div>
                 </div>
@@ -269,7 +269,7 @@
                     <div class="rb-merchant-box">
                         <div class="rb-merchant-row">
                             <span>Merchant Name:</span>
-                            <b>WONDER PARK AMUSEMENT INC.</b>
+                            <b>PISTAVORA AMUSEMENT PARK</b>
                         </div>
                         <div class="rb-merchant-row">
                             <span>Booking Reference:</span>
@@ -298,7 +298,7 @@
                     </div>
                     <img src="{{ asset('images/instapay-qr.png') }}" alt="Maya / InstaPay QR code" style="width:100%;max-width:320px;height:auto;aspect-ratio:1/1;object-fit:contain;border-radius:10px;display:block;margin:0 auto;">
                     <div style="text-align:center;margin-top:10px;">
-                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">WONDER PARK PH</span>
+                        <span style="font-size:11px;font-weight:700;color:var(--ink);display:block;">PISTAVORA PH</span>
                         <span style="font-size:10px;color:var(--muted);">Scan via Maya or Any Banking App</span>
                     </div>
                 </div>
