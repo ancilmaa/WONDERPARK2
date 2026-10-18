@@ -3,6 +3,7 @@
 use App\Http\Controllers\MlForecastController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ZoneForecastController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('ml')->group(function () {
     Route::get('/summary', [MlForecastController::class, 'summary']);
@@ -27,4 +28,6 @@ Route::prefix('zone-forecast/{zone}')->group(function () {
     Route::get('/monthly_trend',        [ZoneForecastController::class, 'monthlyTrend']);
     Route::get('/payment_breakdown',    [ZoneForecastController::class, 'paymentBreakdown']);
     Route::get('/category_breakdown',   [ZoneForecastController::class, 'categoryBreakdown']);
+    Route::get('/voucher_summary',      [ZoneForecastController::class, 'voucherSummary']);   // NEW
+    Route::get('/report',               [ZoneForecastController::class, 'downloadReport']);   // NEW
 });

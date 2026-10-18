@@ -10,7 +10,7 @@
 <style>
   .serif{font-family:'Source Serif 4', serif;}
 
-  /* ── TOOLBAR (replaces old page-header) ─────────────────── */
+  /* ── TOOLBAR ─────────────────────────────────────────────── */
   .toolbar{background:var(--card);padding:22px 26px;margin-bottom:20px;border-radius:16px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;}
   .toolbar .eyebrow{font-size:.68rem;font-weight:700;color:var(--pink-deep);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px;}
   .toolbar h2{font-family:'Source Serif 4', serif;font-size:1.4rem;font-weight:700;color:var(--ink);}
@@ -19,7 +19,6 @@
   .toolbar-actions select{padding:9px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:12.5px;font-family:'Inter',sans-serif;color:var(--ink-soft);background:var(--bg);cursor:pointer;}
   .toolbar-actions input[type="text"]:focus, .toolbar-actions select:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-light);}
 
-  /* View-only chip (cashier) */
   .view-only-chip{display:inline-flex;align-items:center;gap:6px;background:var(--amber-light);color:var(--amber);padding:8px 14px;border-radius:999px;font-size:.74rem;font-weight:700;white-space:nowrap;}
 
   #uploadBtn{padding:11px 18px!important;background:#fff!important;color:var(--ink)!important;border:1px solid var(--line-strong)!important;border-radius:10px!important;cursor:pointer;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;white-space:nowrap;transition:background .15s ease, border-color .15s ease;}
@@ -29,8 +28,8 @@
   .print-btn{padding:11px 20px;background:var(--pink-deep);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;white-space:nowrap;transition:background .15s ease, box-shadow .15s ease;}
   .print-btn:hover{background:var(--pink-dark);box-shadow:0 0 0 3px var(--pink-light);}
 
-  /* ── STATS ROW (replaces old metrics-grid) ──────────────── */
-  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  /* ── STATS ROW ───────────────────────────────────────────── */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
   .stat-card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-sm);transition:.15s;}
   .stat-card .label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
   .stat-card .value{font-family:'Source Serif 4', serif;font-size:1.7rem;font-weight:700;color:var(--ink);line-height:1;}
@@ -67,9 +66,15 @@
   .low-stock-preview-item .lsp-qty{font-weight:700;color:#ef4444;font-size:.78rem;white-space:nowrap;margin-left:10px;}
   .low-stock-preview-empty{color:var(--muted);font-size:.82rem;text-align:center;padding:12px;}
 
-  .report-section{background:var(--card);padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:var(--shadow-sm);border:1px solid var(--line);height:500px;overflow:hidden;display:flex;flex-direction:column;}
-  .report-title{font-family:'Source Serif 4', serif;font-size:1.1rem;font-weight:700;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--pink-light);color:var(--ink);display:flex;align-items:center;gap:8px;}
-  .table-wrapper{overflow-y:auto;flex:1;border:1px solid var(--line);border-radius:12px;}
+  /* ── TABLE SECTIONS (Stock Items + Tickets) ──────────────── */
+  .report-section{background:var(--card);padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:var(--shadow-sm);border:1px solid var(--line);display:flex;flex-direction:column;}
+  .report-title{font-family:'Source Serif 4', serif;font-size:1.1rem;font-weight:700;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--pink-light);color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .report-title .title-icon{color:var(--pink-deep);font-size:.95rem;}
+  .count-pill{display:inline-flex;align-items:center;justify-content:center;min-width:26px;padding:2px 9px;border-radius:999px;background:var(--pink-light);color:var(--pink-dark);font-family:'Inter',sans-serif;font-size:.72rem;font-weight:700;}
+  .report-hint{margin-left:auto;font-family:'Inter',sans-serif;font-size:.74rem;font-weight:500;color:var(--muted);}
+  .table-wrapper{overflow-y:auto;max-height:470px;border:1px solid var(--line);border-radius:12px;}
+  .empty-state{display:none;text-align:center;padding:26px 12px;color:var(--muted);font-size:.84rem;}
+
   .pagination-bar{display:flex;align-items:center;justify-content:space-between;padding-top:14px;gap:10px;flex-wrap:wrap;}
   .pagination-info{font-size:.78rem;color:var(--muted);font-weight:600;}
   .pagination-nav{display:flex;align-items:center;gap:4px;}
@@ -78,6 +83,7 @@
   .page-btn.active{background:var(--pink-deep);color:#fff;border-color:transparent;}
   .page-btn:disabled{opacity:.4;cursor:not-allowed;}
   .page-ellipsis{padding:0 4px;color:var(--muted);font-size:.8rem;}
+
   .report-table{width:100%;border-collapse:collapse;}
   .report-table thead{position:sticky;top:0;z-index:5;}
   .report-table thead th{background:var(--ink);color:#fff;padding:12px 14px;text-align:left;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:none;}
@@ -89,9 +95,9 @@
   .status-badge{padding:5px 12px;border-radius:999px;color:#fff;font-size:.72rem;font-weight:700;}
   .status-good{background:var(--green);}
   .status-low{background:#ef4444;}
-  /* ── ROW ACTIONS: icon buttons, always visible ────────────── */
-  .row-actions{display:flex;align-items:center;gap:6px;}
 
+  /* ── ROW ACTIONS ─────────────────────────────────────────── */
+  .row-actions{display:flex;align-items:center;gap:6px;}
   .action-btn{width:32px;height:32px;padding:0;margin:0;border:1px solid transparent;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;transition:background .15s, color .15s, transform .12s, box-shadow .15s;}
   .action-btn i{pointer-events:none;}
   .action-btn:hover{transform:translateY(-1px);}
@@ -104,23 +110,21 @@
   .delete-btn{background:var(--danger-soft);color:var(--danger);}
   .delete-btn:hover{background:#ef4444;color:#fff;box-shadow:0 4px 10px rgba(239,68,68,.3);}
 
-  /* floating label for the icon buttons (fixed, so the scrolling table never clips it) */
   .act-tooltip{position:fixed;z-index:10050;background:#1F2937;color:#fff;font-size:.74rem;font-weight:500;line-height:1;padding:7px 10px;border-radius:7px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .12s;}
   .act-tooltip.show{opacity:1;}
 
-  /* ── TOAST (attendance-style toast stack) ────────────────── */
+  /* ── TOAST ───────────────────────────────────────────────── */
   #toastStack{position:fixed;top:22px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:420px;padding:0 16px;pointer-events:none;}
   .toast{pointer-events:auto;width:100%;display:flex;align-items:flex-start;gap:12px;background:#fff;color:var(--ink);padding:14px 16px;border-radius:14px;border-left:4px solid var(--ink);box-shadow:var(--shadow-md);font-size:13px;font-weight:500;line-height:1.4;opacity:0;transform:translateY(-16px) scale(.97);animation:toastIn .35s cubic-bezier(.34,1.56,.64,1) forwards;position:relative;overflow:hidden;}
   .toast.hide{animation:toastOut .28s ease forwards;}
   .toast .toast-icon{flex-shrink:0;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;background:var(--ink-soft);}
   .toast.toast-success{border-left-color:var(--present);}
   .toast.toast-success .toast-icon{background:var(--present);}
-  .toast.toast-error, .toast.error{border-left-color:#ef4444;}
+  .toast.toast-error{border-left-color:#ef4444;}
   .toast.toast-error .toast-icon{background:#ef4444;}
-  .toast.toast-info .toast-icon{background:var(--pink-deep);}
   .toast .toast-body{flex:1;min-width:0;padding-top:2px;}
-  .toast .toast-title{font-weight:700;font-size:12.5px;margin-bottom:2px;color:var(--ink);}
-  .toast .toast-msg{color:var(--ink-soft);font-size:12.5px;word-break:break-word;}
+  .toast .toast-title{display:block;font-weight:700;font-size:12.5px;margin-bottom:2px;color:var(--ink);}
+  .toast .toast-msg{display:block;color:var(--ink-soft);font-size:12.5px;word-break:break-word;}
   .toast .toast-close{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px;line-height:1;margin-top:1px;}
   .toast .toast-close:hover{color:var(--ink);}
   .toast .toast-bar{position:absolute;left:0;bottom:0;height:3px;border-radius:0 0 0 14px;background:currentColor;opacity:.35;animation:toastShrink 3s linear forwards;}
@@ -128,6 +132,7 @@
   @keyframes toastOut{to{opacity:0;transform:translateY(-12px) scale(.96);}}
   @keyframes toastShrink{from{width:100%;}to{width:0%;}}
 
+  /* ── MODALS ──────────────────────────────────────────────── */
   .modal{display:none;position:fixed;z-index:2000;inset:0;background:rgba(26,21,35,.55);align-items:center;justify-content:center;}
   .modal.active{display:flex;}
   .modal-content{background:var(--card);padding:26px;border-radius:18px;box-shadow:var(--shadow-md);width:90%;max-width:460px;animation:slideIn .25s ease;}
@@ -141,6 +146,7 @@
   .form-group label{display:block;margin-bottom:6px;font-weight:600;color:var(--ink);font-size:.82rem;}
   .form-group input, .form-group select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:'Inter',sans-serif;box-sizing:border-box;color:var(--ink);}
   .form-group input:focus, .form-group select:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-light);}
+  .form-group .field-hint{display:block;margin-top:6px;font-size:.74rem;color:var(--muted);}
   .form-row{display:flex;gap:10px;}
   .form-row .form-group{flex:1;}
   .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
@@ -171,20 +177,23 @@
   .loading-text{font-size:.85rem;font-weight:700;color:var(--pink-dark);letter-spacing:.02em;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  @media(max-width:900px){
+  @media(max-width:1000px){
     .stats-row{grid-template-columns:1fr 1fr;}
+  }
+  @media(max-width:900px){
     .toolbar h2{font-size:1.05rem;}
     .toolbar-actions{width:100%;}
     .toolbar-actions input[type="text"]{max-width:none;width:100%;}
     .toolbar-actions select{width:100%;}
+    .report-hint{display:none;}
   }
   @media(max-width:520px){
     .stats-row{grid-template-columns:1fr;}
   }
 </style>
 
-{{-- VIEW-ONLY MODE (cashier): itinatago ang mga edit controls.
-     Nasa DOM pa rin ang mga element para hindi mag-error ang js/inventory.js. --}}
+{{-- VIEW-ONLY MODE (cashier): edit controls are hidden but stay in the DOM
+     so js/inventory.js never throws on missing elements. --}}
 @php
   $canManage = in_array(strtolower((string) session('role')), ['admin', 'tl', 'manager']);
 @endphp
@@ -198,10 +207,17 @@
 @section('content')
 
   @php
-    // Sino ang pwedeng mag-edit. Cashier = view only.
+    // Cashier = view only.
     $canManage = in_array(strtolower((string) session('role')), ['admin', 'tl', 'manager']);
+
+    // Split the product list:
+    //   Stock Items = categories that track stock
+    //   Tickets     = categories that do NOT track stock (rides, passes, services)
+    $stockItems  = $products->filter(function ($p) { return (int) $p->is_stock_tracked === 1; })->values();
+    $ticketItems = $products->filter(function ($p) { return (int) $p->is_stock_tracked !== 1; })->values();
   @endphp
 
+  <!-- ══ TOOLBAR ════════════════════════════════════════════ -->
   <div class="toolbar no-print">
     <div>
       <div class="eyebrow">Lipa Branch &middot; Inventory</div>
@@ -213,7 +229,7 @@
         <span class="view-only-chip"><i class="fas fa-eye"></i> View only</span>
       @endunless
 
-      <input type="text" id="searchInput" placeholder="Search products…">
+      <input type="text" id="searchInput" placeholder="Search products or tickets…">
 
       <select id="zoneFilter">
         <option value="all">All Zones</option>
@@ -242,15 +258,21 @@
       <input type="file" id="importFileInput" accept=".csv" style="display:none">
       <button id="openImportBtn" type="button" class="manage-only"><i class="fas fa-file-import"></i> Import CSV</button>
 
-      <button id="openAddBtn" type="button" class="print-btn manage-only"><i class="fas fa-plus"></i> Add Product</button>
+      <button id="openAddBtn" type="button" class="print-btn manage-only"><i class="fas fa-plus"></i> Add Item</button>
     </div>
   </div>
 
+  <!-- ══ STATS ══════════════════════════════════════════════ -->
   <div class="stats-row no-print">
     <div class="stat-card">
-      <div class="label">Total Products</div>
-      <div class="value" id="totalProducts">0</div>
-      <div class="sub">Active items</div>
+      <div class="label">Stock Items</div>
+      <div class="value" id="statItems">0</div>
+      <div class="sub">Products with tracked stock</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Tickets</div>
+      <div class="value" id="statTickets">0</div>
+      <div class="sub">Rides, passes &amp; services</div>
     </div>
     <div class="stat-card low" id="lowStockCard" title="Click to preview low stock items">
       <div class="label">Low Stock Items</div>
@@ -273,17 +295,137 @@
     <div class="low-stock-preview-list" id="lowStockPreviewList"></div>
   </div>
 
+  <!-- ══ TABLE 1: STOCK ITEMS ═══════════════════════════════ -->
+  <div class="report-section" id="stockSection">
+    <div class="report-title">Stock Items
+      <span class="count-pill" id="stockCount">0</span>
+      <span class="report-hint">Products with tracked stock</span>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="report-table" id="stockTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Stock</th>
+            <th>Price</th>
+            <th>Status</th>
+            @if($canManage)
+              <th>Actions</th>
+            @endif
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($stockItems as $p)
+            @php
+              $threshold  = intval($p->low_stock_threshold ?? 20);
+              $stock      = intval($p->stock);
+              $isLow      = $stock <= $threshold;
+              $priceRaw   = number_format(floatval($p->price ?? 0), 2, '.', '');
+              $priceShown = number_format(floatval($p->price ?? 0), 2);
+            @endphp
+            <tr data-id="{{ $p->product_id }}"
+                data-name="{{ $p->product_name }}"
+                data-category-id="{{ $p->category_id }}"
+                data-cat="{{ $p->category_name }}"
+                data-zone="{{ $p->zone }}"
+                data-tracked="1"
+                data-stock="{{ $stock }}"
+                data-price="{{ $priceRaw }}"
+                data-threshold="{{ $threshold }}">
+              <td>{{ $p->product_name }}</td>
+              <td>{{ $p->category_name }} <span class="zone-tag">{{ $p->zone }}</span></td>
+              <td class="cell-stock">{{ $stock }}</td>
+              <td class="cell-price">₱{{ $priceShown }}</td>
+              <td class="cell-status">
+                <span class="status-badge {{ $isLow ? 'status-low' : 'status-good' }}">{{ $isLow ? 'Low Stock' : 'In Stock' }}</span>
+              </td>
+              @if($canManage)
+                <td>
+                  <div class="row-actions">
+                    <button type="button" class="action-btn restock-btn" data-action="restock" data-tip="Restock" aria-label="Restock {{ $p->product_name }}"><i class="fas fa-plus-circle"></i></button>
+                    <button type="button" class="action-btn edit-btn" data-action="edit" data-tip="Edit product" aria-label="Edit {{ $p->product_name }}"><i class="fas fa-pen"></i></button>
+                    <button type="button" class="action-btn delete-btn" data-action="delete" data-tip="Delete product" aria-label="Delete {{ $p->product_name }}"><i class="fas fa-trash-can"></i></button>
+                  </div>
+                </td>
+              @endif
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+      <div class="empty-state" id="stockEmpty">No stock items match your filters.</div>
+    </div>
+
+    <div class="pagination-bar" id="stockPager"></div>
+  </div>
+
+  <!-- ══ TABLE 2: TICKETS ═══════════════════════════════════ -->
+  <div class="report-section" id="ticketSection">
+    <div class="report-title">Tickets
+      <span class="count-pill" id="ticketCount">0</span>
+      <span class="report-hint">Rides, passes &amp; services (no stock tracking)</span>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="report-table" id="ticketTable">
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Category</th>
+            <th>Price</th>
+            @if($canManage)
+              <th>Actions</th>
+            @endif
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($ticketItems as $p)
+            @php
+              $priceRaw   = number_format(floatval($p->price ?? 0), 2, '.', '');
+              $priceShown = number_format(floatval($p->price ?? 0), 2);
+            @endphp
+            <tr data-id="{{ $p->product_id }}"
+                data-name="{{ $p->product_name }}"
+                data-category-id="{{ $p->category_id }}"
+                data-cat="{{ $p->category_name }}"
+                data-zone="{{ $p->zone }}"
+                data-tracked="0"
+                data-stock=""
+                data-price="{{ $priceRaw }}"
+                data-threshold="{{ intval($p->low_stock_threshold ?? 20) }}">
+              <td>{{ $p->product_name }}</td>
+              <td>{{ $p->category_name }} <span class="zone-tag">{{ $p->zone }}</span></td>
+              <td class="cell-price">₱{{ $priceShown }}</td>
+              @if($canManage)
+                <td>
+                  <div class="row-actions">
+                    <button type="button" class="action-btn edit-btn" data-action="edit" data-tip="Edit ticket" aria-label="Edit {{ $p->product_name }}"><i class="fas fa-pen"></i></button>
+                    <button type="button" class="action-btn delete-btn" data-action="delete" data-tip="Delete ticket" aria-label="Delete {{ $p->product_name }}"><i class="fas fa-trash-can"></i></button>
+                  </div>
+                </td>
+              @endif
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+      <div class="empty-state" id="ticketEmpty">No tickets match your filters.</div>
+    </div>
+
+    <div class="pagination-bar" id="ticketPager"></div>
+  </div>
+
   <!-- ══ ADD MODAL ══════════════════════════════════════════ -->
   <div id="addProductModal" class="modal manage-only">
     <div class="modal-content">
       <div class="modal-header">
-        <h2><i class="fas fa-plus-circle" style="color:var(--pink)"></i> Add New Product</h2>
+        <h2><i class="fas fa-plus-circle" style="color:var(--pink)"></i> Add New Item</h2>
         <button class="close-btn" id="closeAddBtn">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Product Name <span style="color:#ef4444">*</span></label>
-          <input type="text" id="addName" placeholder="e.g. Demi Apple">
+          <label>Name <span style="color:#ef4444">*</span></label>
+          <input type="text" id="addName" placeholder="e.g. Demi Apple or Skataya Ticket">
         </div>
         <div class="form-group">
           <label>Category <span style="color:#ef4444">*</span></label>
@@ -297,12 +439,13 @@
               </optgroup>
             @endforeach
           </select>
+          <span class="field-hint">Categories that track stock go to <strong>Stock Items</strong>; the rest go to <strong>Tickets</strong>.</span>
           <span class="add-cat-link" id="openAddCatFromAdd">+ Add new category</span>
         </div>
         <div class="form-group">
           <label>Stock Quantity <span style="color:#ef4444">*</span></label>
           <input type="number" id="addStock" placeholder="e.g. 100" min="0">
-          <small id="addStockNote" style="color:var(--muted);display:none">⚠️ This category does not track stock.</small>
+          <small id="addStockNote" style="color:var(--muted);display:none">⚠️ This category does not track stock (it will be listed as a ticket).</small>
         </div>
         <div class="form-group">
           <label>Price <span style="color:var(--muted);font-weight:400">(optional)</span></label>
@@ -311,7 +454,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-cancel" id="cancelAddBtn">Cancel</button>
-        <button type="button" class="btn-submit" id="submitAddBtn">Add Product</button>
+        <button type="button" class="btn-submit" id="submitAddBtn">Add Item</button>
       </div>
     </div>
   </div>
@@ -320,13 +463,13 @@
   <div id="editProductModal" class="modal manage-only">
     <div class="modal-content">
       <div class="modal-header">
-        <h2><i class="fas fa-edit" style="color:#7C5CE0"></i> Edit Product</h2>
+        <h2><i class="fas fa-edit" style="color:#7C5CE0"></i> Edit Item</h2>
         <button class="close-btn" id="closeEditBtn">&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editProductId">
         <div class="form-group">
-          <label>Product Name</label>
+          <label>Name</label>
           <input type="text" id="editProductName">
         </div>
         <div class="form-group">
@@ -346,7 +489,7 @@
         <div class="form-group" id="editStockGroup">
           <label>Stock Quantity</label>
           <input type="number" id="editProductStock" placeholder="e.g. 100" min="0">
-          <small id="editStockNote" style="color:var(--muted);display:none">⚠️ This category does not track stock.</small>
+          <small id="editStockNote" style="color:var(--muted);display:none">⚠️ This category does not track stock (it will be listed as a ticket).</small>
         </div>
         <div class="form-group">
           <label>Price</label>
@@ -374,7 +517,7 @@
         </div>
         <div class="form-group">
           <label>Zone <span style="color:#ef4444">*</span></label>
-          <input type="text" id="newCatZone" list="zoneDatalist" placeholder="e.g. Dino Adventure">
+          <input type="text" id="newCatZone" list="zoneDatalist" placeholder="e.g. DinoLakbay">
           <datalist id="zoneDatalist">
             @foreach($zones as $zone)
               <option value="{{ $zone }}">
@@ -393,7 +536,7 @@
         </div>
         <div class="checkbox-row">
           <input type="checkbox" id="newCatTracked" checked>
-          <label for="newCatTracked">Track stock for this category</label>
+          <label for="newCatTracked">Track stock for this category (untick for tickets)</label>
         </div>
       </div>
       <div id="addCatError" style="color:#ef4444;font-size:.8rem;margin-bottom:8px"></div>
@@ -425,71 +568,6 @@
     </div>
   </div>
 
-  <!-- Inventory Table -->
-  <div class="report-section">
-    <div class="report-title">Inventory List</div>
-
-    <div class="table-wrapper">
-      <table class="report-table" id="inventoryTable">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Stock</th>
-            <th>Price</th>
-            <th>Status</th>
-            @if($canManage)
-              <th>Actions</th>
-            @endif
-          </tr>
-        </thead>
-        <tbody>
-          @foreach($products as $p)
-            @php
-              $isNoStock = !$p->is_stock_tracked;
-              $threshold = intval($p->low_stock_threshold ?? 20);
-              $stock     = $isNoStock ? null : intval($p->stock);
-              $isLow     = !$isNoStock && $stock <= $threshold;
-              $price     = number_format(floatval($p->price ?? 0), 2);
-            @endphp
-            <tr data-id="{{ $p->product_id }}"
-                data-name="{{ $p->product_name }}"
-                data-category-id="{{ $p->category_id }}"
-                data-cat="{{ $p->category_name }}"
-                data-zone="{{ $p->zone }}"
-                data-tracked="{{ $p->is_stock_tracked }}"
-                data-stock="{{ $stock ?? '' }}"
-                data-price="{{ $price }}"
-                data-threshold="{{ $threshold }}">
-              <td>{{ $p->product_name }}</td>
-              <td>{{ $p->category_name }} <span class="zone-tag">{{ $p->zone }}</span></td>
-              <td>{{ $isNoStock ? '—' : $stock }}</td>
-              <td>₱{{ $price }}</td>
-              <td>
-                <span class="status-badge {{ $isNoStock ? 'status-good' : ($isLow ? 'status-low' : 'status-good') }}">
-                  {{ $isNoStock ? 'N/A' : ($isLow ? 'Low Stock' : 'In Stock') }}
-                </span>
-              </td>
-              @if($canManage)
-                <td>
-                  <div class="row-actions">
-                    @if(!$isNoStock)
-                      <button type="button" class="action-btn restock-btn" data-action="restock" data-tip="Restock" aria-label="Restock {{ $p->product_name }}"><i class="fas fa-plus-circle"></i></button>
-                    @endif
-                    <button type="button" class="action-btn edit-btn" data-action="edit" data-tip="Edit product" aria-label="Edit {{ $p->product_name }}"><i class="fas fa-pen"></i></button>
-                    <button type="button" class="action-btn delete-btn" data-action="delete" data-tip="Delete product" aria-label="Delete {{ $p->product_name }}"><i class="fas fa-trash-can"></i></button>
-                  </div>
-                </td>
-              @endif
-            </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
-
-    <div class="pagination-bar" id="paginationControls"></div>
-  </div>
-
   <!-- ══ RESTOCK MODAL ══════════════════════════════════════ -->
   <div id="restockModal" class="modal manage-only">
     <div class="modal-content" style="max-width:380px">
@@ -516,9 +594,8 @@
   </div>
 
   <div id="toastStack" aria-live="polite"></div>
-  <div id="toast" class="toast" style="display:none;"></div>
 
-  <!-- ══ LOADING OVERLAY ══════════════════════════════════════ -->
+  <!-- ══ LOADING OVERLAY ════════════════════════════════════ -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loadingText">Processing…</div>
@@ -527,6 +604,11 @@
 @endsection
 
 @push('scripts')
+<script>
+  // Passed to js/inventory.js so rows created in JS match the server-rendered ones
+  window.INVENTORY_CAN_MANAGE = @json($canManage);
+</script>
+
 <script>
   // Hover labels for the row action icons
   (function () {
@@ -546,7 +628,7 @@
       const r = el.getBoundingClientRect();
       const t = tip.getBoundingClientRect();
       let top = r.top - t.height - 8;
-      if (top < 8) top = r.bottom + 8;                       // flip below when there is no room above
+      if (top < 8) top = r.bottom + 8;
       let left = r.left + r.width / 2 - t.width / 2;
       left = Math.max(8, Math.min(left, window.innerWidth - t.width - 8));
       tip.style.top = top + 'px';

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>WonderPark System | POS</title>
+    <title>PISTAVORA System | POS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/pos.css') }}">
@@ -427,18 +427,18 @@
             </div>
 
             <div class="mode-navbar">
-                <button class="mode-tab active" data-mode="skates" onclick="switchMode('skates')">
-                    <i class="ti ti-roller-skating"></i> Skates
-                </button>
-                <button class="mode-tab" data-mode="snackbar" onclick="switchMode('snackbar')">
-                    <i class="ti ti-tools-kitchen-2"></i> Snackbar
-                </button>
-                <button class="mode-tab" data-mode="fieldofrides" onclick="switchMode('fieldofrides')">
-                    <i class="ti ti-ticket"></i> Field of Rides
-                </button>
-                <button class="mode-tab" data-mode="dinoadventure" onclick="switchMode('dinoadventure')">
-                    <i class="ti ti-paw"></i> Dino Adventure
-                </button>
+               <button class="mode-tab active" data-mode="skates" onclick="switchMode('skates')">
+                <i class="ti ti-roller-skating"></i> Skataya
+            </button>
+            <button class="mode-tab" data-mode="snackbar" onclick="switchMode('snackbar')">
+                <i class="ti ti-tools-kitchen-2"></i> Snackbar
+            </button>
+            <button class="mode-tab" data-mode="fieldofrides" onclick="switchMode('fieldofrides')">
+                <i class="ti ti-ticket"></i> PiyestaRides
+            </button>
+            <button class="mode-tab" data-mode="dinoadventure" onclick="switchMode('dinoadventure')">
+                <i class="ti ti-paw"></i> Dinolakbay
+            </button>
                 <div class="pending-pills-wrap" id="pendingPillsWrap"></div>
                 <div style="padding: 0 12px; display:flex; align-items:center;" id="holdBtnWrap">
                     <button class="new-txn-btn" id="holdBtn" onclick="holdTransaction()"
@@ -599,9 +599,9 @@
                 <div id="rVoidedBanner" style="display:none;text-align:center;color:var(--danger);font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:6px;border:2px dashed var(--danger);padding:4px;">
                     ** VOIDED **
                 </div>
-                <div class="receipt-store">WONDERPARK AMUSEMENT COM. INC.</div>
+                <div class="receipt-store">PISTAVORA AMUSEMENT COM. INC.</div>
                 <div class="receipt-owned">Owned &amp; Optd. by:</div>
-                <div class="receipt-owned">WONDERPARK AMUSEMENT COM. INC.</div>
+                <div class="receipt-owned">PISTAVORA AMUSEMENT COM. INC.</div>
                 <div class="receipt-address">Lower Deck, Building J., The Outlets at Lipa<br>Lima Estates, San Lucas,
                     City of Lipa, Batangas</div>
                 <div class="receipt-tin">VAT Reg. TIN : 010-412-741-00006</div>

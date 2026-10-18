@@ -34,9 +34,9 @@ const PAYMENT_LABELS = {
   online:   'Online'
 };
 
-const ZONE_ROLLER_FEVER   = 'roller fever';
-const ZONE_FIELD_OF_RIDES = 'field of rides';
-const ZONE_DINO_ADVENTURE = 'dino adventure';
+const ZONE_ROLLER_FEVER   = 'skataya';
+const ZONE_FIELD_OF_RIDES = 'piyestarides';
+const ZONE_DINO_ADVENTURE = 'dinolakbay';
 
 
 const CATEGORIES_SKATES = [
@@ -534,12 +534,19 @@ function addToCart(id) {
   persistCart();
 }
 
+// FIX: Hindi na pwedeng bumaba sa 1 ang qty gamit ang "−" button.
+// Kapag aabot sa 0, dadaan sa manager authorization (removeItem) —
+// hindi na basta-basta mawawala ang item sa cart.
 function changeQty(id, delta) {
   // Hindi pwedeng baguhin ang qty ng voucher line
   if (cart.some(c => c.voucher)) return;
 
   const item = cart.find(c => c.id == id);
   if (!item) return;
+
+  // Quantity can never go below 1 via the "−" button.
+  // To remove an item, use the X button or Correction (both need manager approval).
+  if (item.qty + delta < 1) return;
 
   const product = phpProducts.find(p => p.id == id);
 
@@ -552,8 +559,6 @@ function changeQty(id, delta) {
       alert(`Only ${product.stock} stock available for ${product.name}.`);
     }
   }
-
-  if (item.qty <= 0) cart = cart.filter(c => c.id != id);
 
   renderCart();
   updateTotals();
@@ -586,7 +591,8 @@ function renderCart() {
         <div class="iprice">₱${item.price.toFixed(2)} each${item.voucher ? ' · PAID ONLINE' : ''}</div>
       </div>
       <div class="qty-ctrl">
-        <button class="qcbtn" onclick="changeQty(${item.id}, -1)">−</button>
+        <button class="qcbtn" onclick="changeQty(${item.id}, -1)"
+                ${(item.qty <= 1 || item.voucher) ? 'disabled style="opacity:.35;cursor:not-allowed;pointer-events:none;"' : ''}>−</button>
         <span class="qcnum">${item.qty}</span>
         <button class="qcbtn" onclick="changeQty(${item.id}, 1)">+</button>
       </div>
@@ -1257,9 +1263,9 @@ function renderSalesReport(res, isPreview, isReprint = false) {
   // =============================================
 
   html += buildReportFooter(
-  res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview,
-  res.voided_txn_count || 0, res.voided_txn_total || 0
-);
+    res.authorized_by, res.void_count || 0, res.void_total || 0, isPreview,
+    res.voided_txn_count || 0, res.voided_txn_total || 0
+  );
 
   // === SALES BY ZONE (Roller Fever / Snackbar / Field of Rides / Dino Adventure) ===
   (r.zones || []).forEach(z => {
@@ -1408,6 +1414,10 @@ function confirmAuth() {
         document.getElementById('reprintModal').classList.add('show');
         setTimeout(() => document.getElementById('reprintInvInput').focus(), 100);
 
+      } else if (pendingAction === 'correction') {          // FIX: dating wala ito kaya walang nangyayari
+        pendingAction = null;
+        showCorrectionModal();
+
       } else if (pendingAction === 'void' && pendingVoidId !== null) {
         const id      = pendingVoidId;
         pendingVoidId = null;
@@ -1421,14 +1431,14 @@ function confirmAuth() {
           persistCart();
         }
 
-     } else if (pendingAction === 'void_transaction' && pendingVoidTxnInvoice) {
-      pendingAction = null;
-      confirmVoidTransaction(lastAuthorizedBy);
+      } else if (pendingAction === 'void_transaction' && pendingVoidTxnInvoice) {
+        pendingAction = null;
+        confirmVoidTransaction(lastAuthorizedBy);
 
-    } else if (pendingAction === 'print_report') {
-      pendingAction = null;
-      runCutoffReport();
-    }
+      } else if (pendingAction === 'print_report') {
+        pendingAction = null;
+        runCutoffReport();
+      }
 
     } else {
       document.getElementById('authError').textContent = res.message || 'Invalid credentials.';
@@ -1442,25 +1452,38 @@ function confirmAuth() {
 
 function showCorrectionModal() {
   const el = document.getElementById('correctionItems');
+
+  // Keep whatever the cashier already typed as the reason when the list re-renders
+  const prevReasonEl = document.getElementById('correctionReason');
+  const prevReason   = prevReasonEl ? prevReasonEl.value : '';
+
   if (cart.length === 0) {
     el.innerHTML = '<div style="color:#aaa;text-align:center;padding:10px">No items in cart.</div>';
   } else {
-    el.innerHTML = cart.map(item => `
-      <div style="display:flex;align-items:center;justify-content:space-between;
-                  padding:8px 10px;border:1px solid #f0f0f0;border-radius:8px;margin-bottom:6px">
-        <div>
-          <div style="font-weight:600;font-size:13px">${escHtml(item.name)}</div>
-          <div style="font-size:11px;color:#888">
-            Qty: ${item.qty} &nbsp;|&nbsp; ₱${(item.price * item.qty).toFixed(2)}
-          </div>
-        </div>
-        <button onclick="voidItem(${item.id})"
-          style="background:#E24B4A;color:#fff;border:none;border-radius:6px;
-                 padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">
-          <i class="ti ti-trash"></i> Void
-        </button>
+    el.innerHTML = `
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Reason for Void <span style="color:#E24B4A">*</span></label>
+        <textarea id="correctionReason" class="form-control" rows="2"
+                  placeholder="e.g. Wrong item, customer changed order...">${escHtml(prevReason)}</textarea>
       </div>
-    `).join('');
+      <div id="correctionError" style="color:#E24B4A;font-size:12px;margin-bottom:8px;min-height:16px"></div>
+      ${cart.map(item => `
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:8px 10px;border:1px solid #f0f0f0;border-radius:8px;margin-bottom:6px">
+          <div>
+            <div style="font-weight:600;font-size:13px">${escHtml(item.name)}</div>
+            <div style="font-size:11px;color:#888">
+              Qty: ${item.qty} &nbsp;|&nbsp; ₱${(item.price * item.qty).toFixed(2)}
+            </div>
+          </div>
+          <button onclick="voidItem(${item.id})"
+            style="background:#E24B4A;color:#fff;border:none;border-radius:6px;
+                   padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">
+            <i class="ti ti-trash"></i> Void
+          </button>
+        </div>
+      `).join('')}
+    `;
   }
   document.getElementById('correctionModal').classList.add('show');
 }
@@ -1468,12 +1491,25 @@ function showCorrectionModal() {
 function voidItem(id) {
   const item = cart.find(c => c.id == id);
   if (!item) return;
-  if (!confirm(`Void "${item.name}" from cart?`)) return;
-  logVoidToServer(item, lastAuthorizedBy);
+
+  // A reason is required before any item can be voided
+  const reasonEl = document.getElementById('correctionReason');
+  const reason   = reasonEl ? reasonEl.value.trim() : '';
+  if (!reason) {
+    const errEl = document.getElementById('correctionError');
+    if (errEl) errEl.textContent = 'Please enter the reason for the void first.';
+    if (reasonEl) reasonEl.focus();
+    return;
+  }
+
+  if (!confirm(`Void "${item.name}" from cart?\nReason: ${reason}`)) return;
+
+  logVoidToServer(item, lastAuthorizedBy, reason);
   cart = cart.filter(c => c.id != id);
   renderCart();
   updateTotals();
   persistCart();
+
   if (cart.length === 0) {
     closeModal('correctionModal');
   } else {
@@ -1481,7 +1517,7 @@ function voidItem(id) {
   }
 }
 
-function logVoidToServer(item, authorizedBy) {
+function logVoidToServer(item, authorizedBy, reason = null) {
   fetch('/pos/log-void', {
     method: 'POST',
     headers: {
@@ -1492,7 +1528,8 @@ function logVoidToServer(item, authorizedBy) {
       item_name: item.name,
       price: item.price,
       qty: item.qty,
-      authorized_by: authorizedBy
+      authorized_by: authorizedBy,
+      reason: reason
     })
   }).catch(err => console.warn('Void log failed:', err));
 }

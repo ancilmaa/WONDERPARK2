@@ -235,7 +235,7 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
 
     // Analytics / ML Forecast
     Route::get('/analytics', [AnalyticsController::class, 'index']);
-    Route::get('/ml-forecast', [MlForecastController::class, 'index']);
+    // (duplicate unnamed /ml-forecast route removed; the named one below is the one that was already active)
 
     Route::get('/api/ml/summary', [MlForecastController::class, 'summary']);
     Route::get('/api/ml/top_products', [MlForecastController::class, 'topProducts']);
@@ -247,14 +247,18 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
     Route::get('/api/ml/voucher_summary', [MlForecastController::class, 'voucherSummary']);
     Route::get('/api/zone-forecast/{zone}/report', [ZoneForecastController::class, 'downloadReport']);
     Route::get('/api/zone-forecast/{zone}/voucher_summary', [ZoneForecastController::class, 'voucherSummary']);
+    Route::get('/ml-forecast', [MlForecastController::class, 'index'])->name('ml.forecast');
+    Route::get('/api/ml/zone-summary', [MlForecastController::class, 'zoneSummary']);
 
     // Zone Forecast pages
+    // URLs stay the same so sidebar links keep working. The 'zone' value MUST match
+    // categories.zone exactly (renamed by the zone-rename migration).
     Route::get('/fieldOfRides', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Field of Rides')->name('zone.fieldOfRides');
+        ->defaults('zone', 'Piyestarides')->name('zone.fieldOfRides');
     Route::get('/RollerFever', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Roller Fever')->name('zone.rollerFever');
+        ->defaults('zone', 'Skataya')->name('zone.rollerFever');
     Route::get('/DinoAdventure', [ZoneForecastController::class, 'index'])
-        ->defaults('zone', 'Dino Adventure')->name('zone.dinoAdventure');
+        ->defaults('zone', 'Dinolakbay')->name('zone.dinoAdventure');
 });
 
 /*

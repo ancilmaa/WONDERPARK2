@@ -2,27 +2,17 @@
 
 @section('title', ($card ? 'Edit' : 'Add') . ' ' . $label)
 
+@push('head')
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+@endpush
+
 @section('styles')
+@include('cms.partials.page-styles')
 <style>
-    .cms-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: .82rem;
-        font-weight: 700;
-        color: var(--ink-soft);
-        margin-bottom: 6px;
-    }
-
-    .cms-back:hover {
-        color: var(--pink-dark);
-    }
-
     .cms-form-shell {
         display: grid;
         grid-template-columns: 1fr 320px;
-        gap: 24px;
-        margin-top: 18px;
+        gap: 20px;
         align-items: start;
     }
 
@@ -39,7 +29,7 @@
     .cms-form-main {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 20px;
         min-width: 0;
     }
 
@@ -48,24 +38,28 @@
         top: 20px;
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 20px;
     }
 
+    /* Section panels use the same look as Inventory's .report-section */
     .cms-form-section {
         background: var(--card);
         border-radius: 16px;
-        padding: 24px;
+        padding: 20px;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--line);
     }
 
     .cms-form-section h2 {
-        font-size: .78rem;
+        font-family: 'Source Serif 4', serif;
+        font-size: 1.05rem;
         font-weight: 700;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-        color: var(--muted);
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--ink);
+        padding-bottom: 12px;
         margin-bottom: 16px;
+        border-bottom: 2px solid var(--pink-light);
     }
 
     .cms-field-row {
@@ -90,23 +84,25 @@
 
     .cms-field label {
         display: block;
-        font-size: .8rem;
-        font-weight: 700;
+        font-size: .82rem;
+        font-weight: 600;
         color: var(--ink);
-        margin-bottom: 7px;
+        margin-bottom: 6px;
     }
 
     .cms-field input[type="text"],
     .cms-field input[type="number"],
+    .cms-field select,
     .cms-field textarea {
         width: 100%;
-        font-family: inherit;
-        font-size: .88rem;
-        padding: 11px 13px;
-        border-radius: 10px;
-        border: 1.5px solid var(--line-strong);
+        font-family: 'Inter', sans-serif;
+        font-size: .85rem;
+        padding: 10px 12px;
+        border-radius: 9px;
+        border: 1px solid var(--line-strong);
         background: var(--bg);
         color: var(--ink);
+        box-sizing: border-box;
     }
 
     .cms-field textarea {
@@ -115,10 +111,11 @@
     }
 
     .cms-field input:focus,
+    .cms-field select:focus,
     .cms-field textarea:focus {
         outline: none;
         border-color: var(--pink);
-        box-shadow: 0 0 0 3px rgba(255, 92, 133, .14);
+        box-shadow: 0 0 0 3px var(--pink-light);
     }
 
     .cms-field-hint {
@@ -129,8 +126,18 @@
 
     .cms-field-error {
         font-size: .74rem;
-        color: var(--pink-deep);
+        color: var(--danger);
         margin-top: 6px;
+        font-weight: 600;
+    }
+
+    .cms-alert-error {
+        margin-bottom: 20px;
+        padding: 11px 16px;
+        background: var(--danger-soft);
+        color: var(--danger);
+        border-radius: 10px;
+        font-size: .85rem;
         font-weight: 600;
     }
 
@@ -156,11 +163,11 @@
 
     .cms-file-input {
         width: 100%;
-        font-family: inherit;
+        font-family: 'Inter', sans-serif;
         font-size: .84rem;
         padding: 10px 12px;
-        border-radius: 10px;
-        border: 1.5px dashed var(--line-strong);
+        border-radius: 9px;
+        border: 1px dashed var(--line-strong);
         background: var(--bg);
         color: var(--ink-soft);
     }
@@ -184,7 +191,7 @@
     .cms-toggle input {
         width: 18px;
         height: 18px;
-        accent-color: var(--pink);
+        accent-color: var(--pink-deep);
         cursor: pointer;
     }
 
@@ -194,38 +201,16 @@
         gap: 10px;
     }
 
-    .cms-submit {
+    .cms-form-actions .btn-primary,
+    .cms-form-actions .btn-ghost {
         width: 100%;
-        padding: 12px 24px;
-        border-radius: 10px;
-        background: var(--pink);
-        color: #fff;
-        font-weight: 700;
-        font-size: .88rem;
-        border: none;
-        cursor: pointer;
-    }
-
-    .cms-submit:hover {
-        background: var(--pink-dark);
-    }
-
-    .cms-cancel-link {
-        text-align: center;
-        font-size: .84rem;
-        font-weight: 700;
-        color: var(--ink-soft);
-    }
-
-    .cms-cancel-link:hover {
-        color: var(--pink-dark);
     }
 
     /* --- Icon field: pick from library or upload a custom image --- */
     .icon-source-tabs {
         display: inline-flex;
         background: var(--bg);
-        border: 1.5px solid var(--line-strong);
+        border: 1px solid var(--line-strong);
         border-radius: 10px;
         padding: 3px;
         gap: 3px;
@@ -233,7 +218,7 @@
     }
 
     .icon-source-tab {
-        font-family: inherit;
+        font-family: 'Inter', sans-serif;
         font-size: .78rem;
         font-weight: 700;
         padding: 7px 12px;
@@ -245,9 +230,8 @@
     }
 
     .icon-source-tab.is-active {
-        background: var(--card);
-        color: var(--pink-dark);
-        box-shadow: var(--shadow-sm);
+        background: var(--pink-deep);
+        color: #fff;
     }
 
     .icon-source-panel[hidden] {
@@ -261,10 +245,10 @@
         gap: 10px;
         padding: 9px 12px;
         border-radius: 10px;
-        border: 1.5px solid var(--line-strong);
+        border: 1px solid var(--line-strong);
         background: var(--bg);
         color: var(--ink);
-        font-family: inherit;
+        font-family: 'Inter', sans-serif;
         font-size: .86rem;
         font-weight: 600;
         cursor: pointer;
@@ -302,7 +286,7 @@
     .icon-picker-popover {
         position: relative;
         margin-top: 8px;
-        border: 1.5px solid var(--line-strong);
+        border: 1px solid var(--line-strong);
         border-radius: 10px;
         background: var(--card);
         box-shadow: var(--shadow-sm);
@@ -315,14 +299,15 @@
 
     .icon-picker-search {
         width: 100%;
-        font-family: inherit;
+        font-family: 'Inter', sans-serif;
         font-size: .82rem;
         padding: 8px 11px;
         border-radius: 8px;
-        border: 1.5px solid var(--line-strong);
+        border: 1px solid var(--line-strong);
         background: var(--bg);
         color: var(--ink);
         margin-bottom: 10px;
+        box-sizing: border-box;
     }
 
     .icon-picker-search:focus {
@@ -351,7 +336,7 @@
         align-items: center;
         justify-content: center;
         border-radius: 8px;
-        border: 1.5px solid transparent;
+        border: 1px solid transparent;
         background: var(--bg);
         color: var(--ink-soft);
         font-size: .95rem;
@@ -389,7 +374,7 @@
     .cms-preview-label {
         font-size: .68rem;
         font-weight: 700;
-        letter-spacing: .05em;
+        letter-spacing: .08em;
         text-transform: uppercase;
         color: var(--muted);
         margin-bottom: 14px;
@@ -437,8 +422,9 @@
     }
 
     .cms-preview-title {
+        font-family: 'Source Serif 4', serif;
         font-size: 1.05rem;
-        font-weight: 800;
+        font-weight: 700;
         color: var(--ink);
         margin-bottom: 4px;
         word-break: break-word;
@@ -459,8 +445,9 @@
     }
 
     .cms-preview-price {
+        font-family: 'Source Serif 4', serif;
         font-size: 1rem;
-        font-weight: 800;
+        font-weight: 700;
         color: var(--pink-dark);
     }
 
@@ -469,7 +456,7 @@
         font-weight: 700;
         padding: 7px 14px;
         border-radius: 8px;
-        background: var(--pink);
+        background: var(--pink-deep);
         color: #fff;
         white-space: nowrap;
     }
@@ -477,13 +464,22 @@
 @endsection
 
 @section('content')
-    <a href="{{ route('cms.cards', $type) }}" class="cms-back"><i class="fa-solid fa-arrow-left"></i> Back to {{ $label }} Cards</a>
-    <h1 style="font-size:1.4rem;font-weight:800;color:var(--ink);margin-top:6px;">
-        {{ $card ? 'Edit' : 'Add' }} {{ $label }}
-    </h1>
+    <!-- ══ TOOLBAR ════════════════════════════════════════════ -->
+    <div class="toolbar no-print">
+        <div>
+            <div class="eyebrow">Lipa Branch &middot; Website Management &middot; {{ $label }} Cards</div>
+            <h1>{{ $card ? 'Edit' : 'Add' }} {{ $label }}</h1>
+        </div>
+        <div class="toolbar-actions">
+            <a href="{{ route('cms.cards', $type) }}" class="btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+            <button type="submit" form="cardForm" class="btn-primary">
+                <i class="fa-solid fa-check"></i> {{ $card ? 'Save Changes' : 'Add ' . $label }}
+            </button>
+        </div>
+    </div>
 
     @if ($errors->any())
-        <div style="margin-top:16px;padding:11px 16px;background:var(--pink-light);color:var(--pink-deep);border-radius:10px;font-size:.85rem;font-weight:600;">
+        <div class="cms-alert-error">
             There are errors in the form — please check the fields below.
         </div>
     @endif
@@ -525,22 +521,24 @@
                         <textarea name="description" id="description" data-preview="description">{{ old('description', $card->description ?? '') }}</textarea>
                     </div>
 
-                          <div class="cms-field">
+                    <div class="cms-field-row">
+                        <div class="cms-field">
                             <label for="badge_label">Badge Label</label>
                             <input type="text" name="badge_label" id="badge_label" value="{{ old('badge_label', $card->badge_label ?? '') }}" placeholder="e.g. Best Value" data-preview="badge">
                         </div>
 
                         <div class="cms-field">
                             <label for="badge_color">Badge Color</label>
-                            <select name="badge_color" id="badge_color" class="cms-input" data-preview="badgeColor" style="width:100%;font-family:inherit;font-size:.88rem;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line-strong);background:var(--bg);color:var(--ink);">
-                                @php $currentColor = old('badge_color', $card->badge_color ?? 'coral'); @endphp
+                            @php $currentColor = old('badge_color', $card->badge_color ?? 'coral'); @endphp
+                            <select name="badge_color" id="badge_color" data-preview="badgeColor">
                                 <option value="coral"  {{ $currentColor === 'coral'  ? 'selected' : '' }}>Coral (default)</option>
                                 <option value="teal"   {{ $currentColor === 'teal'   ? 'selected' : '' }}>Teal</option>
                                 <option value="amber"  {{ $currentColor === 'amber'  ? 'selected' : '' }}>Amber</option>
                                 <option value="violet" {{ $currentColor === 'violet' ? 'selected' : '' }}>Violet</option>
                             </select>
-                            <p class="cms-field-hint">Controls the pill color behind the badge label on the public site — independent from the icon.</p>
                         </div>
+                    </div>
+                    <p class="cms-field-hint" style="margin:-6px 0 18px;">Badge color controls the pill behind the badge label on the public site — independent from the icon.</p>
 
                     <div class="cms-field">
                         <label>Icon</label>
@@ -688,8 +686,8 @@
                 </div>
 
                 <div class="cms-form-actions">
-                    <button type="submit" class="cms-submit">{{ $card ? 'Save Changes' : 'Add ' . $label }}</button>
-                    <a href="{{ route('cms.cards', $type) }}" class="cms-cancel-link">Cancel</a>
+                    <button type="submit" class="btn-primary">{{ $card ? 'Save Changes' : 'Add ' . $label }}</button>
+                    <a href="{{ route('cms.cards', $type) }}" class="btn-ghost">Cancel</a>
                 </div>
             </div>
         </div>
@@ -897,5 +895,4 @@
     syncPreviewIcon();
 })();
 </script>
-
 @endpush

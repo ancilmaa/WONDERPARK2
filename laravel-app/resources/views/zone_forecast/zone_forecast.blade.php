@@ -2,9 +2,9 @@
 
 @php
     $zoneIcons = [
-        'Roller Fever'   => 'fa-bolt',
-        'Field of Rides' => 'fa-flag-checkered',
-        'Dino Adventure' => 'fa-dragon',
+        'Skataya'      => 'fa-bolt',
+        'Piyestarides' => 'fa-flag-checkered',
+        'Dinolakbay'   => 'fa-dragon',
     ];
     $zoneIcon = $zoneIcons[$zone] ?? 'fa-chart-line';
 @endphp
@@ -169,7 +169,7 @@
   </div>
   <div class="kpi-card is-revenue">
     <span class="kpi-icon"><i class="fas fa-peso-sign"></i></span>
-    <div class="kpi-body"><div class="kpi-label">Revenue</div><div class="kpi-value" id="mRevenue">—</div><div class="kpi-sub">This month total</div></div>
+    <div class="kpi-body"><div class="kpi-label">Gross</div><div class="kpi-value" id="mRevenue">—</div><div class="kpi-sub">This month total</div></div>
   </div>
   <div class="kpi-card is-items">
     <span class="kpi-icon"><i class="fas fa-box"></i></span>
@@ -187,7 +187,7 @@
     <button class="tab-btn" data-tab="dayofweek"><i class="fas fa-calendar-week"></i> Day of Week</button>
     <button class="tab-btn" data-tab="hourly"><i class="fas fa-clock"></i> Peak Hours</button>
     <button class="tab-btn" data-tab="forecast"><i class="fas fa-wand-magic-sparkles"></i> Next Month</button>
-    <button class="tab-btn" data-tab="monthly"><i class="fas fa-chart-line"></i> Monthly Trend</button>
+    <button class="tab-btn" data-tab="monthly"><i class="fas fa-chart-line"></i> Monthly</button>
     <button class="tab-btn" data-tab="payment"><i class="fas fa-credit-card"></i> Payment</button>
     <button class="tab-btn" data-tab="category"><i class="fas fa-boxes-stacked"></i> Categories</button>
     <button class="tab-btn" data-tab="voucher"><i class="fas fa-ticket"></i> Vouchers</button>
@@ -206,7 +206,7 @@
   <div id="tab-dayofweek" class="tab-pane">
     <div class="fc-grid-2">
       <div><h3 class="pane-title">Transactions by Day</h3><div class="chart-wrap"><canvas id="chartDow"></canvas></div></div>
-      <div><h3 class="pane-title">Revenue by Day</h3><div class="chart-wrap"><canvas id="chartDowRev"></canvas></div></div>
+      <div><h3 class="pane-title">Gross by Day</h3><div class="chart-wrap"><canvas id="chartDowRev"></canvas></div></div>
     </div>
     <h3 class="pane-title">Weekend Top-Sellers (Sat &amp; Sun)</h3>
     <div id="weekendTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
@@ -230,7 +230,7 @@
 
   {{-- MONTHLY --}}
   <div id="tab-monthly" class="tab-pane">
-    <h3 class="pane-title">Monthly Revenue Trend (Last 12 Months)</h3>
+    <h3 class="pane-title">Monthly Gross Trend (Last 12 Months)</h3>
     <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
     <div id="monthlyTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
   </div>
@@ -238,14 +238,14 @@
   {{-- PAYMENT --}}
   <div id="tab-payment" class="tab-pane">
     <div class="fc-grid-2">
-      <div><h3 class="pane-title">Revenue Share by Payment Method</h3><div class="chart-wrap"><canvas id="chartPayment"></canvas></div></div>
+      <div><h3 class="pane-title">Gross Share by Payment Method</h3><div class="chart-wrap"><canvas id="chartPayment"></canvas></div></div>
       <div><h3 class="pane-title">Breakdown</h3><div id="paymentBars" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div></div>
     </div>
   </div>
 
   {{-- CATEGORY --}}
   <div id="tab-category" class="tab-pane">
-    <div class="info-note"><strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, F&amp;B) and by individual category — never combined into one bucket. Percentages are share of total revenue for {{ $zone }}. <strong>Click any category row</strong> to see which products generated its revenue.</div>
+    <div class="info-note"><strong>How this works:</strong> Sales are grouped by category type (e.g. Rides, Rentals, F&amp;B) and by individual category — never combined into one bucket. Percentages are share of total gross for {{ $zone }}. <strong>Click any category row</strong> to see which products generated its gross.</div>
     <div id="categoryByType" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
 
     <div class="fc-grid-2" style="margin-top:24px">
@@ -257,7 +257,7 @@
     <div id="categoryTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
   </div>
 
-  {{-- VOUCHERS (now inside the panel) --}}
+  {{-- VOUCHERS --}}
   <div id="tab-voucher" class="tab-pane">
     <div class="info-note"><strong>How this works:</strong> Online booking vouchers redeemed through the POS (completed only; voided vouchers are excluded). Follows the date filter above. “Upcoming” means confirmed vouchers not yet redeemed.</div>
     <div class="kpi-strip" style="grid-template-columns:repeat(2,1fr)">
@@ -310,7 +310,7 @@
   async function apiFetch(endpoint, withFilters = false) {
       const url = ML_API + endpoint + (withFilters ? currentFilters() : '');
       const r = await fetch(url, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' — ' + endpoint);
       return r.json();
   }
 
@@ -390,7 +390,7 @@
             </tbody>
           </table></div>`;
       } catch(e) {
-          div.innerHTML = `<div class="error-msg">Could not load data. Is the ML server running?<br><small>${e}</small></div>`;
+          div.innerHTML = `<div class="error-msg">Could not load data.<br><small>${e}</small></div>`;
       }
   }
 
@@ -421,7 +421,7 @@
             </tbody>
           </table></div>`;
       } catch(e) {
-          div.innerHTML = `<div class="error-msg">Could not load data. Is the ML server running?</div>`;
+          div.innerHTML = `<div class="error-msg">Could not load data.</div>`;
       }
   }
 
@@ -493,7 +493,7 @@
             </tbody>
           </table></div>`;
       } catch(e) {
-          div.innerHTML = `<div class="error-msg">Could not load forecast. Is the ML server running?<br><small>${e}</small></div>`;
+          div.innerHTML = `<div class="error-msg">Could not load forecast.<br><small>${e}</small></div>`;
       }
   }
 
@@ -502,36 +502,28 @@
       const div = document.getElementById('monthlyTable');
       try {
           const d = await apiFetch('/monthly_trend');
-          const rows = d.monthly;
-          makeChart('chartMonthly', 'line', rows.map(r => r.month),
-              [
-                  { label: 'Revenue (₱)', data: rows.map(r => parseFloat(r.total_revenue || 0)),
-                    borderColor: PRIMARY, backgroundColor: PRIMARY_SOFT, fill: true, tension: 0.4, yAxisID: 'y' },
-                  { label: 'Units Sold', data: rows.map(r => parseInt(r.total_qty || 0)),
-                    borderColor: ACCENT, backgroundColor: ACCENT_SOFT, fill: true, tension: 0.4, yAxisID: 'y1' }
-              ],
-              { extra: { scales: {
-                  y:  { type:'linear', position:'left',  beginAtZero:true, grid:{color:'#ECEDF6'} },
-                  y1: { type:'linear', position:'right', beginAtZero:true, grid:{display:false} },
-                  x:  { grid:{display:false} }
-              }}}
-          );
-          if (!rows.length) {
-              div.innerHTML = '<div class="error-msg">No monthly data yet.</div>';
-              return;
-          }
-          div.innerHTML = `
-          <h3 class="pane-title">Monthly Breakdown</h3>
+          const m = d.monthly || [];
+
+          makeChart('chartMonthly', 'line', m.map(r => r.month),
+              [{ label: 'Revenue', data: m.map(r => parseFloat(r.total_revenue || 0)),
+                 borderColor: PRIMARY, backgroundColor: PRIMARY_SOFT, fill: true, tension: 0.4,
+                 pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: PRIMARY }],
+              { legend: false });
+
+          div.innerHTML = m.length ? `
           <div class="table-scroll"><table class="ml-table">
-            <thead><tr><th>Month</th><th>Transactions</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+            <thead><tr><th>Month</th><th>Transactions</th><th>Units Sold</th><th>Gross</th></tr></thead>
             <tbody>
-              ${rows.slice().reverse().map(r => `
-              <tr><td><strong>${r.month}</strong></td><td>${Number(r.num_transactions).toLocaleString()}</td>
-                  <td>${Number(r.total_qty).toLocaleString()}</td><td>${peso(r.total_revenue)}</td></tr>`).join('')}
+              ${m.slice().reverse().map(r => `
+              <tr><td><strong>${r.month}</strong></td>
+                  <td>${Number(r.num_transactions).toLocaleString()}</td>
+                  <td>${Number(r.total_qty).toLocaleString()}</td>
+                  <td>${peso(r.total_revenue)}</td></tr>`).join('')}
             </tbody>
-          </table></div>`;
+          </table></div>`
+          : '<div class="error-msg">No monthly data yet.</div>';
       } catch(e) {
-          div.innerHTML = `<div class="error-msg">Could not load monthly data.</div>`;
+          div.innerHTML = `<div class="error-msg">Could not load monthly data.<br><small>${e}</small></div>`;
       }
   }
 
@@ -616,7 +608,7 @@
           tableDiv.innerHTML = `
             <div class="table-scroll">
             <table class="ml-table" id="catBreakdownTable">
-              <thead><tr><th></th><th>#</th><th>Category</th><th>Type</th><th>Units Sold</th><th>Revenue</th><th>% of Total</th></tr></thead>
+              <thead><tr><th></th><th>#</th><th>Category</th><th>Type</th><th>Units Sold</th><th>Gross</th><th>% of Total</th></tr></thead>
               <tbody>
                 ${byCategory.map((r,i) => `
                 <tr class="cat-row" data-cat="cat-${i}" style="cursor:pointer">
@@ -632,7 +624,7 @@
                   <td colspan="7" style="background:var(--fc-bg);padding:0">
                     ${(r.products && r.products.length) ? `
                       <table class="ml-table" style="margin:6px 10px;width:calc(100% - 20px)">
-                        <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th><th>% of ${r.category_name} Revenue</th></tr></thead>
+                        <thead><tr><th>Product</th><th>Units Sold</th><th>Gross</th><th>% of ${r.category_name} Gross</th></tr></thead>
                         <tbody>
                           ${r.products.map(p => `
                           <tr><td>${p.product_name}</td><td>${Number(p.total_qty).toLocaleString()}</td>
@@ -692,7 +684,7 @@
               </tbody></table></div>`
             : '<div class="error-msg">No voucher redemptions in this period.</div>';
       } catch(e) {
-          tbl.innerHTML = '<div class="error-msg">Could not load voucher data.</div>';
+          tbl.innerHTML = `<div class="error-msg">Could not load voucher data.<br><small>${e}</small></div>`;
           up.innerHTML  = '';
       }
   }
@@ -712,8 +704,12 @@
       window.location.href = ML_API + '/report' + currentFilters();
   });
 
-  /* BOOT */
-  loadSummary(); loadTopProducts(); loadDayOfWeek(); loadHourly(); loadForecast();
-  loadMonthly(); loadPaymentBreakdown(); loadCategoryBreakdown(); loadVouchers();
+  /* BOOT — each loader runs independently so one failure can't block the rest */
+  [
+      loadSummary, loadTopProducts, loadDayOfWeek, loadHourly, loadForecast,
+      loadMonthly, loadPaymentBreakdown, loadCategoryBreakdown, loadVouchers
+  ].forEach(fn => {
+      try { fn(); } catch (e) { console.error(fn.name + ' failed:', e); }
+  });
 </script>
 @endpush

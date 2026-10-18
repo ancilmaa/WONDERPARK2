@@ -6,17 +6,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use App\Models\SystemLog;
 use App\Services\SystemLogger;
 
 class PosController extends Controller
 {
     // ================= SYSTEM LOG HELPER =================
-    // Isang lugar lang ang tawag sa SystemLogger::record().
-    // Session ang gamit ng app (hindi Laravel Auth), kaya manual na
-    // ipinapasa ang user_id at email. Ang "actor" ay laging ang naka-login
-    // na cashier. Kapag may ibang tao na involved (hal. manager na nag-authorize),
-    // nasa $context siya. Naka-try/catch: hindi masisira ang POS kapag nag-fail ang log.
+    // Single place that calls SystemLogger::record().
+    // The app uses sessions (not Laravel Auth), so user_id and email are
+    // passed manually. The "actor" is always the logged-in cashier. If another
+    // person is involved (e.g. a manager who authorized something), they go in
+    // $context. Wrapped in try/catch so the POS never breaks if logging fails.
     private function audit(
         string $eventType,
         string $description,
@@ -43,9 +44,9 @@ class PosController extends Controller
         }
     }
 
-    // Tumatanggap lang ng "authorized_by" na kapareho ng manager na NAKA-verify
-    // kamakailan sa verifyManager() sa session na ito. Kung hindi match, pwedeng
-    // peke ang pangalang pinadala ng browser.
+    // Only accepts an "authorized_by" that matches the manager who was recently
+    // verified in verifyManager() during this session. If it doesn't match, the
+    // name sent by the browser may be fake.
     private function overrideMatches(?string $authorizedBy): bool
     {
         $o = session('pos_override');
@@ -59,8 +60,8 @@ class PosController extends Controller
             && strcasecmp(trim((string) ($o['name'] ?? '')), trim($authorizedBy)) === 0;
     }
 
-    // Pangalan ng manager na NAKA-verify at hindi pa expired ang override sa session na ito.
-    // Null kapag walang active override. Ginagamit para itala sa manual discount log.
+    // Name of the manager whose override is verified and not yet expired in this
+    // session. Null if there is no active override. Used to record manual discounts.
     private function activeOverrideName(): ?string
     {
         $o = session('pos_override');
@@ -75,7 +76,7 @@ class PosController extends Controller
             : null;
     }
 
-    // Sunod-sunod na void ng iisang cashier = anomaly. Isang alert lang kada window.
+    // Repeated voids by the same cashier = anomaly. One alert per window.
     private function checkRepeatedVoids(): void
     {
         try {
@@ -107,7 +108,7 @@ class PosController extends Controller
         }
     }
 
-    // Sunod-sunod na manual discount ng iisang cashier = anomaly. Isang alert lang kada window.
+    // Repeated manual discounts by the same cashier = anomaly. One alert per window.
     private function checkRepeatedManualDiscounts(): void
     {
         try {
@@ -139,7 +140,8 @@ class PosController extends Controller
         }
     }
 
-    // Reprint ng receipt: laging nilolog; anomaly kapag paulit-ulit o void na ang invoice.
+    // Receipt reprint: always logged; flagged as an anomaly when repeated or
+    // when the invoice is already voided.
     private function logReprint($txn): void
     {
         try {
@@ -233,7 +235,7 @@ class PosController extends Controller
         $user = DB::table('users')->where('username', $data['username'])->first();
 
         if (!$user) {
-            // LOG: hindi kilalang username sa manager override
+            // LOG: unknown username on manager override
             $this->audit(
                 'login_failed',
                 'Failed manager override on POS: unknown username',
@@ -249,7 +251,7 @@ class PosController extends Controller
         }
 
         if ($user->status !== 'active') {
-            // LOG: deactivated na account ang ginamit pang-override
+            // LOG: a deactivated account was used for the override
             $this->audit(
                 'manager_override_denied',
                 "Attempted POS override with a deactivated account: {$user->username}",
@@ -261,7 +263,7 @@ class PosController extends Controller
         }
 
         if (!Hash::check($data['password'], $user->password)) {
-            // LOG: maling password sa manager override (binibilang ng brute-force check)
+            // LOG: wrong password on manager override (counted by the brute-force check)
             $this->audit(
                 'login_failed',
                 "Failed manager override on POS: wrong password for {$user->username}",
@@ -278,7 +280,7 @@ class PosController extends Controller
         }
 
         if (!in_array($user->role, ['tl', 'admin'])) {
-            // LOG: tama ang password pero hindi TL/Manager
+            // LOG: correct password but the user is not a TL/Manager
             $this->audit(
                 'manager_override_denied',
                 "{$user->username} ({$user->role}) tried to override on POS but is not a TL/Manager",
@@ -289,14 +291,14 @@ class PosController extends Controller
             return response()->json(['success' => false, 'message' => 'Not authorized. TL or Manager only.']);
         }
 
-        // Itala sa session kung sinong manager ang na-verify (ginagamit ng overrideMatches())
+        // Remember in the session which manager was verified (used by overrideMatches())
         session(['pos_override' => [
             'name'    => $user->fullname ?? $user->username,
             'user_id' => $user->user_id,
             'at'      => now()->timestamp,
         ]]);
 
-        // LOG: matagumpay na manager override (nakatali ang manager sa susunod na void/discount)
+        // LOG: successful manager override (the manager is tied to the next void/discount)
         $this->audit(
             'manager_override_granted',
             ($user->fullname ?? $user->username) . " ({$user->role}) authorized an override on POS",
@@ -310,6 +312,8 @@ class PosController extends Controller
         ]);
     }
 
+    // Item-level void from the cart (Correction / X button).
+    // Now accepts an optional "reason".
     public function logVoid(Request $request)
     {
         $data = $request->validate([
@@ -317,9 +321,10 @@ class PosController extends Controller
             'price'         => 'required|numeric',
             'qty'           => 'required|integer|min:1',
             'authorized_by' => 'nullable|string',
+            'reason'        => 'nullable|string|max:255',
         ]);
 
-        DB::table('voided_items')->insert([
+        $row = [
             'item_name'     => $data['item_name'],
             'price'         => $data['price'],
             'qty'           => $data['qty'],
@@ -328,16 +333,24 @@ class PosController extends Controller
             'authorized_by' => $data['authorized_by'] ?? null,
             'created_at'    => now(),
             'updated_at'    => now(),
-        ]);
+        ];
 
-        // May sinabing manager pero hindi tugma sa na-verify = kahina-hinala
+        // Save the reason only if the column exists (see the migration note).
+        if (Schema::hasColumn('voided_items', 'reason')) {
+            $row['reason'] = $data['reason'] ?? null;
+        }
+
+        DB::table('voided_items')->insert($row);
+
+        // A manager name that doesn't match the verified one is suspicious
         $verified = $this->overrideMatches($data['authorized_by'] ?? null);
         $claimedButUnverified = !empty($data['authorized_by']) && !$verified;
 
-        // LOG: void ng isang item sa cart
+        // LOG: void of a single cart item
         $this->audit(
             'item_voided',
             "Voided item: {$data['item_name']} x{$data['qty']} (₱" . number_format($data['price'] * $data['qty'], 2) . ')'
+                . (!empty($data['reason']) ? " — Reason: {$data['reason']}" : '')
                 . ($claimedButUnverified ? ' — manager override not verified' : ''),
             'warning',
             [
@@ -345,6 +358,7 @@ class PosController extends Controller
                 'price'             => (float) $data['price'],
                 'qty'               => (int) $data['qty'],
                 'amount'            => (float) ($data['price'] * $data['qty']),
+                'reason'            => $data['reason'] ?? null,
                 'authorized_by'     => $data['authorized_by'] ?? null,
                 'override_verified' => $verified,
             ],
@@ -386,7 +400,7 @@ class PosController extends Controller
             'pwd_senior_type'      => 'nullable|string|in:Senior Citizen,PWD',
             'pwd_senior_name'      => 'nullable|string',
             'pwd_senior_id_number' => 'nullable|string',
-            // Para sa system log: hiwalay ang manual discount at PWD/Senior
+            // For the system log: manual discount and PWD/Senior are tracked separately
             'manual_discount'  => 'nullable|numeric|min:0',
             'special_discount' => 'nullable|numeric|min:0',
             'special_type'     => 'nullable|string|max:30',
@@ -435,9 +449,9 @@ class PosController extends Controller
         $items        = $data['items'];
 
         // === PREPAID ONLINE BOOKING VOUCHER ===
-        // Server ang masusunod dito: ang item, presyo, at total ay kinukuha
-        // mula sa bookings table gamit ang voucher code — hindi sa sinend ng
-        // browser. Kaya hindi mapapalitan ng cashier/browser ang halaga.
+        // The server is the authority here: the item, price, and total are taken
+        // from the bookings table using the voucher code, not from what the
+        // browser sent. So the cashier/browser cannot change the amount.
         $voucherCode    = !empty($data['voucher_code']) ? strtoupper(trim($data['voucher_code'])) : null;
         $voucherBooking = null;
 
@@ -445,7 +459,7 @@ class PosController extends Controller
             $voucherBooking = DB::table('bookings')->where('voucher_code', $voucherCode)->first();
 
             if (!$voucherBooking) {
-                // LOG: voucher code na hindi umiiral (posibleng paghula ng code)
+                // LOG: voucher code that does not exist (possible code guessing)
                 $this->audit(
                     'voucher_invalid',
                     "Voucher code not found at checkout: {$voucherCode}",
@@ -456,7 +470,7 @@ class PosController extends Controller
                 return response()->json(['success' => false, 'message' => 'Voucher not found.']);
             }
             if ($voucherBooking->status !== 'confirmed') {
-                // LOG: ginamit na o hindi valid na voucher
+                // LOG: already-used or invalid voucher
                 $this->audit(
                     'voucher_invalid',
                     "Attempted to use invalid voucher {$voucherCode} (status: {$voucherBooking->status})",
@@ -521,8 +535,8 @@ class PosController extends Controller
                 $pwdSeniorIdNum,
                 $voucherBooking
             ) {
-                // Re-check + lock ng voucher sa loob ng transaction, para hindi
-                // ma-double redeem kahit dalawang cashier ang sabay mag-checkout.
+                // Re-check + lock the voucher inside the transaction so it cannot
+                // be double-redeemed even if two cashiers check out at the same time.
                 if ($voucherBooking) {
                     $locked = DB::table('bookings')
                         ->where('id', $voucherBooking->id)
@@ -561,7 +575,7 @@ class PosController extends Controller
 
                     DB::table('transaction_items')->insert([
                         'transaction_id' => $transactionId,
-                        // id = 0 ang voucher line (walang product sa products table) → NULL
+                        // id = 0 is the voucher line (no product in the products table) → NULL
                         'product_id'     => ((int) $item['id']) ?: null,
                         'product_name'   => trim($item['name']),
                         'price'          => $price,
@@ -569,10 +583,10 @@ class PosController extends Controller
                         'subtotal'       => $price * $qty,
                     ]);
 
-                    // Bawas stock ng products na naka-tag sa mga category
-                    // na is_stock_tracked = 1 sa categories table.
-                    // Zone/category-agnostic na — awtomatikong susunod ang
-                    // bagong categories na idadagdag mula sa Inventory.
+                    // Deduct stock for products in categories where
+                    // is_stock_tracked = 1 in the categories table.
+                    // Zone/category-agnostic: new categories added from
+                    // Inventory are picked up automatically.
                     DB::table('products')
                         ->where('product_id', (int) $item['id'])
                         ->whereIn('category_id', function ($q) {
@@ -583,7 +597,7 @@ class PosController extends Controller
                         ->decrement('stock', $qty);
                 }
 
-                // I-mark na ang voucher bilang redeemed (booking status = done)
+                // Mark the voucher as redeemed (booking status = done)
                 if ($voucherBooking) {
                     DB::table('bookings')
                         ->where('id', $voucherBooking->id)
@@ -599,7 +613,7 @@ class PosController extends Controller
                 return $transactionId;
             });
         } catch (\Throwable $e) {
-            // LOG: pumalya ang pag-save ng transaction (hal. double-redeem ng voucher)
+            // LOG: saving the transaction failed (e.g. voucher double-redeem)
             $this->audit(
                 'transaction_failed',
                 'Failed to save transaction' . ($voucherCode ? " (voucher {$voucherCode})" : ''),
@@ -617,7 +631,7 @@ class PosController extends Controller
             ], 500);
         }
 
-        // LOG: voucher na-redeem (dating status → bagong status)
+        // LOG: voucher redeemed (old status → new status)
         $invoiceRef = 'Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT);
 
         if ($voucherBooking) {
@@ -636,9 +650,9 @@ class PosController extends Controller
             );
         }
 
-        // LOG: discount (hindi kasama ang voucher, laging 0 ang discount doon).
-        // Hiwalay ang manual discount (cashier ang nag-type) at PWD/Senior.
-        // PWD/Senior type lang ang nilalagay, hindi ang pangalan o ID number.
+        // LOG: discounts (vouchers excluded, their discount is always 0).
+        // Manual discount (typed by the cashier) and PWD/Senior are logged separately.
+        // Only the PWD/Senior type is logged, never the name or ID number.
         if ($discount > 0) {
             $manual   = round((float) ($data['manual_discount']  ?? 0), 2);
             $special  = round((float) ($data['special_discount'] ?? 0), 2);
@@ -648,7 +662,7 @@ class PosController extends Controller
             $pct      = ($gross > 0 && $manual > 0) ? round(($manual / $gross) * 100, 2) : 0;
             $maxPct   = (float) config('system_log.pos_discount_anomaly_percent', 25);
 
-            // Hindi tugma ang breakdown sa kabuuang discount = posibleng pinakialaman ang request
+            // Breakdown doesn't match the total discount = the request may have been tampered with
             $mismatch = abs(($manual + $special) - $discount) > 0.05;
 
             $flags = [];
@@ -657,8 +671,8 @@ class PosController extends Controller
             $flagText = $flags ? ' — ' . implode(', ', $flags) : '';
 
             if ($manual > 0) {
-                // Manual discount: cashier ang nag-type ng halaga.
-                // Itinatala kung may active na manager override (verifyManager) nang gawin ito.
+                // Manual discount: the cashier typed the amount.
+                // Records whether a manager override (verifyManager) was active at the time.
                 $overrideBy   = $this->activeOverrideName();
                 $overrideText = $overrideBy ? " (manager override: {$overrideBy})" : '';
 
@@ -685,7 +699,7 @@ class PosController extends Controller
             }
 
             if ($special > 0) {
-                // PWD/Senior: type lang, hindi ang pangalan o ID number
+                // PWD/Senior: type only, never the name or ID number
                 $this->audit(
                     'pwd_senior_discount',
                     ($specType ?: 'PWD/Senior') . " discount of ₱" . number_format($special, 2) . " on {$invoiceRef}"
@@ -702,7 +716,7 @@ class PosController extends Controller
             }
 
             if ($manual <= 0 && $special <= 0) {
-                // May discount pero walang breakdown: luma ang JS sa browser, o pinakialaman ang request
+                // Discount without a breakdown: the browser JS is outdated, or the request was tampered with
                 $this->audit(
                     'discount_applied',
                     "Discount of ₱" . number_format($discount, 2) . " on {$invoiceRef} — no breakdown received",
@@ -743,9 +757,33 @@ class PosController extends Controller
             return response()->json(['success' => false, 'message' => 'Invoice #' . $invoice . ' not found.']);
         }
 
-        // LOG: reprint ng receipt. Ang void flow ay gumagamit din ng lookup na ito,
-        // kaya skip kapag ?purpose=void.
-        if ($request->query('purpose') !== 'void') {
+        // The void flow also uses this lookup (?purpose=void).
+        $isVoidLookup = $request->query('purpose') === 'void';
+
+        // Void lookup: not allowed once the invoice is included in a printed
+        // sales report (cut-off). Only present sales can be voided.
+        if ($isVoidLookup && !empty($txn->cutoff_id)) {
+            $this->audit(
+                'void_blocked',
+                'Blocked void attempt on Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT)
+                    . ' — already included in a printed sales report',
+                'warning',
+                ['transaction_id' => $transactionId, 'cutoff_id' => (int) $txn->cutoff_id, 'stage' => 'lookup'],
+                true
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'This invoice is already included in a printed sales report and can no longer be voided.',
+            ]);
+        }
+
+        if ($isVoidLookup && $txn->transaction_status === 'Voided') {
+            return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
+        }
+
+        // LOG: receipt reprint. Skipped for void lookups.
+        if (!$isVoidLookup) {
             $this->logReprint($txn);
         }
 
@@ -784,8 +822,8 @@ class PosController extends Controller
     }
 
     // ================= ONLINE BOOKING VOUCHER LOOKUP =================
-    // Hinahanap ng POS ang booking gamit ang voucher code at ibinabalik
-    // kung ano ang inavail (service/package/pax) at magkano.
+    // The POS looks up a booking by voucher code and returns what was
+    // availed (service/package/pax) and how much it costs.
     public function lookupVoucher(Request $request)
     {
         if (!session()->has('user_id')) {
@@ -804,7 +842,7 @@ class PosController extends Controller
             ->first();
 
         if (!$b) {
-            // LOG: hindi nahanap na voucher code sa lookup (posibleng paghula ng code)
+            // LOG: voucher code not found on lookup (possible code guessing)
             $this->audit(
                 'voucher_invalid',
                 'Voucher code not found on lookup: ' . mb_substr($code, 0, 30),
@@ -815,7 +853,7 @@ class PosController extends Controller
             return response()->json(['success' => false, 'message' => 'Voucher code not found.']);
         }
         if ($b->status === 'done') {
-            // LOG: sinubukang gamitin ulit ang na-redeem na voucher
+            // LOG: tried to use an already-redeemed voucher again
             $this->audit(
                 'voucher_invalid',
                 "Attempted lookup of already-redeemed voucher {$code}",
@@ -853,7 +891,7 @@ class PosController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        // FIX: total_amount ang tamang column sa sales_transactions (hindi "total")
+        // total_amount is the correct column in sales_transactions (not "total")
         $cashSales = DB::table('sales_transactions')
             ->whereDate('created_at', $date)
             ->where('payment_method', 'cash')
@@ -896,7 +934,7 @@ class PosController extends Controller
             'updated_at' => now(),
         ]);
 
-        // LOG: pera na pumasok o lumabas sa drawer
+        // LOG: cash going into or out of the drawer
         $this->audit(
             'cash_movement',
             ($request->type === 'in' ? 'Cash in' : 'Cash out') . ' of ₱' . number_format((float) $request->amount, 2),
@@ -912,10 +950,9 @@ class PosController extends Controller
     }
 
     // ================= SHARED NOTIFICATION HELPER ================
-    // Parehong pattern gaya ng InventoryController::notify() — naka
-    // try/catch para hindi ito makasira sa pangunahing action kahit
-    // mag-fail ang broadcast. $message ay pwedeng multi-line (\n).
-    private function notify(string $title, string $message, ?string $url = null, string $type ='pos')
+    // Same pattern as InventoryController::notify(). Wrapped in try/catch so a
+    // broadcast failure never breaks the main action. $message may be multi-line (\n).
+    private function notify(string $title, string $message, ?string $url = null, string $type = 'pos')
     {
         try {
             $notif = \App\Models\Notification::create([
@@ -930,12 +967,12 @@ class PosController extends Controller
         }
     }
 
-    // ================= SALES REPORT HELPER =================
+    // ================= SALES REPORT HELPERS =================
     private function getItemsByTransaction(\Illuminate\Support\Collection $transactionIds)
     {
-        // Naka-leftJoin (hindi join) papunta sa products/categories para
-        // hindi mawala sa report yung mga item kahit na-delete na yung
-        // product o category nila — mapupunta na lang sa "Other" zone.
+        // Uses leftJoin (not join) to products/categories so items still appear
+        // in the report even if their product or category was deleted; they
+        // fall into the "Other" zone.
         return DB::table('transaction_items as ti')
             ->leftJoin('products as p', 'p.product_id', '=', 'ti.product_id')
             ->leftJoin('categories as c', 'c.category_id', '=', 'p.category_id')
@@ -958,12 +995,34 @@ class PosController extends Controller
             })->toArray();
     }
 
+    // Item-level voids only. Old "Full Txn Void" rows are excluded because a
+    // full-transaction void is now counted as a voided transaction instead
+    // (otherwise it would be counted twice).
+    // $cutoffId = null → present report (not yet cut off); otherwise that cut-off.
+    private function getVoidedItems(?int $cutoffId = null)
+    {
+        $q = DB::table('voided_items')->where('item_name', 'not like', '%(Full Txn Void%');
+
+        return $cutoffId === null
+            ? $q->whereNull('cutoff_id')->get()
+            : $q->where('cutoff_id', $cutoffId)->get();
+    }
+
+    // Fully voided transactions (for the present report or a specific cut-off).
+    private function getVoidedTransactions(?int $cutoffId = null)
+    {
+        $q = DB::table('sales_transactions')->where('transaction_status', 'Voided');
+
+        return $cutoffId === null
+            ? $q->whereNull('cutoff_id')->get()
+            : $q->where('cutoff_id', $cutoffId)->get();
+    }
+
     // ================= VOUCHER REDEMPTION SUMMARY =================
-    // Kinukuha dito kung ilang booking/voucher ang na-redeem sa mga
-    // transaction na kasama sa report, at kung anong item ang inavail.
-    // Base sa bookings.redeemed_transaction_id (hindi sa payment_method),
-    // para tama ang bilang kahit paano pa i-configure ang payment methods
-    // sa hinaharap.
+    // Counts how many bookings/vouchers were redeemed in the transactions
+    // included in the report, and which item was availed. Based on
+    // bookings.redeemed_transaction_id (not payment_method), so the count stays
+    // correct however payment methods are configured in the future.
     private function getVoucherRedemptions(\Illuminate\Support\Collection $transactionIds)
     {
         $bookings = DB::table('bookings')
@@ -1006,19 +1065,18 @@ class PosController extends Controller
         $overallPayments = ['cash' => 0, 'card' => 0, 'gcash' => 0, 'maya' => 0, 'stardeals' => 0, 'klook' => 0, 'online' => 0];
         $byCashier = [];
 
-        // Dapat kapareho ng CATEGORIES_SNACKBAR sa pos.js — kung
-        // magdadagdag ng bagong snackbar category doon, idagdag din dito.
+        // Must match CATEGORIES_SNACKBAR in pos.js. If a new snackbar category
+        // is added there, add it here too.
         $snackbarCategories = ['sweets', 'beverages', 'snacks', 'noodles', 'icecream'];
 
-        // Fixed order/labels para laging consistent ang pagkakasunod-sunod
-        // ng mga zone sa report kahit walang benta sa isa (mafi-filter out
-        // na lang mamaya kung walang laman).
+        // Fixed order/labels so zones always appear in a consistent order in the
+        // report, even if one has no sales (empty ones are filtered out later).
         $byZone = [
-            'roller fever'   => ['zone_label' => 'Roller Fever',   'items' => [], 'total_sales' => 0],
-            'snackbar'       => ['zone_label' => 'Snackbar',       'items' => [], 'total_sales' => 0],
-            'field of rides' => ['zone_label' => 'Field of Rides', 'items' => [], 'total_sales' => 0],
-            'dino adventure' => ['zone_label' => 'Dino Adventure', 'items' => [], 'total_sales' => 0],
-        ];
+        'skataya'      => ['zone_label' => 'Skataya',      'items' => [], 'total_sales' => 0],
+        'snackbar'     => ['zone_label' => 'Snackbar',     'items' => [], 'total_sales' => 0],
+        'piyestarides' => ['zone_label' => 'Piyestarides', 'items' => [], 'total_sales' => 0],
+        'dinolakbay'   => ['zone_label' => 'Dinolakbay',   'items' => [], 'total_sales' => 0],
+    ];
 
         foreach ($transactions as $t) {
             $items = $itemsByTxn[$t->transaction_id] ?? [];
@@ -1044,11 +1102,11 @@ class PosController extends Controller
                 $rawZone  = $it['zone'] ?? 'other';
                 $category = $it['category'] ?? '';
 
-                // Roller Fever zone -> hatiin pa: Snackbar categories vs.
+                // Roller Fever zone → split further: Snackbar categories vs.
                 // skates/rides/rentals/billiards/massage/socks
-                $zoneKey = ($rawZone === 'roller fever' && in_array($category, $snackbarCategories))
-                    ? 'snackbar'
-                    : $rawZone;
+                $zoneKey = ($rawZone === 'skataya' && in_array($category, $snackbarCategories))
+                ? 'snackbar'
+                : $rawZone;
 
                 if (!isset($overallItems[$name])) $overallItems[$name] = ['name' => $name, 'qty' => 0, 'total' => 0];
                 $overallItems[$name]['qty'] += $qty;
@@ -1060,7 +1118,7 @@ class PosController extends Controller
                 $byCashier[$cashierName]['items'][$name]['qty'] += $qty;
                 $byCashier[$cashierName]['items'][$name]['total'] += $line;
 
-                // === ZONE BREAKDOWN (kasama na ang Snackbar) ===
+                // === ZONE BREAKDOWN (Snackbar included) ===
                 if (!isset($byZone[$zoneKey])) {
                     $byZone[$zoneKey] = ['zone_label' => ucwords($zoneKey), 'items' => [], 'total_sales' => 0];
                 }
@@ -1070,7 +1128,7 @@ class PosController extends Controller
                 $byZone[$zoneKey]['items'][$name]['qty'] += $qty;
                 $byZone[$zoneKey]['items'][$name]['total'] += $line;
                 $byZone[$zoneKey]['total_sales'] += $line;
-                // =================================================
+                // ==========================================
             }
 
             $overallTotal += $t->total_amount;
@@ -1121,9 +1179,10 @@ class PosController extends Controller
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
-        $voidedItems = DB::table('voided_items')->whereNull('cutoff_id')->get();
+        $voidedItems = $this->getVoidedItems();
+        $voidedTxns  = $this->getVoidedTransactions();
 
-        if ($transactions->isEmpty() && $voidedItems->isEmpty()) {
+        if ($transactions->isEmpty() && $voidedItems->isEmpty() && $voidedTxns->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'No new transactions have been made yet.']);
         }
 
@@ -1139,18 +1198,27 @@ class PosController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Close everything: completed AND voided transactions, plus item-level voids.
+        // After this, these transactions can no longer be voided.
         DB::table('sales_transactions')
             ->whereIn('transaction_id', $transactions->pluck('transaction_id'))
+            ->update(['cutoff_id' => $cutoffId]);
+
+        DB::table('sales_transactions')
+            ->whereIn('transaction_id', $voidedTxns->pluck('transaction_id'))
             ->update(['cutoff_id' => $cutoffId]);
 
         DB::table('voided_items')
             ->whereIn('id', $voidedItems->pluck('id'))
             ->update(['cutoff_id' => $cutoffId]);
 
+        $voidedTxnCount = $voidedTxns->count();
+        $voidedTxnTotal = (float) $voidedTxns->sum('total_amount');
+
         $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
         $report = $this->buildSalesReport($transactions, $itemsByTxn);
 
-        // LOG: cut-off / sales report (isinasara nito ang araw, kaya mahalaga)
+        // LOG: cut-off / sales report (this closes the day, so it matters)
         $this->audit(
             'sales_cutoff_created',
             "Generated cut-off #{$cutoffNumber}: " . $transactions->count() . ' transaction(s), ₱'
@@ -1164,7 +1232,9 @@ class PosController extends Controller
                 'total_discount'     => (float) $report['overall']['total_discount'],
                 'void_count'         => $voidedItems->count(),
                 'void_total'         => (float) $voidedItems->sum('amount'),
-                'authorized_by'      => $authorizedBy, // galing sa browser, hindi bine-verify dito
+                'voided_txn_count'   => $voidedTxnCount,
+                'voided_txn_total'   => $voidedTxnTotal,
+                'authorized_by'      => $authorizedBy, // comes from the browser, not verified here
             ]
         );
 
@@ -1181,6 +1251,7 @@ class PosController extends Controller
             "Total Discount: ₱" . number_format($report['overall']['total_discount'], 2),
             "Vouchers Redeemed: " . $report['vouchers']['count'] . " (₱" . number_format($report['vouchers']['total'], 2) . ")",
             "Voided Items: " . $voidedItems->count() . " (₱" . number_format($voidedItems->sum('amount'), 2) . ")",
+            "Voided Transactions: {$voidedTxnCount} (₱" . number_format($voidedTxnTotal, 2) . ")",
         ];
         $this->notify(
             'Sales Report Printed',
@@ -1195,6 +1266,8 @@ class PosController extends Controller
             'authorized_by' => $authorizedBy,
             'void_count' => $voidedItems->count(),
             'void_total' => $voidedItems->sum('amount'),
+            'voided_txn_count' => $voidedTxnCount,
+            'voided_txn_total' => $voidedTxnTotal,
             'report' => $report,
         ]);
     }
@@ -1208,9 +1281,10 @@ class PosController extends Controller
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
-        $voidedItems = DB::table('voided_items')->whereNull('cutoff_id')->get();
+        $voidedItems = $this->getVoidedItems();
+        $voidedTxns  = $this->getVoidedTransactions();
 
-        if ($transactions->isEmpty() && $voidedItems->isEmpty()) {
+        if ($transactions->isEmpty() && $voidedItems->isEmpty() && $voidedTxns->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'No sales have been recorded today yet.']);
         }
 
@@ -1220,6 +1294,8 @@ class PosController extends Controller
             'success' => true,
             'void_count' => $voidedItems->count(),
             'void_total' => $voidedItems->sum('amount'),
+            'voided_txn_count' => $voidedTxns->count(),
+            'voided_txn_total' => (float) $voidedTxns->sum('total_amount'),
             'report' => $this->buildSalesReport($transactions, $itemsByTxn),
         ]);
     }
@@ -1244,7 +1320,8 @@ class PosController extends Controller
             ->select('t.*', 'u.fullname as cashier_name')
             ->get();
 
-        $voidedItems = DB::table('voided_items')->where('cutoff_id', $id)->get();
+        $voidedItems = $this->getVoidedItems($id);
+        $voidedTxns  = $this->getVoidedTransactions($id);
 
         $itemsByTxn = $this->getItemsByTransaction($transactions->pluck('transaction_id'));
 
@@ -1255,6 +1332,8 @@ class PosController extends Controller
             'authorized_by' => $cutoff->performed_by_name,
             'void_count' => $voidedItems->count(),
             'void_total' => $voidedItems->sum('amount'),
+            'voided_txn_count' => $voidedTxns->count(),
+            'voided_txn_total' => (float) $voidedTxns->sum('total_amount'),
             'report' => $this->buildSalesReport($transactions, $itemsByTxn),
         ]);
     }
@@ -1308,6 +1387,7 @@ class PosController extends Controller
         ]);
 
         $transactionId = (int) $data['invoice_number'];
+        $invoiceRef    = 'Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT);
 
         $txn = DB::table('sales_transactions')->where('transaction_id', $transactionId)->first();
 
@@ -1319,8 +1399,29 @@ class PosController extends Controller
             return response()->json(['success' => false, 'message' => 'This transaction is already voided.']);
         }
 
-        // Kunin muna ang items BAGO tayo mag-void, gagamitin natin ito
-        // para sa "voided receipt" na ipapakita pagkatapos.
+        // NOT ALLOWED: the invoice is already in a printed sales report (cut-off),
+        // so it is "past" sales. Only present sales (no cut-off yet) can be voided.
+        if (!empty($txn->cutoff_id)) {
+            $this->audit(
+                'void_blocked',
+                "Blocked void attempt on {$invoiceRef} — already included in a printed sales report",
+                'warning',
+                [
+                    'transaction_id' => $transactionId,
+                    'cutoff_id'      => (int) $txn->cutoff_id,
+                    'authorized_by'  => $data['authorized_by'],
+                    'stage'          => 'void',
+                ],
+                true
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'This invoice is already included in a printed sales report and can no longer be voided.',
+            ]);
+        }
+
+        // Get the items BEFORE voiding; they are used for the "voided receipt".
         $items = DB::table('transaction_items')
             ->where('transaction_id', $transactionId)
             ->get()
@@ -1330,15 +1431,29 @@ class PosController extends Controller
                 'qty'   => (int)   $i->quantity,
             ])->toArray();
 
-        // Para sa log: alamin BAGO mag-void kung may voucher na ibabalik
+        // For the log: find out BEFORE voiding whether a voucher will be restored
         $linkedVoucher = DB::table('bookings')
             ->where('redeemed_transaction_id', $transactionId)
             ->first();
 
         try {
-            DB::transaction(function () use ($transactionId, $data, $txn) {
-                // I-mark bilang Voided — hindi natin dini-delete ang record para
-                // sa audit trail (BIR-compliant, dapat traceable lahat ng void).
+            DB::transaction(function () use ($transactionId, $data) {
+                // Re-check under a lock: if a cut-off or another void happens at
+                // the same moment, this cannot slip through.
+                $locked = DB::table('sales_transactions')
+                    ->where('transaction_id', $transactionId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$locked || $locked->transaction_status === 'Voided') {
+                    throw new \RuntimeException('This transaction is already voided.');
+                }
+                if (!empty($locked->cutoff_id)) {
+                    throw new \RuntimeException('This invoice is already included in a printed sales report and can no longer be voided.');
+                }
+
+                // Mark as Voided. The record is not deleted, for the audit trail
+                // (BIR-compliant: every void must be traceable).
                 DB::table('sales_transactions')
                     ->where('transaction_id', $transactionId)
                     ->update([
@@ -1348,8 +1463,8 @@ class PosController extends Controller
                         'voided_at'          => now(),
                     ]);
 
-                // Kung online-booking voucher ang transaction na ito, ibalik
-                // ang voucher sa "confirmed" para magamit ulit ng customer.
+                // If this was an online-booking voucher, restore it to
+                // "confirmed" so the customer can use it again.
                 DB::table('bookings')
                     ->where('redeemed_transaction_id', $transactionId)
                     ->update([
@@ -1360,12 +1475,11 @@ class PosController extends Controller
                         'updated_at'              => now(),
                     ]);
 
-                // I-restore ang stock ng mga tracked items na na-deduct noong
-                // orihinal na checkout.
-                $items = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
+                // Restore the stock of tracked items that was deducted at checkout.
+                $rows = DB::table('transaction_items')->where('transaction_id', $transactionId)->get();
 
-                foreach ($items as $item) {
-                    if (!$item->product_id) continue; // voucher line, walang product/stock
+                foreach ($rows as $item) {
+                    if (!$item->product_id) continue; // voucher line, no product/stock
 
                     DB::table('products')
                         ->where('product_id', $item->product_id)
@@ -1376,45 +1490,31 @@ class PosController extends Controller
                         ->increment('stock', $item->quantity);
                 }
 
-                // I-log din sa voided_items para consistent sa existing void-log
-                // pattern mo (item-level void kanina), pero naka-tag na
-                // "Full Transaction Void" ito.
-                foreach ($items as $item) {
-                    DB::table('voided_items')->insert([
-                        'item_name'     => $item->product_name . ' (Full Txn Void — Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT) . ')',
-                        'price'         => $item->price,
-                        'qty'           => $item->quantity,
-                        'amount'        => $item->subtotal,
-                        'cashier_name'  => session('username') ?? session('fullname'),
-                        'authorized_by' => $data['authorized_by'],
-                        'created_at'    => now(),
-                        'updated_at'    => now(),
-                    ]);
-                }
+                // NOTE: items are intentionally NOT written to voided_items anymore.
+                // A full-transaction void is counted under "Voided Transaction(s)"
+                // in the report; writing the items here too would double-count them
+                // under "Voided Item(s)".
             });
         } catch (\Throwable $e) {
-            // LOG: pumalya ang void
+            // LOG: the void failed
             $this->audit(
                 'void_failed',
-                'Failed to void Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT),
+                "Failed to void {$invoiceRef}",
                 'warning',
                 ['transaction_id' => $transactionId, 'error' => mb_substr($e->getMessage(), 0, 200)]
             );
 
-            return response()->json(['success' => false, 'message' => 'Failed to void: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        // LOG: na-void ang buong transaction.
-        // Anomaly kapag luma, cut-off na, o hindi na-verify ang manager.
-        $invoiceRef  = 'Inv #' . str_pad($transactionId, 11, '0', STR_PAD_LEFT);
-        $sameDay     = \Illuminate\Support\Carbon::parse($txn->created_at)->isToday();
-        $afterCutoff = !empty($txn->cutoff_id);
-        $verified    = $this->overrideMatches($data['authorized_by']);
+        // LOG: the whole transaction was voided.
+        // Anomaly when it is from a different day or the manager was not verified.
+        $sameDay  = \Illuminate\Support\Carbon::parse($txn->created_at)->isToday();
+        $verified = $this->overrideMatches($data['authorized_by']);
 
         $voidFlags = [];
-        if (!$sameDay)    { $voidFlags[] = 'from a different day'; }
-        if ($afterCutoff) { $voidFlags[] = 'already cut off'; }
-        if (!$verified)   { $voidFlags[] = 'manager override not verified'; }
+        if (!$sameDay)  { $voidFlags[] = 'from a different day'; }
+        if (!$verified) { $voidFlags[] = 'manager override not verified'; }
 
         $this->audit(
             'transaction_voided',
@@ -1444,8 +1544,8 @@ class PosController extends Controller
             url('/pos')
         );
 
-        // I-balik ang buong details ng na-void na transaction para
-        // maipakita sa "Voided Receipt" sa frontend.
+        // Return the full details of the voided transaction so the frontend
+        // can show the "Voided Receipt".
         return response()->json([
             'success' => true,
             'message' => 'Transaction voided successfully.',
