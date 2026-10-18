@@ -164,7 +164,7 @@
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Salary and Deductions &middot; {{ $periodStart->format('M j') }}&ndash;{{ $periodEnd->format('M j, Y') }}@if ($area) &middot; {{ $area }}@endif</div>
-            <h2>Salary and Deductions</h2>
+ <h2 style="font-family: Arial, Helvetica, sans-serif">Salary and Deductions</h2>
         </div>
     </div>
 

@@ -281,7 +281,7 @@
     <div class="toolbar no-print">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Bio Attendance</div>
-            <h2>Bio Attendance Sheet</h2>
+            <h2 style="font-family: Arial, Helvetica, sans-serif">Bio Attendance Sheet</h2>
         </div>
 
         <div class="toolbar-actions">

@@ -403,7 +403,7 @@
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Customer Management</div>
-            <h2>Reservation and Bookings</h2>
+            <h2 style="font-family: Arial, Helvetica, sans-serif">Reservations</h2>
             <p class="sub">Upcoming reservations and schedules</p>
         </div>
         <div class="toolbar-actions">

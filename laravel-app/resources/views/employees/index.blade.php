@@ -57,7 +57,7 @@
     <div class="toolbar no-print">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Employee Records</div>
-            <h2>Employee Management</h2>
+            <h2 style="font-family: Arial, Helvetica, sans-serif">Employee Management</h2>
             <p class="sub">Manage your team's records, categories, and status.</p>
         </div>
 
