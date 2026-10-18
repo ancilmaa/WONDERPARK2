@@ -82,6 +82,13 @@
                     </div>
 
                     <div class="field">
+                        <label for="address">Address</label>
+                        <input id="address" type="text" name="address" value="{{ old('address') }}"
+                            placeholder="e.g. 123 Rizal St., Brgy. Sabang, Lipa City" required
+                            autocomplete="street-address">
+                    </div>
+
+                    <div class="field">
                         <label for="password">Password</label>
                         <input id="password" type="password" name="password" required autocomplete="new-password">
                     </div>
@@ -111,7 +118,7 @@
 
     </div>
 
-           @include('partials.legal-modals')
+    @include('partials.legal-modals')
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

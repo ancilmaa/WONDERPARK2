@@ -236,6 +236,9 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
     Route::get('/customer', [VisitorSummaryController::class, 'index'])->name('visitor-summary');
     Route::get('/analytics/live-count', [VisitorSummaryController::class, 'liveCount'])->name('analytics.live-count');
 
+    // AI Promo Generator (FIX: nasa loob na ng auth + role group; dati nasa pinakataas na walang proteksyon)
+    Route::post('/ai/promo-suggest', [PromoAiController::class, 'suggest'])->name('ai.promo-suggest');
+
     // Analytics / ML Forecast
     Route::get('/analytics', [AnalyticsController::class, 'index']);
     // (duplicate unnamed /ml-forecast route removed; the named one below is the one that was already active)
