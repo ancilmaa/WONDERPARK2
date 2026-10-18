@@ -1,6 +1,6 @@
 @extends('layouts.sidebar')
 
-@section('title', 'Website CMS')
+@section('title', 'Website Content Management System')
 
 @section('styles')
 <style>
@@ -686,7 +686,7 @@
 @section('content')
     <div class="cms-topbar">
         <div>
-            <h1>Website CMS</h1>
+            <h1>Website Content Management System</h1>
         </div>
         <div class="cms-topbar-actions">
             <a href="{{ url('/') }}" target="_blank" class="cms-btn-ghost">
@@ -737,15 +737,6 @@
                         <p>Headline, description, price teaser, background video</p>
                     </div>
                     <a href="{{ route('cms.section.edit', 'hero') }}" class="cms-content-edit">Edit</a>
-                </div>
-
-                <div class="cms-content-row">
-                    <div class="cms-content-icon"><i class="fa-solid fa-calendar-days"></i></div>
-                    <div class="cms-content-body">
-                        <h3>Plan Your Day</h3>
-                        <p>The "full day out" split section</p>
-                    </div>
-                    <a href="{{ route('cms.section.edit', 'split') }}" class="cms-content-edit">Edit</a>
                 </div>
 
                 <div class="cms-content-row">

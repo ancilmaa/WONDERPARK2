@@ -604,7 +604,7 @@
                 Lipa Branch &middot; Website Management
                 @if ($hubIndex) &middot; Live Hub #{{ $hubIndex }} @endif
             </div>
-            <h1>{{ $label }} Cards</h1>
+            <h1 style="font-family: Arial, Helvetica, sans-serif">{{ $label }} Cards</h1>
             <p class="toolbar-desc">Manage dynamic pricing cards, tier perks, promotional badges, and visual assets displayed on the public landing page.</p>
         </div>
         <div class="toolbar-actions">

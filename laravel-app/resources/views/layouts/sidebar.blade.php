@@ -1586,7 +1586,6 @@
                 <div class="mark"><img src="{{ asset('images/pistavora-mark.svg') }}" alt="Pistavora"></div>
                 <div class="brand-text">
                     <span class="brand-name">PISTAVORA</span>
-                    <span class="brand-name">Pistavora</span>
                     <span class="brand-sub">Lipa Branch &middot; Operations</span>
                 </div>
                 @if ($canViewNotifications)
@@ -1776,9 +1775,6 @@
                                     <a href="{{ route('cms.cards', 'step') }}" class="{{ request()->is('admin/cms/cards/step*') ? 'active' : '' }}">
                                         <i class="fa-solid fa-shoe-prints"></i> <span>Visitor Guide</span>
                                     </a>
-                                    <a href="{{ route('cms.section.edit', 'split') }}" class="{{ request()->is('admin/cms/section/split') ? 'active' : '' }}">
-                                        <i class="fa-solid fa-calendar-days"></i> <span>Planning Visit</span>
-                                    </a>
                                     <a href="{{ route('cms.section.edit', 'contact') }}" class="{{ request()->is('admin/cms/section/contact') ? 'active' : '' }}">
                                         <i class="fa-solid fa-location-dot"></i> <span>Contact Info</span>
                                     </a>
@@ -1814,14 +1810,11 @@
                                 <div class="nav-submenu {{ $submenuOpen ? 'open' : '' }}" id="forecastSubmenu">
                                     <a href="/fieldOfRides" class="{{ request()->is('fieldOfRides') ? 'active' : '' }}">
                                         <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
-                                        <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
                                     </a>
                                     <a href="/RollerFever" class="{{ request()->is('RollerFever') ? 'active' : '' }}">
                                         <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
-                                        <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
                                     </a>
                                     <a href="/DinoAdventure" class="{{ request()->is('DinoAdventure') ? 'active' : '' }}">
-                                        <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                                         <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                                     </a>
                                 </div>

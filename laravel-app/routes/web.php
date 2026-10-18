@@ -26,6 +26,7 @@ use App\Http\Controllers\EmailLoginController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Admin\MyAccountController;
 use App\Http\Controllers\Admin\SystemLogController;
+use App\Http\Controllers\PromoAiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -194,6 +195,8 @@ Route::middleware(['auth.session', 'role:cashier,tl,manager,admin'])->group(func
     Route::get('/pos/historical-cutoffs', [PosController::class, 'historicalCutoffs']);
     Route::get('/pos/cutoff/{id}', [PosController::class, 'cutoffDetail']);
     Route::get('/pos/cutoff-status', [PosController::class, 'cutoffStatus']);
+
+     Route::post('/ai/promo-suggest', [PromoAiController::class, 'suggest'])->name('ai.promo-suggest');
 
     // Notifications (fixed URLs must come before {notification})
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

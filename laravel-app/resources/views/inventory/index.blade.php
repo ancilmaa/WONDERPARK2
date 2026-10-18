@@ -221,7 +221,7 @@
   <div class="toolbar no-print">
     <div>
       <div class="eyebrow">Lipa Branch &middot; Inventory</div>
-      <h2>Inventory Management</h2>
+      <h2 style="font-family: Arial, Helvetica, sans-serif">Inventory Management</h2>
     </div>
 
     <div class="toolbar-actions">

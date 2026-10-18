@@ -5,5 +5,6 @@
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,
-  "html.validate.styles": false
+  "html.validate.styles": false,
+  "intelephense.diagnostics.enable": false
 }
