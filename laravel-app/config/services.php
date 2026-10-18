@@ -51,7 +51,7 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
-    // Used by the AI Promo Assistant (visitor login & booking summary page)
+    // Used by the AI Promo Generator (PromoAiController) on the visitor login & booking summary page
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),

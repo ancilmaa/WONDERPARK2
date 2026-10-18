@@ -4,6 +4,7 @@
 
 @section('styles')
     @include('partials.ui-theme')
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;700;800&display=swap">
     <style>
         :root {
             --text-sub: var(--ink-soft);
@@ -219,191 +220,180 @@
 
         .empty-row td { text-align: center; color: var(--muted); padding: 28px 16px !important; }
 
-        /* ===== AI PROMO RECOMMENDATIONS ===== */
-        .ai-panel { position: relative; overflow: hidden; }
-        .ai-panel::before {
-            content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; z-index: 1;
-            background: linear-gradient(90deg, var(--pink-deep), var(--pink), var(--pink-deep));
-            background-size: 200% 100%;
-            animation: aiFlow 4s linear infinite;
+        /* ===== PROMO GENERATOR (carnival style) ===== */
+        .table-box.res-box.ai-panel {
+            --f-bg: #FFF1F7; --f-bg2: #E8E0FF; --f-ink: #2A1650; --f-muted: #6E5A94;
+            --f-pink: #FF3D81; --f-yellow: #FFC914; --f-cyan: #12C4D6;
+            position: relative; overflow: hidden;
+            background: radial-gradient(circle at 15% 0, var(--f-bg2), var(--f-bg) 65%);
+            border: 2px solid var(--f-ink); border-radius: 16px;
+            box-shadow: 3px 3px 0 var(--f-ink);
+            margin: 0 4px 20px 0;
+            font-family: "Nunito", system-ui, sans-serif; font-weight: 700; color: var(--f-ink);
         }
-        @keyframes aiFlow { to { background-position: -200% 0; } }
 
-        .ai-head {
-            background: linear-gradient(135deg, var(--pink-pale) 0%, #fff 100%);
-            border-bottom-color: var(--pink-light);
-            padding-top: 20px;
+        /* header with marquee bulbs + mascot */
+        .ai-head { background: none; border-bottom: 0; padding: 12px 16px 18px; position: relative; }
+        .ai-head::after {
+            content: ""; position: absolute; left: 16px; right: 16px; bottom: 4px; height: 8px;
+            background: radial-gradient(circle, var(--f-yellow) 2.5px, transparent 3.5px) 0 0 / 18px 8px repeat-x;
+            animation: fBulbs 1.2s steps(2) infinite;
         }
-        .ai-head-title { display: flex; align-items: center; gap: 12px; }
-        .ai-orb {
-            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-            color: #fff; font-size: 16px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 0 4px var(--pink-light);
-            animation: aiPulse 2.6s ease-in-out infinite;
+        @keyframes fBulbs { 50% { filter: hue-rotate(150deg) brightness(1.15); } }
+        .ai-head-title { display: flex; align-items: center; gap: 10px; }
+        .fun-mascot {
+            width: 34px; height: 34px; border-radius: 50%; flex: none; position: relative;
+            background: var(--f-yellow); border: 2px solid var(--f-ink); transition: transform .2s;
         }
-        @keyframes aiPulse {
-            0%, 100% { box-shadow: 0 0 0 4px var(--pink-light); }
-            50%      { box-shadow: 0 0 0 9px transparent; }
+        .fun-mascot:hover { transform: rotate(-12deg) scale(1.1); }
+        .fun-mascot::before, .fun-mascot::after {
+            content: ""; position: absolute; top: 9px; width: 6px; height: 8px; border-radius: 50%;
+            background: var(--f-ink); animation: fBlink 4s infinite;
         }
-        .ai-head h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .fun-mascot::before { left: 7px; } .fun-mascot::after { right: 7px; }
+        .fun-mascot i { position: absolute; left: 9px; right: 9px; bottom: 6px; height: 7px; border-bottom: 2px solid var(--f-ink); border-radius: 0 0 20px 20px; }
+        @keyframes fBlink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+
+        .ai-head h3 {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0;
+            font: 400 18px/1.1 "Bungee", system-ui, sans-serif;
+            color: var(--f-pink); text-shadow: 2px 2px 0 var(--f-cyan);
+        }
+        .ai-head p { margin-top: 3px; font-size: 12px; font-weight: 700; color: var(--f-muted); }
         .ai-chip {
             display: inline-flex; align-items: center; gap: 5px;
-            font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
-            padding: 3px 9px; border-radius: 999px;
-            background: var(--ink); color: #fff;
+            font: 800 10px "Nunito", system-ui, sans-serif; letter-spacing: 0; text-shadow: none;
+            padding: 1px 8px; border-radius: 999px;
+            background: var(--f-cyan); color: var(--f-ink); border: 2px solid var(--f-ink);
         }
-        .ai-chip i { font-size: 9px; color: var(--pink-light); }
-
+        .ai-chip i { color: var(--f-ink); font-size: 10px; }
         .ai-status {
             display: inline-flex; align-items: center; gap: 8px;
-            font-size: 12px; font-weight: 600; color: var(--ink-soft);
-            padding: 6px 14px; border-radius: 999px;
-            background: #fff; border: 1px solid var(--pink-light);
+            font-size: 11.5px; font-weight: 800; color: var(--f-ink);
+            padding: 3px 11px; border-radius: 999px;
+            background: #fff; border: 2px solid var(--f-ink); box-shadow: 2px 2px 0 var(--f-ink);
         }
-        .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--present); animation: aiBlink 1.6s ease-in-out infinite; }
+        .ai-dot { width: 7px; height: 7px; border-radius: 50%; background: #1FBF75; animation: aiBlink 1.6s ease-in-out infinite; }
         @keyframes aiBlink { 50% { opacity: .3; } }
 
-        .ai-summary-strip {
-            display: flex; align-items: flex-start; gap: 10px;
-            padding: 12px 20px; font-size: 13px; line-height: 1.6; color: var(--ink-soft);
-            background: var(--pink-pale); border-bottom: 1px solid var(--pink-light);
-        }
-        .ai-summary-strip > i { color: var(--pink-deep); margin-top: 3px; }
-        .ai-summary-strip strong { color: var(--ink); }
+        .ai-chat { padding: 2px 16px 16px; background: none; }
 
-        .ai-rec-card {
-            position: relative; overflow: hidden;
-            display: flex; gap: 14px;
-            padding: 16px 16px 14px;
-            border-radius: var(--r-lg);
-            background: #fff;
-            border: 1px solid var(--line);
-            margin-bottom: 12px;
-            opacity: 0; transform: translateY(8px);
-            animation: aiReveal .5s ease forwards;
-            animation-delay: calc(var(--i, 0) * .22s + .15s);
+        /* steps */
+        .pg-step { display: flex; align-items: center; gap: 8px; margin: 16px 0 8px; font: 400 13px/1.2 "Bungee", system-ui, sans-serif; color: var(--f-ink); }
+        .pg-step:first-child { margin-top: 0; }
+        .pg-step b {
+            width: 22px; height: 22px; border-radius: 50%; flex: none;
+            background: var(--f-pink); color: #fff; border: 2px solid var(--f-ink);
+            font: 400 11px "Bungee", system-ui, sans-serif;
+            display: inline-flex; align-items: center; justify-content: center;
         }
-        .ai-rec-card::after {
-            content: ""; position: absolute; top: 0; left: -60%; width: 50%; height: 100%;
-            background: linear-gradient(100deg, transparent, var(--pink-light), transparent);
-            opacity: .55; pointer-events: none;
-            animation: aiShimmer 1s ease forwards;
-            animation-delay: calc(var(--i, 0) * .22s + .3s);
-        }
-        .ai-rec-card:last-child { margin-bottom: 0; }
-        @keyframes aiReveal { to { opacity: 1; transform: none; } }
-        @keyframes aiShimmer { from { left: -60%; } to { left: 130%; } }
+        .pg-step small { font: 700 12px "Nunito", system-ui, sans-serif; color: var(--f-muted); }
 
-        .ai-rec-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: var(--r-md);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            flex-shrink: 0;
-        }
-        .ai-rec-main { min-width: 0; flex: 1; }
-        .ai-rec-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-        .ai-rec-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--pink-deep);
-            background: var(--pink-light);
-            padding: 3px 10px;
-            border-radius: 999px;
-        }
-        .ai-rec-tag.is-ai { background: var(--ink); color: #fff; }
-        .ai-rec-tag.is-ai i { color: var(--pink-light); }
-        .ai-rec-body h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
-        .ai-rec-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.55; }
-
-        .ai-why {
-            display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
-            margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line-strong);
-            font-size: 11.5px; color: var(--muted);
-        }
-        .ai-why-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--pink-deep); }
-        .ai-why span b { color: var(--ink); font-weight: 700; }
-
-        .ai-foot {
-            display: flex; align-items: center; gap: 8px;
-            padding: 12px 20px; border-top: 1px solid var(--line);
-            font-size: 11.5px; color: var(--muted);
-        }
-        .ai-foot i { color: var(--pink-deep); }
-
-
-        /* ===== AI CHAT ASSISTANT ===== */
-        .ai-chat { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); background: #fff; }
-        .ai-chat-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
-        .ai-chat-label i { color: var(--pink-deep); }
-        .ai-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .ai-prompt {
+        /* attractions */
+        .pg-parks { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+        .pg-park {
             all: unset; box-sizing: border-box; cursor: pointer;
-            font-size: 12px; font-weight: 600; color: var(--pink-deep);
-            padding: 6px 12px; border-radius: 999px;
-            background: var(--pink-pale); border: 1px solid var(--pink-light); transition: .15s;
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 12px; border-radius: 12px;
+            background: #fff; border: 2px solid var(--f-ink); box-shadow: 2px 2px 0 var(--f-ink);
+            transition: transform .12s, background .12s;
         }
-        .ai-prompt:hover { background: var(--pink-light); }
-        .ai-prompt:focus-visible { box-shadow: 0 0 0 3px var(--pink-light); }
-        .ai-input-row { display: flex; gap: 8px; }
-        .ai-input-row input {
-            flex: 1; min-width: 0; height: 44px; padding: 0 16px;
-            border: 1px solid var(--line-strong); border-radius: 999px;
-            font-size: 13px; color: var(--ink); background: #fff;
+        .pg-park:hover { transform: translateY(-2px); }
+        .pg-park:focus-visible { outline: 3px solid var(--f-cyan); outline-offset: 3px; }
+        .pg-park[aria-pressed="true"] { background: var(--f-yellow); }
+        .pg-park-icon { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--f-ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .pg-park-name { display: block; font: 400 12.5px/1.2 "Bungee", system-ui, sans-serif; color: var(--f-ink); }
+        .pg-park-sub { display: block; font-size: 11px; font-weight: 700; color: var(--f-muted); margin-top: 2px; }
+        .pg-park[aria-pressed="true"] .pg-park-sub { color: var(--f-ink); }
+
+        /* chips */
+        .pg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pg-chip {
+            all: unset; box-sizing: border-box; cursor: pointer;
+            font: 800 12.5px "Nunito", system-ui, sans-serif; color: var(--f-ink);
+            padding: 4px 12px; border-radius: 999px;
+            background: #fff; border: 2px solid var(--f-ink); box-shadow: 2px 2px 0 var(--f-ink);
+            transition: transform .12s, background .12s;
         }
-        .ai-input-row input:focus { outline: none; border-color: var(--pink-deep); box-shadow: 0 0 0 3px var(--pink-light); }
+        .pg-chip:hover { transform: translateY(-2px); }
+        .pg-chip:focus-visible { outline: 3px solid var(--f-cyan); outline-offset: 3px; }
+        .pg-chip[aria-pressed="true"] { background: var(--f-yellow); }
+
+        .pg-field {
+            display: block; width: 100%; max-width: 480px; height: 36px; margin-top: 8px; padding: 0 12px;
+            border: 2px solid var(--f-ink); border-radius: 10px; background: #fff;
+            font: 700 13px "Nunito", system-ui, sans-serif; color: var(--f-ink);
+        }
+        .pg-field::placeholder { color: var(--f-muted); }
+        .pg-field:focus { outline: 3px solid var(--f-cyan); outline-offset: 2px; }
+        .pg-hint { margin: 8px 0 0; font-size: 11.5px; font-weight: 700; color: var(--f-muted); }
+
+        /* generate button */
         .ai-send {
             all: unset; box-sizing: border-box; cursor: pointer;
-            height: 44px; padding: 0 20px; border-radius: 999px;
-            display: inline-flex; align-items: center; gap: 8px;
-            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
-            color: #fff; font-size: 13px; font-weight: 700; transition: .15s;
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 8px 20px; border-radius: 12px;
+            background: var(--f-pink); color: #fff; border: 2px solid var(--f-ink); box-shadow: 3px 3px 0 var(--f-ink);
+            font: 400 14px "Bungee", system-ui, sans-serif; transition: transform .1s, box-shadow .1s;
         }
-        .ai-send:hover { filter: brightness(1.06); }
-        .ai-send:focus-visible { box-shadow: 0 0 0 3px var(--pink-light); }
-        .ai-send[disabled] { opacity: .55; cursor: not-allowed; }
+        .ai-send:hover { filter: brightness(1.05); }
+        .ai-send:active { transform: translate(3px, 3px); box-shadow: none; }
+        .ai-send:focus-visible { outline: 3px solid var(--f-cyan); outline-offset: 3px; }
+        .ai-send[disabled] { opacity: .5; cursor: not-allowed; }
+        .ai-send[disabled]:active { transform: none; box-shadow: 3px 3px 0 var(--f-ink); }
 
-        .ai-thread { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-        .ai-thread:empty { display: none; }
-        .ai-msg { display: flex; gap: 10px; max-width: 100%; }
-        .ai-msg.is-user { justify-content: flex-end; }
-        .ai-bubble { padding: 10px 16px; border-radius: 16px; font-size: 13px; line-height: 1.65; max-width: 88%; }
-        .ai-msg.is-user .ai-bubble { background: var(--ink); color: #fff; border-bottom-right-radius: 4px; }
-        .ai-msg.is-ai .ai-bubble { background: var(--pink-pale); color: var(--ink); border: 1px solid var(--pink-light); border-top-left-radius: 4px; }
-        .ai-msg.is-ai .ai-bubble.is-error { background: var(--danger-soft); border-color: transparent; color: var(--danger); font-weight: 600; }
+        /* result */
+        .pg-out { margin-top: 16px; }
+        .pg-out:empty { display: none; }
+        .pg-out-title {
+            display: inline-block; margin-bottom: 10px; padding: 3px 12px; border-radius: 999px;
+            font: 800 12.5px/1.3 "Nunito", system-ui, sans-serif; color: var(--f-ink);
+            background: var(--f-yellow); border: 2px solid var(--f-ink); box-shadow: 2px 2px 0 var(--f-ink);
+        }
+        .ai-msg { display: flex; gap: 10px; max-width: 100%; animation: fPop .3s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes fPop { from { opacity: 0; transform: scale(.88); } }
         .ai-avatar {
-            width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0; font-size: 12px; color: #fff;
-            background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+            width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; font-size: 11px;
+            background: var(--f-yellow); color: var(--f-ink); border: 2px solid var(--f-ink);
             display: flex; align-items: center; justify-content: center;
         }
-        .ai-bubble p { margin: 0 0 8px; }
-        .ai-bubble p:last-child { margin-bottom: 0; }
-        .ai-bubble ul { margin: 0 0 8px; padding-left: 18px; }
-        .ai-bubble li { margin-bottom: 4px; }
-        .ai-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
-        .ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--pink-deep); animation: aiBounce 1s infinite ease-in-out; }
-        .ai-typing span:nth-child(2) { animation-delay: .15s; }
-        .ai-typing span:nth-child(3) { animation-delay: .3s; }
-        @keyframes aiBounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-5px); opacity: 1; } }
-        .ai-sub-title { padding: 14px 20px 0; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-        @media (max-width: 520px) { .ai-send span { display: none; } .ai-bubble { max-width: 100%; } }
-
-        @media (prefers-reduced-motion: reduce) {
-            .ai-typing span { animation: none; }
-            .ai-panel::before, .ai-orb, .ai-dot, .ai-rec-card, .ai-rec-card::after { animation: none; }
-            .ai-rec-card { opacity: 1; transform: none; }
-            .ai-rec-card::after { display: none; }
+        .pg-out .ai-msg.is-ai .ai-bubble {
+            flex: 1; min-width: 0; max-width: none; padding: 10px 14px;
+            background: #fff; color: var(--f-ink); font-size: 13px; font-weight: 700; line-height: 1.55;
+            border: 2px solid var(--f-ink); border-radius: 16px; border-top-left-radius: 4px; box-shadow: 3px 3px 0 var(--f-ink);
         }
+        .pg-out .ai-msg.is-ai .ai-bubble.is-error { background: #FFE0E8; color: #B3123F; }
+        .ai-bubble p { margin: 0 0 10px; }
+        .ai-bubble p:last-child { margin-bottom: 0; }
+        .ai-bubble ul { margin: 0 0 10px; padding-left: 20px; }
+        .ai-bubble li { margin-bottom: 6px; }
+        .ai-bubble li::marker { color: var(--f-pink); }
+        .ai-bubble strong { color: var(--f-pink); font-weight: 800; }
+        .ai-typing { display: inline-flex; gap: 6px; padding: 6px 0; }
+        .ai-typing span { width: 11px; height: 11px; border-radius: 50%; background: var(--f-pink); animation: fHop .7s infinite; }
+        .ai-typing span:nth-child(2) { background: var(--f-yellow); animation-delay: .12s; }
+        .ai-typing span:nth-child(3) { background: var(--f-cyan); animation-delay: .24s; }
+        @keyframes fHop { 50% { transform: translateY(-8px); } }
+        .pg-copy {
+            all: unset; box-sizing: border-box; cursor: pointer; margin: 10px 0 0 38px;
+            display: inline-flex; align-items: center; gap: 6px;
+            font: 800 12px "Nunito", system-ui, sans-serif; color: var(--f-ink);
+            padding: 3px 12px; border-radius: 999px;
+            background: var(--f-yellow); border: 2px solid var(--f-ink); box-shadow: 2px 2px 0 var(--f-ink);
+        }
+        .pg-copy:active { transform: translate(2px, 2px); box-shadow: none; }
+        .pg-copy:focus-visible { outline: 3px solid var(--f-cyan); outline-offset: 3px; }
 
+        .fun-confetti { position: fixed; width: 10px; height: 14px; pointer-events: none; z-index: 9999; animation: fFall 1s ease-out forwards; }
+        @keyframes fFall { to { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; } }
+
+        @media (max-width: 520px) {
+            .ai-head h3 { font-size: 16px; }
+            .pg-copy { margin-left: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ai-head::after, .fun-mascot::before, .fun-mascot::after, .ai-dot, .ai-typing span, .ai-msg { animation: none; }
+        }
 
         /* ===== ONLINE PERFORMANCE (master / detail) ===== */
         .perf-total {
@@ -528,7 +518,6 @@
             .filter-card select { flex: 1; }
             .toolbar-actions, .toolbar-actions select { width: 100%; }
             .panel-body { padding: 14px; }
-            .ai-rec-card { flex-direction: column; }
         }
 
         /* card view on very small screens */
@@ -935,18 +924,31 @@
         <div class="pagination no-print" id="visitorPagination"></div>
     </div>
 
-    <!-- AI PROMO RECOMMENDATIONS -->
+    <!-- AI PROMO GENERATOR -->
     @php
-        $recs = collect($recommendations ?? [])->values();
-        // look up each attraction's stats so the AI can "show its reasoning"
-        $perfByKey = $perfCards->mapWithKeys(fn ($c) => [$norm($c['name']) => $c, $norm($c['label']) => $c]);
+        $fallbackParks = [
+            ['name' => 'Dino Lakbay',   'color' => '#22a06b'],
+            ['name' => 'Skataya',       'color' => '#ff7a45'],
+            ['name' => 'Piyesta Rides', 'color' => '#4f6bff'],
+        ];
 
-        // data the AI assistant can reason about (sent along with the question)
+        // Attractions come from your real booking data; falls back to the 3 parks if there is no data yet.
+        $parkList = $perfCards->count()
+            ? $perfCards->map(fn ($c) => [
+                'name'    => $c['label'],
+                'color'   => $c['color'],
+                'icon'    => $c['icon'],
+                'count'   => $c['count'],
+                'origins' => $c['origins']->take(5)->pluck('place')->values(),
+            ])->values()
+            : collect($fallbackParks)->map(fn ($p) => $p + ['icon' => 'fa-ticket', 'count' => 0, 'origins' => []]);
+
+        // Data the AI can reason about (sent along with the request)
         $aiContext = [
-            'branch'          => 'Lipa Branch (theme park)',
-            'period_days'     => (int) ($days ?? 30),
-            'total_online'    => $perfTotal,
-            'attractions'     => $perfCards->map(fn ($c) => [
+            'branch'       => 'Lipa Branch (theme park)',
+            'period_days'  => (int) ($days ?? 30),
+            'total_online' => $perfTotal,
+            'attractions'  => $perfCards->map(fn ($c) => [
                 'name'         => $c['label'],
                 'bookings'     => $c['count'],
                 'share_pct'    => $c['pct'],
@@ -954,91 +956,53 @@
                 'top_packages' => $c['packages']->take(3)->map(fn ($p) => ['package' => $p['package'], 'count' => $p['count']])->values(),
                 'top_origins'  => $c['origins']->take(3)->map(fn ($o) => ['place' => $o['place'], 'count' => $o['count']])->values(),
             ])->values(),
-            'current_suggestions' => $recs->map(fn ($r) => $rename($r['attraction']) . ' (' . $r['age_group'] . '): ' . $renameText($r['title']))->values(),
         ];
     @endphp
 
     <div class="table-box res-box ai-panel">
         <div class="panel-head ai-head">
             <div class="ai-head-title">
-                <span class="ai-orb"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                <span class="fun-mascot" aria-hidden="true"><i></i></span>
                 <div>
-                    <h3>Promo Recommendations <span class="ai-chip"><i class="fa-solid fa-sparkles"></i> AI-powered</span></h3>
-                    <p>Ask the AI for promo ideas based on your real booking data</p>
+                    <h3>Promo Generator <span class="ai-chip"><i class="fa-solid fa-sparkles"></i> AI-powered</span></h3>
+                    <p>Pick an attraction and audience, and the AI suggests promos and new ride ideas from your booking data</p>
                 </div>
             </div>
-            <span class="ai-status"><span class="ai-dot"></span> {{ $recs->count() ? 'Ready' : 'Waiting for data' }}</span>
+            <span class="ai-status"><span class="ai-dot"></span> Ready</span>
         </div>
 
-        @if ($recs->count())
-            <div class="ai-summary-strip">
-                <i class="fa-solid fa-lightbulb"></i>
-                <div>
-                    AI reviewed <strong>{{ $perfTotal }} online booking{{ $perfTotal == 1 ? '' : 's' }}</strong>
-                    across <strong>{{ $perfCards->count() }} attraction{{ $perfCards->count() == 1 ? '' : 's' }}</strong>
-                    and prepared <strong>{{ $recs->count() }} promo suggestion{{ $recs->count() == 1 ? '' : 's' }}</strong> for you.
-                </div>
-            </div>
-        @endif
+        <div class="ai-chat" id="promoGen"
+             data-url="{{ route('ai.promo-suggest', [], false) }}"
+             data-context="{{ json_encode($aiContext) }}"
+             data-parks="{{ json_encode($parkList) }}">
 
-        <div class="ai-chat" id="aiChat" data-url="{{ url('/ai/promo-suggest') }}" data-context="{{ json_encode($aiContext) }}">
-            <div class="ai-chat-label"><i class="fa-solid fa-comments"></i> Ask the AI</div>
-            <div class="ai-prompts">
-                <button type="button" class="ai-prompt">Anong age group ang dapat i-target?</button>
-                <button type="button" class="ai-prompt">Suggest ng promo para sa pinakamababang attraction</button>
-                <button type="button" class="ai-prompt">Promo idea para sa 18-24</button>
-                <button type="button" class="ai-prompt">Paano dadami ang weekday bookings?</button>
-            </div>
-            <div class="ai-input-row">
-                <input type="text" id="aiQuestion" maxlength="400" placeholder="Hal. Anong promo ang bagay sa 35-44 ng Skataya?" autocomplete="off">
-                <button type="button" class="ai-send" id="aiSend"><i class="fa-solid fa-paper-plane"></i> <span>Ask AI</span></button>
-            </div>
-            <div class="ai-thread" id="aiThread" aria-live="polite"></div>
+            <div class="pg-step"><b>1</b> Pick an attraction</div>
+            <div class="pg-parks" id="pgParks"></div>
+
+            <div class="pg-step"><b>2</b> Who is the promo for?</div>
+            <div class="pg-chips" id="pgAges"></div>
+            <input type="text" class="pg-field" id="pgAgeCustom" maxlength="40" placeholder="Or type your own, e.g. 18-25 or office workers" autocomplete="off">
+
+            <div class="pg-step"><b>3</b> Where are the visitors from? <small>(optional)</small></div>
+            <div class="pg-chips" id="pgOrigins"></div>
+            <input type="text" class="pg-field" id="pgOriginCustom" maxlength="60" placeholder="Or type a town or city" autocomplete="off">
+            <p class="pg-hint">Top towns from your records show up after you pick an attraction. Leave it on “Any location” to get promos for everyone.</p>
+
+            <div class="pg-step"><b>4</b> What kind of ideas?</div>
+            <div class="pg-chips" id="pgKinds"></div>
+
+            <div class="pg-step"><b>5</b> How many ideas?</div>
+            <div class="pg-chips" id="pgCounts"></div>
+
+            <div class="pg-step"><b>6</b> Anything else? <small>(optional)</small></div>
+            <input type="text" class="pg-field" id="pgNotes" maxlength="200" placeholder="e.g. slow weekdays, push group bookings" autocomplete="off" style="margin-top:0">
+
+            <button type="button" class="ai-send" id="pgGo" disabled style="margin-top:20px">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Generate ideas</span>
+            </button>
+
+            <div class="pg-out" id="pgOut" aria-live="polite"></div>
         </div>
-
-        @if ($recs->count())
-            <div class="ai-sub-title">Auto-generated suggestions</div>
-        @endif
-
-        <div class="panel-body">
-            @forelse ($recs as $rec)
-                @php $st = $perfByKey->get($norm($rec['attraction'])) ?? $perfByKey->get($norm($rename($rec['attraction']))); @endphp
-                <div class="ai-rec-card" style="--i: {{ $loop->index }};">
-                    <span class="ai-rec-icon" style="background: {{ $rec['color'] }};">
-                        <i class="fa-solid {{ $rec['icon'] }}"></i>
-                    </span>
-                    <div class="ai-rec-main">
-                        <div class="ai-rec-tags">
-                            <span class="ai-rec-tag is-ai"><i class="fa-solid fa-sparkles"></i> AI suggestion</span>
-                            <span class="ai-rec-tag"><i class="fa-solid fa-cake-candles"></i> {{ $rename($rec['attraction']) }} &middot; {{ $rec['age_group'] }}</span>
-                        </div>
-                        <div class="ai-rec-body">
-                            <h4>{{ $renameText($rec['title']) }}</h4>
-                            <p class="ai-rec-desc">{{ $renameText($rec['desc']) }}</p>
-                        </div>
-                        <div class="ai-why">
-                            <span class="ai-why-label"><i class="fa-solid fa-brain"></i> Why this promo</span>
-                            <span>Top age group: <b>{{ $rec['age_group'] }}</b></span>
-                            @if ($st)
-                                <span>Online bookings: <b>{{ $st['count'] }}</b></span>
-                                <span>Share of all bookings: <b>{{ $st['pct'] }}%</b></span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <p style="text-align:center;padding:24px;color:var(--muted);font-size:12.5px;">
-                    <i class="fa-solid fa-circle-info"></i> No recommendations yet — the AI needs more booking data first.
-                </p>
-            @endforelse
-        </div>
-
-        @if ($recs->count())
-            <div class="ai-foot">
-                <i class="fa-solid fa-circle-info"></i>
-                Suggestions update automatically when you change the period above. Review them before launching a promo.
-            </div>
-        @endif
     </div>
 
 @endsection
@@ -1272,18 +1236,105 @@
             });
         })();
 
-        // ── AI promo assistant ──
+        // ── AI promo generator: attraction + audience + optional location ──
         (function () {
-            const box = document.getElementById('aiChat');
-            if (!box) return;
-            const input = document.getElementById('aiQuestion');
-            const sendBtn = document.getElementById('aiSend');
-            const thread = document.getElementById('aiThread');
-            const url = box.dataset.url;
-            let context = {};
-            try { context = JSON.parse(box.dataset.context || '{}'); } catch (e) {}
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const root = document.getElementById('promoGen');
+            if (!root) return;
+            const $ = id => document.getElementById(id);
+            const url = root.dataset.url;
+            let context = {}, parks = [];
+            try { context = JSON.parse(root.dataset.context || '{}'); } catch (e) {}
+            try { parks = JSON.parse(root.dataset.parks || '[]'); } catch (e) {}
+
+            const AGES = ['18-24', '25-34', '35-44', '45-54', '55+'];
+            const sel = { park: null, age: null, origin: null, kind: 'mix', count: 5 };
+            const goBtn = $('pgGo'), out = $('pgOut');
             let busy = false;
+
+            function refresh() { goBtn.disabled = busy || !(sel.park && sel.age); }
+
+            function makeChip(label, on, onClick) {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'pg-chip'; b.textContent = label;
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                b.addEventListener('click', onClick);
+                return b;
+            }
+            function setPressed(wrap, btn) {
+                wrap.querySelectorAll('.pg-chip').forEach(c => c.setAttribute('aria-pressed', c === btn ? 'true' : 'false'));
+            }
+
+            // 1. attractions
+            const parkWrap = $('pgParks');
+            parks.forEach(p => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'pg-park'; b.setAttribute('aria-pressed', 'false');
+                b.innerHTML =
+                    '<span class="pg-park-icon" style="background:' + escapeHtml(p.color) + '"><i class="fa-solid ' + escapeHtml(p.icon) + '"></i></span>' +
+                    '<span><span class="pg-park-name">' + escapeHtml(p.name) + '</span>' +
+                    '<span class="pg-park-sub">' + escapeHtml(p.count) + ' online bookings</span></span>';
+                b.addEventListener('click', () => {
+                    parkWrap.querySelectorAll('.pg-park').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+                    sel.park = p; sel.origin = null; $('pgOriginCustom').value = '';
+                    renderOrigins(); refresh();
+                });
+                parkWrap.appendChild(b);
+            });
+
+            // 2. audience
+            const ageWrap = $('pgAges');
+            AGES.forEach(a => {
+                const c = makeChip(a, false, () => {
+                    const on = sel.age !== a;
+                    setPressed(ageWrap, on ? c : null);
+                    sel.age = on ? a : null; $('pgAgeCustom').value = ''; refresh();
+                });
+                ageWrap.appendChild(c);
+            });
+            $('pgAgeCustom').addEventListener('input', e => {
+                setPressed(ageWrap, null);
+                sel.age = e.target.value.trim() || null; refresh();
+            });
+
+            // 3. location (optional)
+            const originWrap = $('pgOrigins');
+            function renderOrigins() {
+                originWrap.innerHTML = '';
+                const any = makeChip('Any location', true, () => {
+                    setPressed(originWrap, any); sel.origin = null; $('pgOriginCustom').value = '';
+                });
+                originWrap.appendChild(any);
+                ((sel.park && sel.park.origins) || []).forEach(place => {
+                    const c = makeChip(place, false, () => {
+                        setPressed(originWrap, c); sel.origin = place; $('pgOriginCustom').value = '';
+                    });
+                    originWrap.appendChild(c);
+                });
+            }
+            $('pgOriginCustom').addEventListener('input', e => {
+                setPressed(originWrap, null);
+                sel.origin = e.target.value.trim() || null;
+                if (!sel.origin && originWrap.firstElementChild) originWrap.firstElementChild.setAttribute('aria-pressed', 'true');
+            });
+            renderOrigins();
+
+            // 4. kind of ideas + 5. how many
+            const KINDS = [
+                ['mix', 'Mix of everything'],
+                ['promo', 'Promos & discounts'],
+                ['newride', 'New rides / upgrades'],
+                ['marketing', 'Marketing & events']
+            ];
+            const COUNTS = [3, 5, 7, 10];
+            const kindWrap = $('pgKinds'), countWrap = $('pgCounts');
+            KINDS.forEach(([val, label]) => {
+                const c = makeChip(label, val === sel.kind, () => { setPressed(kindWrap, c); sel.kind = val; });
+                kindWrap.appendChild(c);
+            });
+            COUNTS.forEach(n => {
+                const c = makeChip(String(n), n === sel.count, () => { setPressed(countWrap, c); sel.count = n; });
+                countWrap.appendChild(c);
+            });
 
             // tiny formatter: **bold**, "- " bullets, paragraphs (input is escaped first)
             function format(text) {
@@ -1303,42 +1354,42 @@
                 return html;
             }
 
-            function addUser(text) {
-                const d = document.createElement('div');
-                d.className = 'ai-msg is-user';
-                d.innerHTML = '<div class="ai-bubble">' + escapeHtml(text) + '</div>';
-                thread.appendChild(d);
+            // confetti burst from the button
+            function confetti() {
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                const r = goBtn.getBoundingClientRect(), cols = ['#FF3D81', '#FFC914', '#12C4D6', '#8B5CF6'];
+                for (let i = 0; i < 24; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'fun-confetti';
+                    p.style.left = (r.left + r.width / 2) + 'px'; p.style.top = r.top + 'px';
+                    p.style.background = cols[i % 4];
+                    p.style.setProperty('--x', (Math.random() * 260 - 130) + 'px');
+                    p.style.setProperty('--y', (-70 - Math.random() * 170) + 'px');
+                    p.style.setProperty('--r', (Math.random() * 720) + 'deg');
+                    document.body.appendChild(p);
+                    setTimeout(() => p.remove(), 1000);
+                }
             }
 
-            function addAi() {
-                const d = document.createElement('div');
-                d.className = 'ai-msg is-ai';
-                d.innerHTML = '<span class="ai-avatar"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div class="ai-bubble"><span class="ai-typing"><span></span><span></span><span></span></span></div>';
-                thread.appendChild(d);
-                return d.querySelector('.ai-bubble');
-            }
+            // generate
+            goBtn.addEventListener('click', async () => {
+                if (busy || !(sel.park && sel.age)) return;
+                const notes = $('pgNotes').value.trim();
+                const kindLabel = (KINDS.find(k => k[0] === sel.kind) || KINDS[0])[1];
+                const question =
+                    sel.count + ' ideas (' + kindLabel + ') for ' + sel.park.name + ', ages ' + sel.age +
+                    (sel.origin ? ', visitors from ' + sel.origin : ', any location') +
+                    (notes ? '. Note: ' + notes.slice(0, 120) : '') +
+                    '. Use my booking data.';
 
-            // reveal the answer word by word
-            function reveal(bubble, text) {
-                if (reduceMotion) { bubble.innerHTML = format(text); return Promise.resolve(); }
-                const words = text.split(/(\s+)/);
-                let i = 0, shown = '';
-                return new Promise(resolve => {
-                    const t = setInterval(() => {
-                        shown += words.slice(i, i + 3).join('');
-                        i += 3;
-                        bubble.innerHTML = format(shown);
-                        if (i >= words.length) { clearInterval(t); resolve(); }
-                    }, 28);
-                });
-            }
+                busy = true; refresh(); confetti();
+                out.innerHTML =
+                    '<div class="pg-out-title"></div>' +
+                    '<div class="ai-msg is-ai"><span class="ai-avatar"><i class="fa-solid fa-wand-magic-sparkles"></i></span>' +
+                    '<div class="ai-bubble"><span class="ai-typing"><span></span><span></span><span></span></span></div></div>';
+                out.firstElementChild.textContent = sel.count + ' ideas for ' + [sel.park.name, sel.age, sel.origin || 'All locations'].join(' · ');
+                const bubble = out.querySelector('.ai-bubble');
 
-            async function ask(question) {
-                question = (question || '').trim();
-                if (!question || busy) return;
-                busy = true; sendBtn.disabled = true; input.value = '';
-                addUser(question);
-                const bubble = addAi();
                 try {
                     const res = await fetch(url, {
                         method: 'POST',
@@ -1347,23 +1398,41 @@
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
-                        body: JSON.stringify({ question, context })
+                        body: JSON.stringify({
+                            question,
+                            context: Object.assign({}, context, {
+                                selection: { attraction: sel.park.name, age_group: sel.age, location: sel.origin || 'any', notes, kind: sel.kind, count: sel.count }
+                            })
+                        })
                     });
                     const data = await res.json().catch(() => ({}));
-                    if (!res.ok || !data.answer) throw new Error(data.message || 'AI request failed');
-                    await reveal(bubble, data.answer);
+                    if (!res.ok || !data.answer) {
+                        const firstErr = data.errors ? Object.values(data.errors)[0] : null;
+                        const why = (Array.isArray(firstErr) ? firstErr[0] : null) || data.message || 'no answer returned';
+                        throw new Error('Error ' + res.status + ': ' + why);
+                    }
+
+                    bubble.innerHTML = format(data.answer);
+                    const copy = document.createElement('button');
+                    copy.type = 'button'; copy.className = 'pg-copy';
+                    copy.innerHTML = '<i class="fa-regular fa-copy"></i> Copy text';
+                    copy.addEventListener('click', async () => {
+                        try { await navigator.clipboard.writeText(data.answer); copy.textContent = 'Copied ✓'; }
+                        catch (e) { copy.textContent = 'Copy failed'; }
+                    });
+                    out.appendChild(copy);
                 } catch (err) {
                     bubble.classList.add('is-error');
-                    bubble.textContent = 'Hindi makakuha ng sagot ngayon. Subukan ulit mamaya.';
+                    const msg = (err && err.message) ? err.message : 'unknown error';
+                    const net = /failed to fetch|networkerror|load failed/i.test(msg)
+                        ? ' Hindi naabot ang server. Tingnan ang Network tab at storage/logs/laravel.log.'
+                        : '';
+                    bubble.textContent = 'Couldn\'t get promo ideas right now. Try again. (' + msg + ')' + net;
                 } finally {
-                    busy = false; sendBtn.disabled = false; input.focus();
-                    thread.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    busy = false; refresh();
+                    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
-            }
-
-            sendBtn.addEventListener('click', () => ask(input.value));
-            input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
-            box.querySelectorAll('.ai-prompt').forEach(b => b.addEventListener('click', () => ask(b.textContent)));
+            });
         })();
     </script>
 @endpush

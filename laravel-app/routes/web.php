@@ -25,8 +25,8 @@ use App\Http\Controllers\BookingCmsController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Admin\SystemLogController;
 use App\Http\Controllers\Admin\MyAccountController;
-use App\Http\Controllers\AiPromoController;
-   Route::post('/ai/promo-suggest', [AiPromoController::class, 'suggest'])->name('ai.promo-suggest');
+use App\Http\Controllers\PromoAiController; // FIX: dating AiPromoController (walang ganyang class)
+
 // Landing page
 Route::get('/', function () {
     return view('landing', [
@@ -199,6 +199,9 @@ Route::middleware(['auth.session', 'role:tl,manager,admin'])->group(function () 
     // Customers / Visitors
     Route::get('/customer', [VisitorSummaryController::class, 'index'])->name('visitor-summary');
     Route::get('/analytics/live-count', [VisitorSummaryController::class, 'liveCount'])->name('analytics.live-count');
+
+    // AI Promo Generator (FIX: nasa loob na ng auth + role group; dati nasa pinakataas na walang proteksyon)
+    Route::post('/ai/promo-suggest', [PromoAiController::class, 'suggest'])->name('ai.promo-suggest');
 
     // Analytics / ML Forecast
     Route::get('/analytics', [AnalyticsController::class, 'index']);
