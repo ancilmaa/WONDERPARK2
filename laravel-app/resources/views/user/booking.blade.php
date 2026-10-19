@@ -202,7 +202,9 @@
 .bw-zoom{ position:fixed; inset:0; z-index:100000; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(10,10,20,.82); }
 .bw-zoom.open{ display:flex; }
 .bw-zoom figure{ margin:0; max-width:min(1000px,100%); max-height:100%; display:flex; flex-direction:column; align-items:center; gap:12px; }
-.bw-zoom img{ max-width:100%; max-height:78vh; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); background:#fff; }
+.bw-zoom{ --zs:min(500px,88vw,68vh); }
+.bw-zoom img{ width:var(--zs); height:var(--zs); max-width:none; max-height:none; object-fit:contain; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); background:#fff; }
+.bw-zoom figcaption{ width:var(--zs); max-width:100%; }
 .bw-zoom figcaption{ color:#fff; text-align:center; max-width:640px; }
 .bw-zoom figcaption b{ display:block; font-size:18px; }
 .bw-zoom figcaption span{ font-size:14px; opacity:.85; }
