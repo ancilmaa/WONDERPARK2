@@ -51,7 +51,7 @@
 
     @php
         // Areas for Team Leader and Staff. The Manager has no area.
-        $areaOptions = ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+        $areaOptions = ['Piyestarides', 'Dino Lakbay', 'Skataya'];
     @endphp
 
     <div class="toolbar no-print">
