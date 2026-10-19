@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\MyAccountController;
 use App\Http\Controllers\Admin\SystemLogController;
 use App\Http\Controllers\PromoAiController;
 
+
 /*
 |--------------------------------------------------------------------------
 | ROLES
@@ -282,6 +283,8 @@ Route::middleware(['auth.session', 'role:manager,admin'])->group(function () {
     Route::get('/reports/present', [AnalyticsController::class, 'reportPresent']);
     Route::get('/reports/historical', [AnalyticsController::class, 'reportHistorical']);
     Route::get('/reports/bir', [AnalyticsController::class, 'reportBir']);
+
+    Route::get('/Snackbar', fn () => app(ZoneForecastController::class)->index('Snackbar'));
 
     // Attendance / Payroll
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance');

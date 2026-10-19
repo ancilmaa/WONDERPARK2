@@ -492,35 +492,6 @@
             text-overflow: ellipsis;
         }
 
-        .notif-badge {
-            flex-shrink: 0;
-            font-size: .68rem;
-            font-weight: 700;
-            padding: 2px 9px;
-            border-radius: 999px;
-            white-space: nowrap;
-        }
-
-        .notif-badge.type-booking {
-            background: var(--pink-light);
-            color: var(--pink-deep);
-        }
-
-        .notif-badge.type-low_stock,
-        .notif-badge.type-inventory {
-            background: var(--amber-light);
-            color: var(--amber);
-        }
-
-        .notif-badge.type-pos {
-            background: #E3F0FF;
-            color: #2563EB;
-        }
-
-        .notif-badge.type-default {
-            background: var(--line);
-            color: var(--ink-soft);
-        }
 
         .notif-row-time {
             font-size: .72rem;
@@ -974,7 +945,6 @@
                         <div class="notif-row-top">
                             <div class="notif-row-title-group">
                                 <span class="notif-row-title">{{ $n->title }}</span>
-                                <span class="notif-badge {{ $badgeClass }}">{{ ucfirst(str_replace('_', ' ', $n->type)) }}</span>
                             </div>
                             <span class="notif-row-time">{{ $n->time }}</span>
                         </div>

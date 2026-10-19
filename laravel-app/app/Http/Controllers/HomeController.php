@@ -13,7 +13,7 @@ class HomeController extends Controller
         $role = strtolower((string) session('role'));
 
         if ($role === 'customer') {
-            return redirect()->route('user.dashboard');
+            return redirect()->route('user.bookings');
         }
 
         if ($role === 'cashier') {

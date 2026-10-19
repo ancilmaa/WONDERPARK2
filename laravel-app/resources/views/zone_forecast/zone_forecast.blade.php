@@ -3,10 +3,12 @@
 @php
     $zoneIcons = [
         'Skataya'      => 'fa-bolt',
+        'Snackbar'     => 'fa-burger',
         'Piyestarides' => 'fa-flag-checkered',
         'Dinolakbay'   => 'fa-dragon',
     ];
-    $zoneIcon = $zoneIcons[$zone] ?? 'fa-chart-line';
+    $zoneIcon    = $zoneIcons[$zone] ?? 'fa-chart-line';
+    $hasVouchers = $hasVouchers ?? true;
 @endphp
 
 @section('title', $zone . ' Forecast')
@@ -190,7 +192,9 @@
     <button class="tab-btn" data-tab="monthly"><i class="fas fa-chart-line"></i> Monthly</button>
     <button class="tab-btn" data-tab="payment"><i class="fas fa-credit-card"></i> Payment</button>
     <button class="tab-btn" data-tab="category"><i class="fas fa-boxes-stacked"></i> Categories</button>
-    <button class="tab-btn" data-tab="voucher"><i class="fas fa-ticket"></i> Vouchers</button>
+    @if ($hasVouchers)
+      <button class="tab-btn" data-tab="voucher"><i class="fas fa-ticket"></i> Vouchers</button>
+    @endif
   </div>
 
   {{-- TOP PRODUCTS --}}
@@ -257,7 +261,8 @@
     <div id="categoryTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
   </div>
 
-  {{-- VOUCHERS --}}
+  {{-- VOUCHERS (hidden for zones without vouchers, e.g. Snackbar) --}}
+  @if ($hasVouchers)
   <div id="tab-voucher" class="tab-pane">
     <div class="info-note"><strong>How this works:</strong> Online booking vouchers redeemed through the POS (completed only; voided vouchers are excluded). Follows the date filter above. “Upcoming” means confirmed vouchers not yet redeemed.</div>
     <div class="kpi-strip" style="grid-template-columns:repeat(2,1fr)">
@@ -271,6 +276,7 @@
     <h3 class="pane-title" style="margin-top:8px">Availed Packages</h3>
     <div id="voucherTable" class="loading"><i class="fas fa-spinner"></i><br>Loading…</div>
   </div>
+  @endif
 </div>
 
 <div id="toast" class="toast"></div>
@@ -280,9 +286,10 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ZONE   = @json($zone);
-  const ML_API = '{{ url("/api/zone-forecast") }}/' + encodeURIComponent(ZONE);
-  const CSRF   = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  const ZONE         = @json($zone);
+  const HAS_VOUCHERS = @json($hasVouchers);
+  const ML_API       = '{{ url("/api/zone-forecast") }}/' + encodeURIComponent(ZONE);
+  const CSRF         = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
   Chart.defaults.font.family = 'Inter, sans-serif';
   Chart.defaults.color = '#33344A';
@@ -488,7 +495,7 @@
                   ${r.trend==='down'   ? '<span class="trend-down">▼ Declining</span>' : ''}
                   ${r.trend==='stable' ? '<span class="trend-stable">→ Stable</span>'  : ''}
                 </td>
-                <td style="color:#5B5D72;font-size:.72rem">${r.data_points} days</td>
+                <td style="color:#5B5D72;font-size:.72rem">${r.data_points} days${r.low_data ? ' · <span class="trend-stable">low data</span>' : ''}</td>
               </tr>`).join('')}
             </tbody>
           </table></div>`;
@@ -652,10 +659,11 @@
       }
   }
 
-  /* VOUCHERS */
+  /* VOUCHERS (only runs when the zone has vouchers) */
   async function loadVouchers() {
       const tbl = document.getElementById('voucherTable');
       const up  = document.getElementById('voucherUpcoming');
+      if (!tbl || !up) return;
       try {
           const d = await apiFetch('/voucher_summary', true);
           document.getElementById('vCount').textContent  = Number(d.total_vouchers || 0).toLocaleString();
@@ -691,7 +699,8 @@
 
   /* FILTER CONTROLS */
   function reloadFilteredData() {
-      loadSummary(); loadTopProducts(); loadPaymentBreakdown(); loadCategoryBreakdown(); loadVouchers();
+      loadSummary(); loadTopProducts(); loadPaymentBreakdown(); loadCategoryBreakdown();
+      if (HAS_VOUCHERS) loadVouchers();
   }
   document.getElementById('applyFilters').addEventListener('click', reloadFilteredData);
   document.getElementById('clearFilters').addEventListener('click', () => {
@@ -705,10 +714,13 @@
   });
 
   /* BOOT — each loader runs independently so one failure can't block the rest */
-  [
+  const bootLoaders = [
       loadSummary, loadTopProducts, loadDayOfWeek, loadHourly, loadForecast,
-      loadMonthly, loadPaymentBreakdown, loadCategoryBreakdown, loadVouchers
-  ].forEach(fn => {
+      loadMonthly, loadPaymentBreakdown, loadCategoryBreakdown
+  ];
+  if (HAS_VOUCHERS) bootLoaders.push(loadVouchers);
+
+  bootLoaders.forEach(fn => {
       try { fn(); } catch (e) { console.error(fn.name + ' failed:', e); }
   });
 </script>

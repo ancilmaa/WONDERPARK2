@@ -7,7 +7,8 @@ use Carbon\Carbon;
 
 class MlForecastController extends Controller
 {
-   private const ZONES = ['Skataya', 'Piyestarides', 'Dinolakbay'];
+    private const ZONES = ['Skataya', 'Snackbar', 'Piyestarides', 'Dinolakbay'];
+
     public function index()
     {
         return view('ml_forecast.ml_forecast', ['zones' => self::ZONES]);

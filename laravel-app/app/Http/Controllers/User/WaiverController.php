@@ -51,7 +51,12 @@ class WaiverController extends Controller
     /**
      * Show the waiver for the customer to review and sign.
      *
-     * GET /user/waiver
+     * GET /app/waiver                    (uses the booking stored in session)
+     * GET /app/bookings/{booking}/waiver (uses that booking)
+     *
+     * The waiver is only shown when it belongs to a booking. If there is no
+     * booking at all (for example right after login), the customer is sent to
+     * My Bookings instead of being shown a waiver they have no reason to sign.
      */
     public function show($booking = null)
     {
@@ -63,14 +68,17 @@ class WaiverController extends Controller
             session(['booking_service' => $model->service, 'booking_id' => $model->id]);
         }
 
-        // Which service this booking was for (set in BookingController@store).
-        // Defaults to DinoLakbay if, for whatever reason, nothing was
-        // stored in session (e.g. the customer jumped straight to /user/waiver).
-        $service = session('booking_service', 'dino_adventure');
-
-        $waiver = $this->waivers[$service] ?? $this->waivers['dino_adventure'];
-
         $bookingId = session('booking_id');
+        $service   = session('booking_service');
+
+        // No booking behind this request -> go straight to My Bookings.
+        if (!$bookingId || !$service) {
+            return redirect()->route('user.bookings');
+        }
+
+        // Unknown service keys (e.g. field_of_rides has no copy of its own yet)
+        // still get the general waiver instead of an error.
+        $waiver = $this->waivers[$service] ?? $this->waivers['dino_adventure'];
 
         return view('user.waiver', compact('waiver', 'bookingId'));
     }
@@ -78,7 +86,8 @@ class WaiverController extends Controller
     /**
      * Store the customer's e-signature and proceed to booking.
      *
-     * POST /user/waiver
+     * POST /app/waiver
+     * POST /app/bookings/{booking}/waiver
      */
     public function store(Request $request, $booking = null): RedirectResponse
     {
@@ -97,9 +106,8 @@ class WaiverController extends Controller
 
         // Waiver is the last step of the booking flow (Booking -> Payment -> Waiver),
         // so signing it finishes the process. booking_id is normally set in
-        // BookingController@store; if it's somehow missing (e.g. the waiver
-        // was reached directly without going through the booking flow first),
-        // fall back to the bookings list instead of crashing on route().
+        // BookingController@store; if it's somehow missing, fall back to the
+        // bookings list instead of crashing on route().
         $bookingId = $booking ?? session('booking_id');
 
         // Waiver signed -> back to the booking wizard, opened on the voucher step.

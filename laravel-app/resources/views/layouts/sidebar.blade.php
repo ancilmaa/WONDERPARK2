@@ -1790,7 +1790,8 @@
                         <div class="nav-label">Insights</div>
 
                         @php
-                            $zoneRoutes = ['fieldOfRides', 'RollerFever', 'DinoAdventure'];
+                            // Snackbar is now its own zone, separate from Skataya (RollerFever)
+                            $zoneRoutes = ['fieldOfRides', 'RollerFever', 'DinoAdventure', 'Snackbar'];
                             $isOnZoneRoute = request()->is($zoneRoutes);
                             $isOnForecastRoute = request()->is('ml-forecast');
                             $submenuOpen = $isOnZoneRoute || $isOnForecastRoute;
@@ -1814,6 +1815,9 @@
                                     <a href="/RollerFever" class="{{ request()->is('RollerFever') ? 'active' : '' }}">
                                         <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
                                     </a>
+                                    <a href="/Snackbar" class="{{ request()->is('Snackbar') ? 'active' : '' }}">
+                                        <i class="fa-solid fa-burger"></i> <span>Snackbar</span>
+                                    </a>
                                     <a href="/DinoAdventure" class="{{ request()->is('DinoAdventure') ? 'active' : '' }}">
                                         <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                                     </a>
@@ -1822,14 +1826,14 @@
                         @else
                             <a href="/fieldOfRides" class="{{ request()->is('fieldOfRides') ? 'active' : '' }}">
                                 <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
-                                <i class="fa-solid fa-flag-checkered"></i> <span>PiyestaRides</span>
                             </a>
                             <a href="/RollerFever" class="{{ request()->is('RollerFever') ? 'active' : '' }}">
                                 <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
-                                <i class="fa-solid fa-bolt"></i> <span>Skataya</span>
+                            </a>
+                            <a href="/Snackbar" class="{{ request()->is('Snackbar') ? 'active' : '' }}">
+                                <i class="fa-solid fa-burger"></i> <span>Snackbar</span>
                             </a>
                             <a href="/DinoAdventure" class="{{ request()->is('DinoAdventure') ? 'active' : '' }}">
-                                <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                                 <i class="fa-solid fa-dragon"></i> <span>DinoLakbay</span>
                             </a>
                         @endif

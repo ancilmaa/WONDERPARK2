@@ -7,29 +7,33 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-
 class ZoneForecastController extends Controller
 {
-   private const ZONES = ['Skataya', 'Piyestarides', 'Dinolakbay'];
+    private const ZONES = ['Skataya', 'Snackbar', 'Piyestarides', 'Dinolakbay'];
 
-private const ZONE_SERVICES = [
-    'Skataya'      => ['rollerfever'],
-    'Piyestarides' => ['field_of_rides'],
-    'Dinolakbay'   => ['dino_adventure'],
-];
+    // Zones with an empty list have no online-booking vouchers (Snackbar).
+    private const ZONE_SERVICES = [
+        'Skataya'      => ['rollerfever'],
+        'Snackbar'     => [],
+        'Piyestarides' => ['field_of_rides'],
+        'Dinolakbay'   => ['dino_adventure'],
+    ];
+
     public function index(string $zone)
     {
         $zone = $this->resolveZone($zone);
 
         return view('zone_forecast.zone_forecast', [
-            'zone' => $zone,
+            'zone'        => $zone,
+            'hasVouchers' => $this->zoneHasVouchers($zone),
         ]);
     }
-public function voucherSummary(Request $request, string $zone)
-{
-    $zone = $this->resolveZone($zone);
-    return response()->json($this->voucherData($request, self::ZONE_SERVICES[$zone] ?? []));
-}
+
+    public function voucherSummary(Request $request, string $zone)
+    {
+        $zone = $this->resolveZone($zone);
+        return response()->json($this->voucherData($request, self::ZONE_SERVICES[$zone] ?? []));
+    }
 
     public function summary(Request $request, string $zone)
     {
@@ -227,8 +231,8 @@ public function voucherSummary(Request $request, string $zone)
         usort($flatProducts, fn($a, $b) => $b['total_revenue'] <=> $a['total_revenue']);
 
         return response()->json([
-            'by_type'      => $this->withPercentages($byType, 'total_revenue'),
-            'by_category'  => $byCategory,
+            'by_type'       => $this->withPercentages($byType, 'total_revenue'),
+            'by_category'   => $byCategory,
             'best_sellers'  => array_slice($flatProducts, 0, 5),
             'worst_sellers' => array_slice(array_reverse($flatProducts), 0, 5),
         ]);
@@ -355,7 +359,7 @@ public function voucherSummary(Request $request, string $zone)
     {
         $zone = $this->resolveZone($zone);
 
-       $rows = DB::select("
+        $rows = DB::select("
             SELECT p.product_id, p.product_name, c.category_name,
                 DATE(st.created_at) AS sale_date,
                 SUM(ti.quantity)    AS daily_qty
@@ -399,7 +403,23 @@ public function voucherSummary(Request $request, string $zone)
             foreach ($g['dates'] as $d) {
                 $X[] = (int) $minDate->diffInDays(Carbon::parse($d));
             }
-            if (count($X) < 3) continue;
+            if (count($X) < 3) {
+            // Not enough history for regression: use a flat average estimate instead
+            $windowDays = max(1, $minDate->diffInDays($today) + 1);
+            $dailyAvg   = array_sum($Y) / $windowDays;
+
+            $results[] = [
+                'product_name'        => $g['name'],
+                'category_name'       => $g['cat'],
+                'forecast_next_month' => round($dailyAvg * 30),
+                'forecast_daily_avg'  => round($dailyAvg, 1),
+                'current_month_avg'   => round($dailyAvg, 1),
+                'trend'               => 'stable',
+                'data_points'         => count($X),
+                'low_data'            => false,
+            ];
+            continue;
+        }
 
             [$slope, $intercept] = $this->linearRegression($X, $Y);
 
@@ -487,6 +507,7 @@ public function voucherSummary(Request $request, string $zone)
             'paymentBreakdown'  => $this->paymentBreakdown($request, $zone)->getData(true),
             'categoryBreakdown' => $this->categoryBreakdown($request, $zone)->getData(true),
             'voucherSummary'    => $this->voucherData($request, self::ZONE_SERVICES[$zone] ?? []),
+            'hasVouchers'       => $this->zoneHasVouchers($zone),
             'generatedAt'       => now()->format('F j, Y g:i A'),
         ])->setPaper('a4', 'portrait');
 
@@ -505,6 +526,11 @@ public function voucherSummary(Request $request, string $zone)
         }
 
         return $zone;
+    }
+
+    private function zoneHasVouchers(string $zone): bool
+    {
+        return !empty(self::ZONE_SERVICES[$zone] ?? []);
     }
 
     private function buildDateFilter(Request $request): array
@@ -539,82 +565,82 @@ public function voucherSummary(Request $request, string $zone)
     }
 
     private function voucherData(Request $request, ?array $services = null): array
-{
-    [$dateSql, $dateBindings] = $this->buildDateFilter($request);
+    {
+        [$dateSql, $dateBindings] = $this->buildDateFilter($request);
 
-    $svcSql = '';
-    $svcBindings = [];
-    if ($services !== null) {
-        if (empty($services)) {
-            return ['total_vouchers' => 0, 'total_amount' => 0.0, 'by_item' => [], 'by_day' => [], 'upcoming' => []];
+        $svcSql = '';
+        $svcBindings = [];
+        if ($services !== null) {
+            if (empty($services)) {
+                return ['total_vouchers' => 0, 'total_amount' => 0.0, 'by_item' => [], 'by_day' => [], 'upcoming' => []];
+            }
+            $svcSql = ' AND b.service IN (' . implode(',', array_fill(0, count($services), '?')) . ') ';
+            $svcBindings = $services;
         }
-        $svcSql = ' AND b.service IN (' . implode(',', array_fill(0, count($services), '?')) . ') ';
-        $svcBindings = $services;
-    }
-    $bindings = array_merge($dateBindings, $svcBindings);
+        $bindings = array_merge($dateBindings, $svcBindings);
 
-    $redeemed = DB::select("
-        SELECT b.service, b.package, b.tier,
-               COUNT(*)     AS vouchers,
-               SUM(b.price) AS total_amount
-        FROM bookings b
-        JOIN sales_transactions st ON st.transaction_id = b.redeemed_transaction_id
-        WHERE b.status = 'done'
-          AND st.transaction_status = 'Completed'
-          {$dateSql} {$svcSql}
-        GROUP BY b.service, b.package, b.tier
-        ORDER BY total_amount DESC
-    ", $bindings);
+        $redeemed = DB::select("
+            SELECT b.service, b.package, b.tier,
+                   COUNT(*)     AS vouchers,
+                   SUM(b.price) AS total_amount
+            FROM bookings b
+            JOIN sales_transactions st ON st.transaction_id = b.redeemed_transaction_id
+            WHERE b.status = 'done'
+              AND st.transaction_status = 'Completed'
+              {$dateSql} {$svcSql}
+            GROUP BY b.service, b.package, b.tier
+            ORDER BY total_amount DESC
+        ", $bindings);
 
-    $byDay = DB::select("
-        SELECT DATE(st.created_at) AS day,
-               COUNT(*)            AS vouchers,
-               SUM(b.price)        AS total_amount
-        FROM bookings b
-        JOIN sales_transactions st ON st.transaction_id = b.redeemed_transaction_id
-        WHERE b.status = 'done'
-          AND st.transaction_status = 'Completed'
-          {$dateSql} {$svcSql}
-        GROUP BY DATE(st.created_at)
-        ORDER BY day
-    ", $bindings);
+        $byDay = DB::select("
+            SELECT DATE(st.created_at) AS day,
+                   COUNT(*)            AS vouchers,
+                   SUM(b.price)        AS total_amount
+            FROM bookings b
+            JOIN sales_transactions st ON st.transaction_id = b.redeemed_transaction_id
+            WHERE b.status = 'done'
+              AND st.transaction_status = 'Completed'
+              {$dateSql} {$svcSql}
+            GROUP BY DATE(st.created_at)
+            ORDER BY day
+        ", $bindings);
 
-    $upcoming = DB::select("
-        SELECT b.visit_date,
-               COUNT(*)     AS vouchers,
-               SUM(b.price) AS total_amount
-        FROM bookings b
-        WHERE b.status = 'confirmed'
-          AND b.visit_date >= CURDATE()
-          {$svcSql}
-        GROUP BY b.visit_date
-        ORDER BY b.visit_date
-        LIMIT 30
-    ", $svcBindings);
+        $upcoming = DB::select("
+            SELECT b.visit_date,
+                   COUNT(*)     AS vouchers,
+                   SUM(b.price) AS total_amount
+            FROM bookings b
+            WHERE b.status = 'confirmed'
+              AND b.visit_date >= CURDATE()
+              {$svcSql}
+            GROUP BY b.visit_date
+            ORDER BY b.visit_date
+            LIMIT 30
+        ", $svcBindings);
 
-    $booking = app(\App\Http\Controllers\User\BookingController::class);
-    $items = [];
-    $totalV = 0;
-    $totalA = 0.0;
-    foreach ($redeemed as $r) {
-        $info = $booking->packageInfo($r->service, $r->package);
-        $items[] = [
-            'name'         => $info['service_name'] . ' — ' . $info['package_name'] . ' (' . $r->tier . ' pax)',
-            'vouchers'     => (int) $r->vouchers,
-            'total_amount' => (float) $r->total_amount,
+        $booking = app(\App\Http\Controllers\User\BookingController::class);
+        $items = [];
+        $totalV = 0;
+        $totalA = 0.0;
+        foreach ($redeemed as $r) {
+            $info = $booking->packageInfo($r->service, $r->package);
+            $items[] = [
+                'name'         => $info['service_name'] . ' — ' . $info['package_name'] . ' (' . $r->tier . ' pax)',
+                'vouchers'     => (int) $r->vouchers,
+                'total_amount' => (float) $r->total_amount,
+            ];
+            $totalV += (int) $r->vouchers;
+            $totalA += (float) $r->total_amount;
+        }
+
+        return [
+            'total_vouchers' => $totalV,
+            'total_amount'   => $totalA,
+            'by_item'        => $items,
+            'by_day'         => $byDay,
+            'upcoming'       => $upcoming,
         ];
-        $totalV += (int) $r->vouchers;
-        $totalA += (float) $r->total_amount;
     }
-
-    return [
-        'total_vouchers' => $totalV,
-        'total_amount'   => $totalA,
-        'by_item'        => $items,
-        'by_day'         => $byDay,
-        'upcoming'       => $upcoming,
-    ];
-}
 
     private function withPercentages(array $rows, string $field): array
     {

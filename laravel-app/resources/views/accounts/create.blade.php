@@ -646,7 +646,7 @@
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Staff Accounts</div>
-            <h2>Account Management</h2>
+            <h2 style="font-family: Arial, Helvetica, sans-serif">Account Management</h2>
         </div>
 
         <div class="stat-strip">

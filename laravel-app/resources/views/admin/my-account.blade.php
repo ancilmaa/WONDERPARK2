@@ -595,7 +595,7 @@
 
             <div>
                 <div class="eyebrow">Admin &middot; Account</div>
-                <h2>My Account</h2>
+                <h2 style="font-family: Arial, Helvetica, sans-serif">My Account</h2>
                 <p class="sub">Manage your profile picture, name and password</p>
             </div>
         </div>
