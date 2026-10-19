@@ -178,7 +178,7 @@
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Payroll and Payslip</div>
-            <h2>Payroll History</h2>
+             <h2 style="font-family: Arial, Helvetica, sans-serif">Payroll History</h2>
         </div>
     </div>
 

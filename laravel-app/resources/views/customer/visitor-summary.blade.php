@@ -585,7 +585,8 @@
     <div class="toolbar">
         <div>
             <div class="eyebrow">Lipa Branch &middot; Visitors</div>
-            <h2>Visitor Login &amp; Booking Summary</h2>
+                 <h2 style="font-family: Arial, Helvetica, sans-serif">Visitor Login &amp; Booking Summary</h2>
+
             <p class="sub">Online bookings, visitor activity and promo insights</p>
         </div>
         <div class="toolbar-actions">
