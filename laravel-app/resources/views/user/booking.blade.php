@@ -198,6 +198,15 @@
 .bw-media{ height:118px; background:var(--tab-grad,var(--pink-deep)) center/cover no-repeat; display:grid; place-items:center; font-size:48px; position:relative; }
 .bw-media span{ filter:drop-shadow(0 4px 6px rgba(0,0,0,.3)); transition:transform .3s var(--ease); }
 .bw-card:hover .bw-media span{ transform:scale(1.2) rotate(-8deg); }
+.bw-media.zoom{ cursor:zoom-in; }
+.bw-zoom{ position:fixed; inset:0; z-index:100000; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(10,10,20,.82); }
+.bw-zoom.open{ display:flex; }
+.bw-zoom figure{ margin:0; max-width:min(1000px,100%); max-height:100%; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.bw-zoom img{ max-width:100%; max-height:78vh; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); background:#fff; }
+.bw-zoom figcaption{ color:#fff; text-align:center; max-width:640px; }
+.bw-zoom figcaption b{ display:block; font-size:18px; }
+.bw-zoom figcaption span{ font-size:14px; opacity:.85; }
+.bw-zoom-x{ position:absolute; top:16px; right:16px; width:42px; height:42px; border-radius:50%; border:0; background:#fff; color:#111; font-size:22px; line-height:1; cursor:pointer; }
 .bw-body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
 .bw-body b{ font-size:14.5px; line-height:1.25; }
 .bw-body p{ margin:0; font-size:12px; color:var(--bw-sub); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -987,7 +996,7 @@ window.BW = {
     var rec = !locked && isRec(it);
     var bg = it.image ? 'background-image:linear-gradient(0deg,rgba(0,0,0,.28),rgba(0,0,0,0)),url(\'' + BW.imgBase + esc(it.image) + '\');' : '';
     var pop = rec ? '<i class="bw-rec-pop">\u2728 Best for your group of ' + state.guests + '</i>' : '';
-    var media = '<div class="bw-media" style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + pop + '</div>';
+    var media = '<div class="bw-media' + (it.image ? ' zoom' : '') + '"' + (it.image ? ' title="Click to enlarge"' : '') + ' style="' + bg + '">' + (it.image ? '' : '<span>' + it.emoji + '</span>') + pop + '</div>';
 
     if (locked) {
       /* Party package while Solo / Duo / Group is selected: visible, but greyed out and not clickable */
@@ -1096,7 +1105,30 @@ window.BW = {
     renderStep2(); renderBar();
   });
 
+  /* Image lightbox: clicking a card's picture opens it large (does not select the card) */
+  var zoomBox = null;
+  function closeZoom() { if (zoomBox) zoomBox.classList.remove('open'); }
+  function openZoom(it) {
+    if (!zoomBox) {
+      zoomBox = document.createElement('div');
+      zoomBox.className = 'bw-zoom';
+      zoomBox.innerHTML = '<button type="button" class="bw-zoom-x" aria-label="Close">\u00D7</button><figure><img alt=""><figcaption><b></b><span></span></figcaption></figure>';
+      zoomBox.addEventListener('click', function (e) { if (e.target.tagName !== 'IMG') closeZoom(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeZoom(); });
+      document.body.appendChild(zoomBox);
+    }
+    var im = zoomBox.querySelector('img');
+    im.src = BW.imgBase + it.image; im.alt = it.name || '';
+    zoomBox.querySelector('figcaption b').textContent = it.name || '';
+    zoomBox.querySelector('figcaption span').textContent = it.desc || '';
+    zoomBox.classList.add('open');
+  }
   $('#bwGrid').addEventListener('click', function (ev) {
+    var zm = ev.target.closest('.bw-media.zoom');
+    if (zm) {
+      var zc = zm.closest('.bw-card'), zi = zc && ITEM[zc.getAttribute('data-key')];
+      if (zi && zi.image) { openZoom(zi); return; }
+    }
     var incBtn = ev.target.closest('[data-inc]');
     if (incBtn) {
       var ul = incBtn.nextElementSibling, open = ul.hidden;
