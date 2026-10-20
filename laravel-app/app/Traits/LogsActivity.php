@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Services\SystemLogger;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,11 +22,23 @@ use Throwable;
  */
 trait LogsActivity
 {
+    // Mga method na galing sa Eloquent Model. Idineklara dito para
+    // makilala ng Intelephense; ang Model mismo ang nag-i-implement.
+    abstract public function getAttribute(mixed $key): mixed;
+
+    abstract public function getKey(): mixed;
+
+    abstract public function getChanges(): array;
+
+    abstract public function getOriginal(mixed $key = null, mixed $default = null): mixed;
+
+    abstract protected static function registerModelEvent(string $event, mixed $callback): void;
+
     public static function bootLogsActivity(): void
     {
-        static::created(fn ($model) => $model->writeActivityLog('created'));
-        static::updated(fn ($model) => $model->writeActivityLog('updated'));
-        static::deleted(fn ($model) => $model->writeActivityLog('deleted'));
+        static::registerModelEvent('created', fn ($model) => $model->writeActivityLog('created'));
+        static::registerModelEvent('updated', fn ($model) => $model->writeActivityLog('updated'));
+        static::registerModelEvent('deleted', fn ($model) => $model->writeActivityLog('deleted'));
     }
 
     protected function activityModule(): string
@@ -88,7 +101,7 @@ trait LogsActivity
             );
 
             if ($action === 'deleted') {
-                SystemLogger::checkBulkDelete(auth()->id(), $module);
+                SystemLogger::checkBulkDelete(Auth::id(), $module);
             }
         } catch (Throwable $e) {
             // Hindi dapat masira ang app dahil lang sa logging

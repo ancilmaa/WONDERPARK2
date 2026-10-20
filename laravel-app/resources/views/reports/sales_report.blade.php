@@ -37,7 +37,7 @@
   <table>
     <tr class="kpi-row">
       <td style="width:25%"><div class="kpi-label">Transactions</div><div class="kpi-value">{{ number_format($summary['total_txn']) }}</div></td>
-      <td style="width:25%"><div class="kpi-label">Revenue</div><div class="kpi-value">&#8369;{{ number_format($summary['total_revenue'], 2) }}</div></td>
+      <td style="width:25%"><div class="kpi-label">Gross</div><div class="kpi-value">&#8369;{{ number_format($summary['total_revenue'], 2) }}</div></td>
       <td style="width:25%"><div class="kpi-label">Items Sold</div><div class="kpi-value">{{ number_format($summary['total_items_sold']) }}</div></td>
       <td style="width:25%"><div class="kpi-label">Low Stock</div><div class="kpi-value">{{ $summary['low_stock_count'] }}</div></td>
     </tr>
@@ -45,7 +45,7 @@
 
   <h2 class="section">Top Products (Selected Period)</h2>
   <table>
-    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Gross</th></tr></thead>
     <tbody>
       @forelse($topProducts['this_month'] as $i => $r)
       <tr>
@@ -63,7 +63,7 @@
 
   <h2 class="section">Category Breakdown</h2>
   <table>
-    <thead><tr><th>Category</th><th>Type</th><th>Units Sold</th><th>Revenue</th><th>% of Total</th></tr></thead>
+    <thead><tr><th>Category</th><th>Type</th><th>Units Sold</th><th>Gross</th><th>% of Total</th></tr></thead>
     <tbody>
       @forelse($categoryBreakdown['by_category'] as $r)
       <tr>
@@ -81,7 +81,7 @@
 
   <h2 class="section">Best Sellers</h2>
   <table>
-    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units</th><th>Revenue</th></tr></thead>
+    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units</th><th>Gross</th></tr></thead>
     <tbody>
       @forelse($categoryBreakdown['best_sellers'] as $i => $r)
       <tr>
@@ -96,7 +96,7 @@
 
   <h2 class="section">Least Sellers</h2>
   <table>
-    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units</th><th>Revenue</th></tr></thead>
+    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units</th><th>Gross</th></tr></thead>
     <tbody>
       @forelse($categoryBreakdown['worst_sellers'] as $i => $r)
       <tr>
@@ -111,7 +111,7 @@
 
   <h2 class="section">Payment Method Breakdown</h2>
   <table>
-    <thead><tr><th>Method</th><th>Transactions</th><th>Revenue</th><th>% of Total</th></tr></thead>
+    <thead><tr><th>Method</th><th>Transactions</th><th>Gross</th><th>% of Total</th></tr></thead>
     <tbody>
       @forelse($paymentBreakdown['methods'] as $r)
       <tr>

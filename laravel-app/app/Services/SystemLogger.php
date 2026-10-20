@@ -7,13 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class SystemLogger
 {
-    /**
-     * Mag-record ng event. Pwede mong tawagin kahit saan:
-     * SystemLogger::record('data_export', 'Nag-export ng users', 'warning', ['rows' => 500], true, module: 'inventory');
-     *
-     * Kapag walang $module, awtomatikong huhulaan mula sa route name / URL
-     * (hal. "inventory.index" -> "inventory", "/manpower/payroll" -> "manpower").
-     */
+    
     public static function record(
         string $eventType,
         string $description,

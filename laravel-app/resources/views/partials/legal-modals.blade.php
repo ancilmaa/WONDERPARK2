@@ -121,7 +121,7 @@
                    <p>
                         Questions about these Terms? Talk to our team at Lima Technology Center, 
                         Lipa City / Malvar, Batangas, reach us through this website, or email us at 
-                        <a href="mailto:amusementwonderpark@gmail.com">amusementwonderpark@gmail.com</a>.
+                        <a href="mailto:pistavoraamusement@gmail.com">pistavoraamusement@gmail.com</a>.
                     </p>
                 </div>
 
@@ -248,7 +248,7 @@
                         To use your rights or ask a question about your data, talk to our team at 
                         Lima Technology Center, Lipa City / Malvar, Batangas, reach us through this 
                         website, or email us at 
-                        <a href="mailto:amusementwonderpark@gmail.com">amusementwonderpark@gmail.com</a>. 
+                        <a href="mailto:pistavoraamusement@gmail.com">pistavoraamusement@gmail.com</a>. 
                         You may also ask for our Data Protection Officer. You can read our 
                         <a href="#" data-open="termsModal">Terms &amp; Conditions</a>.
                     </p>
