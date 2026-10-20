@@ -385,3 +385,14 @@ html body .waiver-fullscreen .waiver-box-tall h5{font-family:var(--font-display)
 .u-btn{display:inline-flex;align-items:center;justify-content:center;line-height:1.2;text-align:center;}
 .u-btn[style*="display:block"],.u-btn[style*="display: block"]{display:flex !important;align-items:center;justify-content:center;}
 .mb-tabs{margin:4px 0 20px;}
+
+
+/* mobile-nav-fix */
+@media (max-width:959px){
+  .bottomnav{flex-direction:row;align-items:stretch;justify-content:center;}
+  .bottomnav .nav-list{display:flex;flex-direction:row;align-items:stretch;flex:1;min-width:0;width:100%;padding:0;gap:0;overflow:visible;}
+  .bottomnav .nav-list .bn-item{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 2px 7px;text-align:center;}
+  .bottomnav .bn-item .ic3{margin:0 auto 3px;}
+  .bottomnav .bn-label{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bottomnav .nav-brand,.bottomnav .nav-section-label,.bottomnav .nav-foot{display:none !important;}
+}
