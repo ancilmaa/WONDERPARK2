@@ -390,6 +390,15 @@
 @keyframes bwShake{ 0%,100%{ transform:none;} 25%{ transform:translateX(-7px);} 75%{ transform:translateX(7px);} }
 
 @media (min-width:960px){ .bw-bar{ bottom:16px; } }
+@media (max-width:600px){
+  .bw-bar{ display:grid; grid-template-columns:auto 1fr; grid-template-areas:"info info" "back next"; gap:10px; padding:14px; border-radius:22px; align-items:center; }
+  .bw-bar-info{ grid-area:info; text-align:center; font-size:13px; }
+  .bw-bar-info b{ font-size:17px; margin-bottom:2px; }
+  #bwBack{ grid-area:back; padding:14px 20px; font-size:14px; min-height:50px; }
+  #bwNext{ grid-area:next; width:100%; padding:15px 18px; font-size:15px; min-height:50px; }
+  .bw-bar.bw-first{ grid-template-columns:1fr; grid-template-areas:"info" "next"; }
+  .bw-bar.bw-first #bwBack{ display:none; }
+}
 @media (max-width:960px){
   .bw-pick{ grid-template-columns:1fr; }
   .bw-live{ position:static; min-height:0; }
@@ -855,6 +864,7 @@ window.BW = {
   function renderBar() {
     bar.hidden = state.step === 5;
     btnBack.style.visibility = state.step === 1 ? 'hidden' : 'visible';
+    bar.classList.toggle('bw-first', state.step === 1);
     btnNext.innerHTML = state.step === 4 ? 'Submit for review' : 'Next \u2192';
     btnNext.classList.toggle('dim', !canNext());
     btnNext.disabled = state.busy;

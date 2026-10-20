@@ -19,6 +19,7 @@ class LogSystemActivity
     /** route name => [action, description] — logged on a successful POST */
     private const USER_ROUTES = [
         'user.booking.store'             => ['booking.created', 'Created a booking'],
+        'user.booking.submit'            => ['booking.created', 'Created a booking'],
         'user.bookings.payment'          => ['booking.payment_submitted', 'Submitted payment proof'],
         'user.bookings.cancel'           => ['booking.cancelled', 'Cancelled a booking'],
         'user.bookings.reschedule'       => ['booking.rescheduled', 'Rescheduled a booking'],
@@ -132,6 +133,9 @@ class LogSystemActivity
             } elseif ($response->isRedirection()
                 && preg_match('#/bookings/(\d+)#', (string) $response->headers->get('Location'), $m)) {
                 $subjectId = (int) $m[1];
+            } elseif ($name === 'user.booking.submit') {
+                $data = json_decode((string) $response->getContent(), true);
+                $subjectId = isset($data['booking']['id']) ? (int) $data['booking']['id'] : null;
             }
 
             $isBooking = str_starts_with($action, 'booking.');
@@ -140,6 +144,10 @@ class LogSystemActivity
             }
 
             SystemLog::record($action, $text, null, $isBooking ? 'booking' : null, $isBooking ? $subjectId : null);
+
+            if ($name === 'user.booking.submit') {
+                SystemLog::record('booking.payment_submitted', 'Submitted payment proof' . ($subjectId ? ' #' . $subjectId : ''), null, 'booking', $subjectId);
+            }
         }
     }
 }
