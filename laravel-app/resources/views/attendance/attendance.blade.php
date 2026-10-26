@@ -86,6 +86,20 @@
         .cell-present.src-manual::after,
         .cell-deduction.src-manual::after { background: var(--warn); }
 
+        /* Past day with a QR Time In but no Time Out: click to fix */
+        .cell-missing {
+            background: none;
+            border: 1px dashed var(--danger);
+            color: var(--danger);
+            font-weight: 700;
+            font-size: 9px;
+            letter-spacing: .04em;
+            padding: 2px 5px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .cell-missing:hover { background: var(--danger); color: #fff; }
+
         .days-worked {
             background: var(--pink-pale);
             color: var(--ink);
@@ -133,23 +147,6 @@
         .upload-card .upload-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink); }
         .upload-card .upload-sub { font-size: 12.5px; color: var(--ink-soft); }
 
-        /* Assign Areas modal */
-        .area-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
-        .area-row:last-child { border-bottom: none; }
-        .area-row .area-name { font-size: 13px; font-weight: 600; color: var(--ink); }
-        .area-row .area-cat { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-        .area-row select {
-            padding: 7px 10px;
-            border: 1px solid var(--line-strong);
-            border-radius: 9px;
-            font-size: 12.5px;
-            color: var(--ink-soft);
-            background: var(--bg);
-            min-width: 150px;
-        }
-        .area-list { max-height: 55vh; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
-        .area-list::-webkit-scrollbar { display: none; }
-
         /* QR modal */
         #qrCodeBox { display: flex; justify-content: center; padding: 18px 0 6px; }
         .qr-link-row { display: flex; gap: 8px; margin-top: 14px; }
@@ -186,6 +183,7 @@
             .att-table th, .att-table td { border: 1px solid #999; padding: 4px; }
             .cell-present { color: var(--present) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .cell-deduction { color: var(--danger) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .cell-missing { border: none; color: var(--danger) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .category-row td { background: var(--pink-light) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .days-worked { background: var(--pink-pale) !important; color: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             thead th { background: var(--ink) !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -228,9 +226,10 @@
 
         // ── Split each category by area ──
         // Order: Manager → Team Leader → Staff → others.
-        // Within a category: Field of Rides → Dino Adventure → Roller Skates, then those without an area.
+        // Within a category: DINO QUEST → ROLL JOY → WONDER RIDES, then those without an area.
         // The Manager has no area.
-        $areaOrder = $areaOptions ?? ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+        // Ang area ay galing sa Employees page (isang lugar lang ang pag-assign).
+        $areaOrder = $areaOptions ?? ['DINO QUEST', 'ROLL JOY', 'WONDER RIDES'];
         $catOrder = ['manager', 'team leader', 'staff'];
         $anyArea = isset($records) && $records->contains(fn($r) => !empty($r->area));
 
@@ -296,11 +295,6 @@
             <button type="button" class="btn-ghost" id="openQrBtn">
                 <i class="fa-solid fa-qrcode"></i> Show QR Code
             </button>
-            @if (\Illuminate\Support\Facades\Route::has('attendance.areas'))
-                <button type="button" class="btn-ghost" id="openAreaBtn">
-                    <i class="fa-solid fa-location-dot"></i> Assign Areas
-                </button>
-            @endif
             <button class="btn-primary" onclick="window.print()">Print</button>
 
             <form id="clearAllForm" action="{{ route('attendance.clear-all') }}" method="POST" style="display:contents;">
@@ -367,6 +361,7 @@
             <span><span class="dot dot-bio"></span> Bio scanner</span>
             <span><span class="dot dot-qr"></span> QR self check-in</span>
             <span><strong style="color:var(--warn);">IN</strong> Timed in, waiting for Time Out</span>
+            <span><strong style="color:var(--danger);">NO OUT</strong> Forgot to Time Out (click to fix)</span>
             <span>Hover a day to see the actual Time In / Time Out</span>
         </div>
 
@@ -446,7 +441,21 @@
 
                                     <td class="{{ $weekEndClass }}" @if($val) title="{{ $srcTitle . $timeTxt }}" @endif>
                                         @if ($val === 'IN')
-                                            <span class="cell-pending src-qr">IN</span>
+                                            @php
+                                                // A "IN" on a day that already passed = forgot to Time Out.
+                                                $cellDate = $periodStart->copy()->addDays($i - 1);
+                                                $isPastDay = $cellDate->lt(now()->startOfDay());
+                                            @endphp
+                                            @if ($isPastDay)
+                                                <button type="button" class="cell-missing"
+                                                    title="No Time Out recorded. Click to fix."
+                                                    data-name="{{ $item->name }}"
+                                                    data-date="{{ $cellDate->format('Y-m-d') }}"
+                                                    data-label="{{ $cellDate->format('M j') }}"
+                                                    data-tin="{{ $tin }}">NO OUT</button>
+                                            @else
+                                                <span class="cell-pending src-qr">IN</span>
+                                            @endif
                                         @elseif ($val === 'P' || str_starts_with((string) $val, '+'))
                                             <span class="cell-present {{ $srcClass }}">{{ $val === 'P' ? 'P' : $val }}</span>
                                         @elseif(str_starts_with((string) $val, '-') || isShortHours($val))
@@ -508,24 +517,16 @@
                 </button>
             </div>
             <div class="modal-body" style="text-align:center;">
+                @php
+                    // AUTO: the QR is always for today. Day number is relative to the start of the current cutoff.
+                    $todayDayNum = $periodStart->copy()->startOfDay()->diffInDays(now()->startOfDay()) + 1;
+                @endphp
                 <div class="form-group full" style="text-align:left;margin-bottom:14px;">
-                    <label for="qrForDate">This QR is for day</label>
-                    @php
-                        $qrDateValue = $qrDate ?? now()->format('Y-m-d');
-                    @endphp
-                    <select id="qrForDate" name="qr_for_day">
-                        @for ($i = 1; $i <= $days; $i++)
-                            @php
-                                $dayDate = $periodStart->copy()->addDays($i - 1)->format('Y-m-d');
-                                $dayLabel = $periodStart->copy()->addDays($i - 1)->format('M j');
-                            @endphp
-                            <option value="{{ $dayDate }}" {{ $qrDateValue === $dayDate ? 'selected' : '' }}>
-                                Day {{ $i }} ({{ $dayLabel }})
-                            </option>
-                        @endfor
-                    </select>
-                    <p class="form-hint">Normally scans are recorded under today's real date. Choose an earlier
-                        day only to catch up. It stays in effect for 2 hours after you generate the QR.</p>
+                    <label>This QR is for</label>
+                    <div style="padding:11px 14px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg);font-weight:700;color:var(--ink);">
+                        Day {{ $todayDayNum }} ({{ now()->format('M j') }}) &middot; Today
+                    </div>
+                    <p class="form-hint">Auto-set to today. Scans are always recorded under today's real date.</p>
                 </div>
                 <div id="qrCodeBox"></div>
                 <div class="qr-link-row">
@@ -542,64 +543,43 @@
         </div>
     </div>
 
-    <!-- ASSIGN AREAS MODAL -->
-    @if (\Illuminate\Support\Facades\Route::has('attendance.areas'))
-        <div id="areaOverlay" class="modal-overlay no-print" aria-hidden="true">
-            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="areaTitle">
-                <form action="{{ route('attendance.areas') }}" method="POST">
-                    @csrf
-                    <div class="modal-head">
-                        <div>
-                            <div class="eyebrow">Team Leader &amp; Staff</div>
-                            <h3 id="areaTitle">Assign Areas</h3>
-                        </div>
-                        <button type="button" class="modal-close" id="closeAreaModal" aria-label="Close">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+    <!-- FIX MISSING TIME OUT MODAL -->
+    <div id="fixOutOverlay" class="modal-overlay no-print" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fixOutTitle" style="max-width:380px;">
+            <form action="{{ route('attendance.fix-timeout') }}" method="POST">
+                @csrf
+                <input type="hidden" name="employee_name" id="fixOutName">
+                <input type="hidden" name="attendance_date" id="fixOutDate">
+                <div class="modal-head">
+                    <div>
+                        <div class="eyebrow">Missing Time Out</div>
+                        <h3 id="fixOutTitle">Add Time Out</h3>
                     </div>
-                    <div class="modal-body">
-                        @if (!($areaReady ?? false))
-                            <p style="font-size:13px;color:var(--ink-soft);line-height:1.55;">
-                                The Employees table does not have an <strong>area</strong> column yet.
-                                Please run <code>php artisan migrate</code> first.
-                            </p>
-                        @elseif (empty($areaEmployees))
-                            <p style="font-size:13px;color:var(--ink-soft);">There are no active Team Leaders or Staff.</p>
-                        @else
-                            <p class="form-hint" style="margin-bottom:8px;">
-                                The Manager has no area, so they are not listed here.
-                            </p>
-                            <div class="area-list">
-                                @foreach ($areaEmployees as $i => $emp)
-                                    <div class="area-row">
-                                        <div>
-                                            <div class="area-name">{{ $emp['name'] }}</div>
-                                            <div class="area-cat">{{ $emp['category'] }}</div>
-                                        </div>
-                                        <input type="hidden" name="employees[{{ $i }}][name]" value="{{ $emp['name'] }}">
-                                        <select name="employees[{{ $i }}][area]">
-                                            <option value="">— No area —</option>
-                                            @foreach ($areaOrder as $a)
-                                                <option value="{{ $a }}" {{ $emp['area'] === $a ? 'selected' : '' }}>{{ $a }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                    <button type="button" class="modal-close" id="closeFixOut" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="form-hint" id="fixOutInfo" style="margin-bottom:12px;"></p>
+                    <div class="form-group full" style="margin-bottom:12px;">
+                        <label for="fixOutTime">Time Out</label>
+                        <input type="time" id="fixOutTime" name="time_out" required>
                     </div>
-                    <div class="modal-foot">
-                        <button type="button" class="btn-ghost" id="cancelAreaModal">Cancel</button>
-                        @if (($areaReady ?? false) && !empty($areaEmployees))
-                            <button type="submit" class="btn-primary">
-                                <i class="fa-solid fa-floppy-disk"></i> Save Areas
-                            </button>
-                        @endif
+                    <div class="form-group full">
+                        <label for="fixOutReason">Reason</label>
+                        <input type="text" id="fixOutReason" name="reason" maxlength="200" required
+                            placeholder="e.g. Forgot to Time Out">
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn-ghost" id="cancelFixOut">Cancel</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Time Out
+                    </button>
+                </div>
+            </form>
         </div>
-    @endif
+    </div>
 
     <!-- CLEAR ALL ATTENDANCE: custom confirm modal (not the native browser confirm()) -->
     <div id="clearAllOverlay" class="modal-overlay no-print" aria-hidden="true">
@@ -717,9 +697,8 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
                         || document.querySelector('input[name="_token"]')?.value,
                 },
-                body: JSON.stringify({
-                    for_date: document.getElementById('qrForDate')?.value || null,
-                }),
+                // AUTO: the server always uses today's date, nothing to send.
+                body: JSON.stringify({}),
             })
             .then(async (res) => {
                 // Read as text first, so a server crash (500 page, 419 CSRF page, etc.)
@@ -764,32 +743,43 @@
             if (e.key === 'Escape') {
                 if (qrOverlay.classList.contains('active')) closeQrModal();
                 if (clearAllOverlay.classList.contains('active')) closeClearAllModal();
-                if (areaOverlay && areaOverlay.classList.contains('active')) closeAreaModal();
             }
         });
 
-        // ── Assign Areas modal ──
-        const areaOverlay = document.getElementById('areaOverlay');
+        // ── Fix missing Time Out ──
+        // Event delegation, because the live update replaces the whole table
+        // (listeners attached directly to the buttons would be lost).
+        const fixOutOverlay = document.getElementById('fixOutOverlay');
 
-        function openAreaModal() {
-            if (!areaOverlay) return;
-            areaOverlay.classList.add('active');
-            areaOverlay.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAreaModal() {
-            if (!areaOverlay) return;
-            areaOverlay.classList.remove('active');
-            areaOverlay.setAttribute('aria-hidden', 'true');
+        function closeFixOut() {
+            fixOutOverlay.classList.remove('active');
+            fixOutOverlay.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
         }
 
-        document.getElementById('openAreaBtn')?.addEventListener('click', openAreaModal);
-        document.getElementById('closeAreaModal')?.addEventListener('click', closeAreaModal);
-        document.getElementById('cancelAreaModal')?.addEventListener('click', closeAreaModal);
-        areaOverlay?.addEventListener('click', (e) => {
-            if (e.target === areaOverlay) closeAreaModal();
+        document.addEventListener('click', (e) => {
+            const b = e.target.closest('.cell-missing');
+            if (!b) return;
+
+            document.getElementById('fixOutName').value = b.dataset.name;
+            document.getElementById('fixOutDate').value = b.dataset.date;
+            document.getElementById('fixOutTime').value = '';
+            document.getElementById('fixOutReason').value = '';
+            document.getElementById('fixOutInfo').textContent =
+                `${b.dataset.name} · ${b.dataset.label} · Time In: ${b.dataset.tin || '—'}`;
+
+            fixOutOverlay.classList.add('active');
+            fixOutOverlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        });
+
+        document.getElementById('closeFixOut')?.addEventListener('click', closeFixOut);
+        document.getElementById('cancelFixOut')?.addEventListener('click', closeFixOut);
+        fixOutOverlay?.addEventListener('click', (e) => {
+            if (e.target === fixOutOverlay) closeFixOut();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && fixOutOverlay.classList.contains('active')) closeFixOut();
         });
 
         // ── Clear All Attendance: custom confirm modal ──

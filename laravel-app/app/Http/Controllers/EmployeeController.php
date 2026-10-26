@@ -11,7 +11,9 @@ use Illuminate\Validation\Rule;
 class EmployeeController extends Controller
 {
     // Mga area para sa Team Leader at Staff. Ang Manager ay walang area.
-    private const AREAS = ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+    // ISANG LUGAR LANG ito: ginagamit din ng AttendanceController
+    // (EmployeeController::AREAS). Kung magpapalit ng pangalan, dito lang.
+    public const AREAS = ['DINO QUEST', 'ROLL JOY', 'WONDER RIDES'];
 
     // Nilalagay/inaayos ang `area` bago i-save:
     //  - Manager ay laging walang area.
@@ -43,8 +45,12 @@ class EmployeeController extends Controller
         $activeCount = $employees->where('status', 'active')->count();
         $inactiveCount = $employees->where('status', 'inactive')->count();
 
+        // Para sa Area dropdown/filter sa view: gamitin ang $areaOptions
+        // imbes na i-hardcode ang mga pangalan sa blade.
+        $areaOptions = self::AREAS;
+
         return view('employees.index', compact(
-            'employees', 'totalCount', 'activeCount', 'inactiveCount'
+            'employees', 'totalCount', 'activeCount', 'inactiveCount', 'areaOptions'
         ));
     }
 
@@ -190,7 +196,7 @@ class EmployeeController extends Controller
         $areaIdx = array_search('area', $header);   // opsyonal na column
 
         $hasAreaColumn = Schema::hasColumn('employees', 'area');
-        // lowercase => tamang pagkaka-spell, para tanggapin ang "field of rides" din
+        // lowercase => tamang pagkaka-spell, para tanggapin ang "dino quest" din
         $areaLookup = [];
         foreach (self::AREAS as $a) {
             $areaLookup[strtolower($a)] = $a;

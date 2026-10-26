@@ -254,6 +254,10 @@ Route::middleware(['auth.session', 'role:manager,admin'])->group(function () {
     Route::post('/attendance/time-in', [AttendanceController::class, 'timeIn']);
     Route::post('/attendance/time-out', [AttendanceController::class, 'timeOut']);
     Route::post('/attendance/qr/regenerate', [AttendanceController::class, 'regenerateQr'])->name('attendance.qr.regenerate');
+    // Admin adds the missing Time Out for an employee who forgot to Time Out ("NO OUT" on the sheet)
+    Route::post('/attendance/fix-timeout', [AttendanceController::class, 'fixTimeout'])->name('attendance.fix-timeout');
+    // Save the area (Field of Rides / Dino Adventure / Roller Skates) of Team Leaders and Staff
+    Route::post('/attendance/areas', [AttendanceController::class, 'saveAreas'])->name('attendance.areas');
 
     // Employees
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');

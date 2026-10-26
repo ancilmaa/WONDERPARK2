@@ -30,9 +30,10 @@ class AttendanceController extends Controller
     // So OT is always a whole or half hour (1, 1.5, 2, 2.5, ...).
     private const OT_STEP_MINUTES = 30;
 
-    // Mga area na pwedeng i-assign sa Team Leader at Staff.
-    // Ang Manager ay walang area. Ito rin ang pagkakasunod-sunod sa sheet.
-    private const AREAS = ['Field of Rides', 'Dino Adventure', 'Roller Skates'];
+    // Mga area (DINO QUEST / ROLL JOY / WONDER RIDES) para sa Team Leader
+    // at Staff. Ang Manager ay walang area.
+    // Galing sa EmployeeController para isang lugar lang ang papalitan.
+    private const AREAS = EmployeeController::AREAS;
 
     // ─── SYSTEM LOG HELPER ─────────────────────────────────
     // A single place that calls SystemLogger::record().
@@ -181,22 +182,23 @@ class AttendanceController extends Controller
         $employeeShifts = $this->employeeShiftMap();
         $shiftEmployees = Employee::active()->orderBy('employee_name')->pluck('employee_name')->unique()->values()->all();
 
-        // Area setup (Field of Rides / Dino Adventure / Roller Skates).
+        // NOTE: Wala nang "Assign Areas" dito. Sa Employees page na lang
+        // nag-a-assign ng area; ang sheet na ito ay nagbabasa lang nito.
+        // Ang $areaOptions ay para lang sa pagkakasunod-sunod at sa Area filter.
         $areaOptions = self::AREAS;
-        $areaReady = $this->columnExists('employees', 'area');
-        $areaEmployees = $this->areaEmployeeList();
 
         return view('attendance.attendance', compact(
             'records', 'cutoffType', 'periodStart', 'periodEnd', 'periodDays',
             'currentToken', 'qrDate', 'pendingNames',
             'shiftSettings', 'employeeShifts', 'shiftEmployees', 'shiftReady',
-            'areaOptions', 'areaReady', 'areaEmployees'
+            'areaOptions'
         ));
     }
 
-    // ═══════════════ AREAS (Field of Rides / Dino Adventure / Roller Skates) ═══════════════
+    // ═══════════════ AREAS (DINO QUEST / ROLL JOY / WONDER RIDES) ═══════════════
 
     // [lowercase trimmed name => area]. Walang laman kung wala pang `area` column.
+    // Binabasa ng Attendance sheet, Salary page at Generate Payroll.
     private function employeeAreaMap(): array
     {
         if (!$this->columnExists('employees', 'area')) {
@@ -209,80 +211,6 @@ class AttendanceController extends Controller
         }
 
         return $map;
-    }
-
-    // Mga Team Leader / Staff na pwedeng bigyan ng area (para sa modal).
-    private function areaEmployeeList(): array
-    {
-        if (!$this->columnExists('employees', 'area')) {
-            return [];
-        }
-
-        return DB::table('employees')
-            ->where('status', 'active')
-            ->whereNull('deleted_at')
-            ->whereRaw("LOWER(TRIM(COALESCE(category, ''))) != 'manager'")
-            ->orderBy('category')
-            ->orderBy('employee_name')
-            ->get(['employee_name', 'category', 'area'])
-            ->map(fn($r) => [
-                'name' => $r->employee_name,
-                'category' => ucwords(strtolower(trim((string) $r->category))) ?: 'Staff',
-                'area' => $r->area ?: '',
-            ])
-            ->all();
-    }
-
-    // ─── SAVE AREA ASSIGNMENTS ───
-    // POST /attendance/areas
-    public function saveAreas(Request $request)
-    {
-        if (!session()->has('user_id')) {
-            return redirect('/login');
-        }
-
-        if (!$this->columnExists('employees', 'area')) {
-            return back()->with('error', 'Hindi pa nai-save ang area. Patakbuhin muna ang "php artisan migrate".');
-        }
-
-        $validated = $request->validate([
-            'employees' => 'required|array',
-            'employees.*.name' => 'required|string',
-            'employees.*.area' => ['nullable', Rule::in(self::AREAS)],
-        ]);
-
-        $before = $this->employeeAreaMap();
-        $changed = 0;
-
-        foreach ($validated['employees'] as $row) {
-            $area = $row['area'] ?? null;
-            $area = $area === '' ? null : $area;
-            $key = strtolower(trim($row['name']));
-
-            if (($before[$key] ?? null) === $area) {
-                continue;
-            }
-
-            DB::table('employees')
-                ->where('employee_name', $row['name'])
-                ->update(['area' => $area]);
-            $changed++;
-        }
-
-        if ($changed > 0) {
-            $this->audit(
-                'employee_areas_updated',
-                "Area of {$changed} employee(s) updated",
-                'info',
-                ['employees_changed' => $changed],
-                false,
-                'attendance'
-            );
-        }
-
-        return back()->with('success', $changed > 0
-            ? "Na-save ang area ng {$changed} empleyado."
-            : 'Walang binago sa mga area.');
     }
 
     // ─── Live check for the Attendance sheet ───
@@ -737,25 +665,15 @@ class AttendanceController extends Controller
     }
 
     // ─── Which date a QR scan is recorded under ───
-    // Default = the real date today. The day the admin picked when
-    // generating the QR (checkin_qr_date) is honored — earlier OR later
-    // than today — but only if the QR was generated within the last
-    // 2 hours. After that it goes back to today's real date, so a
-    // forgotten QR can't make later check-ins land on the wrong day.
+    // AUTO: always TODAY's real date (server time). There is no longer a
+    // catch-up / backdate option. For a forgotten Time Out, the admin uses
+    // fixTimeout() (click "NO OUT" on the Attendance sheet).
+    //
+    // NOTE: make sure the app timezone is Asia/Manila (config/app.php or the
+    // APP_TIMEZONE env var), otherwise "today" follows UTC.
     private function resolveCheckinDate(): string
     {
-        $today = now()->toDateString();
-        $row = DB::table('app_settings')->where('key', 'checkin_qr_date')->first();
-
-        if (!$row || !$row->value || $row->value === $today) {
-            return $today;
-        }
-
-        $generatedAt = !empty($row->updated_at) ? Carbon::parse($row->updated_at) : null;
-
-        return ($generatedAt && $generatedAt->diffInMinutes(now()) <= 120)
-            ? $row->value
-            : $today;
+        return now()->toDateString();
     }
 
     private function checkinFail(Request $request, string $message, int $status = 422)
@@ -867,7 +785,7 @@ class AttendanceController extends Controller
     }
 
     // ─── SALARY PAGE ───────────────────────────────
-    // GET /attendance/salary?area=Dino Adventure
+    // GET /attendance/salary?area=DINO QUEST
     // Kapag may ?area=, ang Team Leader at Staff lang ng area na iyon ang
     // lalabas. Ang Manager ay walang area, kaya sa "Lahat ng area" lang siya.
     public function salary(Request $request)
@@ -968,7 +886,7 @@ class AttendanceController extends Controller
         ));
     }
 
-    // Ibabalik ang area kung valid (Field of Rides / Dino Adventure / Roller Skates),
+    // Ibabalik ang area kung valid (DINO QUEST / ROLL JOY / WONDER RIDES),
     // kung hindi ay null (= lahat ng area).
     private function requestedArea($value): ?string
     {
@@ -1079,9 +997,9 @@ class AttendanceController extends Controller
     }
 
     // ─── GENERATE PAYROLL ───────────────────────────
-    // Kung may `area` sa request (Field of Rides / Dino Adventure /
-    // Roller Skates), ang Team Leader at Staff lang ng area na iyon ang
-    // kakalkulahin. Walang `area` = lahat (kasama ang Manager), gaya ng dati.
+    // Kung may `area` sa request (DINO QUEST / ROLL JOY / WONDER RIDES),
+    // ang Team Leader at Staff lang ng area na iyon ang kakalkulahin.
+    // Walang `area` = lahat (kasama ang Manager), gaya ng dati.
     public function storePayroll(Request $request)
     {
         if (!session()->has('user_id')) {
@@ -1122,7 +1040,7 @@ class AttendanceController extends Controller
 
         if ($records->isEmpty()) {
             return redirect()->route('salary', array_filter(['area' => $area]))->with('error', $area !== null
-                ? "Walang attendance records para sa {$area} sa cutoff na ito. Siguraduhing may area ang mga empleyado (Attendance > Areas)."
+                ? "Walang attendance records para sa {$area} sa cutoff na ito. Siguraduhing may area ang mga empleyado (Employees page)."
                 : 'No attendance records found for this cutoff period.');
         }
 
@@ -1588,8 +1506,7 @@ class AttendanceController extends Controller
             return $this->checkinFail($request, 'Incorrect PIN.');
         }
 
-        // Real date today by default; the admin's catch-up date only applies
-        // for 2 hours after the QR was generated (see resolveCheckinDate()).
+        // AUTO: always today's real date (see resolveCheckinDate()).
         $today = $this->resolveCheckinDate();
         $now = now()->format('H:i:s');
 
@@ -1677,28 +1594,6 @@ class AttendanceController extends Controller
         // model's $fillable doesn't include it.
         $record->forceFill(['source' => 'qr', 'remarks' => $qrRemarks])->save();
 
-        // LOG: normal check-ins are not logged (they are already in the
-        // attendance table). But when it is recorded on a different date
-        // because of the admin's catch-up date, it is logged, since it
-        // changes the pay of a past day.
-        if ($today !== now()->toDateString()) {
-            $this->audit(
-                'checkin_backdated',
-                "QR check-in for {$validated['employee_name']} recorded on {$today} (not today)",
-                'warning',
-                [
-                    'employee_name'   => $validated['employee_name'],
-                    'type'            => $validated['type'],
-                    'recorded_date'   => $today,
-                    'real_date'       => now()->toDateString(),
-                    'remarks'         => $validated['type'] === 'out' ? $qrRemarks : null,
-                ],
-                true,
-                'attendance',
-                true
-            );
-        }
-
         // ── Message shown to the employee ──
         $label = $validated['type'] === 'in' ? 'Timed in' : 'Timed out';
         $message = "{$label} successfully at " . now()->format('g:i A') . ". Thank you, {$validated['employee_name']}!";
@@ -1742,10 +1637,7 @@ class AttendanceController extends Controller
      * Issue a brand new QR token, instantly invalidating every previously
      * printed/shared QR link. Admin/HR only.
      *
-     * Also accepts an optional `for_date` — a "catch-up" date for scans
-     * (e.g. during a bio outage). It is set by the admin only, never by
-     * the scanning device, and it only stays in effect for 2 hours
-     * (see resolveCheckinDate()). Defaults to today.
+     * The QR is now ALWAYS for today (auto). No catch-up date anymore.
      *
      * POST /attendance/qr/regenerate
      */
@@ -1755,12 +1647,8 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
-        $validated = $request->validate([
-            'for_date' => 'nullable|date',
-        ]);
-
         $token = Str::random(32);
-        $forDate = $validated['for_date'] ?? now()->format('Y-m-d');
+        $forDate = now()->format('Y-m-d');
 
         DB::table('app_settings')->updateOrInsert(
             ['key' => 'checkin_qr_token'],
@@ -1774,17 +1662,13 @@ class AttendanceController extends Controller
 
         $url = route('attendance.checkin', ['token' => $token]);
 
-        // LOG: new QR. The token and URL are never recorded. Flagged as an
-        // anomaly when set to a different date (backdated/future), since
-        // that is where scans will be recorded.
-        $isCatchUp = Carbon::parse($forDate)->toDateString() !== now()->toDateString();
+        // LOG: new QR. The token and URL are never recorded.
         $this->audit(
             'qr_regenerated',
-            'Generated a new check-in QR'
-                . ($isCatchUp ? " set to {$forDate} (not today)" : ''),
-            $isCatchUp ? 'warning' : 'info',
-            ['for_date' => $forDate, 'catch_up_date' => $isCatchUp],
-            $isCatchUp,
+            'Generated a new check-in QR',
+            'info',
+            ['for_date' => $forDate],
+            false,
             'attendance'
         );
 
@@ -1793,6 +1677,85 @@ class AttendanceController extends Controller
             'url' => $url,
             'for_date' => $forDate,
         ]);
+    }
+
+    // ─── FIX MISSING TIME OUT (admin) ───
+    // POST /attendance/fix-timeout
+    // For a QR Time In that never got a Time Out ("NO OUT" on the sheet).
+    // Remarks are computed with the same logic as a normal QR Time Out.
+    // Logged as an anomaly because it changes pay.
+    public function fixTimeout(Request $request)
+    {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+
+        $validated = $request->validate([
+            'employee_name'   => 'required|string',
+            'attendance_date' => 'required|date_format:Y-m-d',
+            'time_out'        => 'required|date_format:H:i',
+            'reason'          => 'required|string|max:200',
+        ]);
+
+        $rec = Attendance::where('employee_name', $validated['employee_name'])
+            ->where('attendance_date', $validated['attendance_date'])
+            ->first();
+
+        if (!$rec || !$rec->time_in) {
+            return back()->with('error', 'No Time In was found for this day.');
+        }
+        if ($rec->time_out) {
+            return back()->with('error', 'This day already has a Time Out.');
+        }
+
+        $timeIn  = Carbon::parse($rec->time_in)->format('H:i:s');
+        $timeOut = $validated['time_out'] . ':00';
+
+        if (($this->toMinutes($timeOut) ?? 0) <= ($this->toMinutes($timeIn) ?? 0)) {
+            return back()->with('error', 'Time Out must be later than Time In ('
+                . Carbon::parse($timeIn)->format('g:i A') . ').');
+        }
+
+        $remarks = $this->shiftRemarksFor(
+            $rec->employee_name,
+            null,
+            $rec->adjusted_start ?? null,
+            $rec->adjusted_end ?? null,
+            $timeIn,
+            $timeOut
+        ) ?? 'P';
+
+        $rec->forceFill([
+            'time_out' => $timeOut,
+            'remarks'  => $remarks,
+            'status'   => 'present',
+        ])->save();
+
+        // Mark payroll for this period as stale (same idea as a bio import),
+        // so Generate Salary can be run again with the corrected data.
+        [$ps, $pe] = $this->cutoffRangeForDate(Carbon::parse($validated['attendance_date']));
+        DB::table('attendance_imports')->updateOrInsert(
+            ['period_start' => $ps->format('Y-m-d'), 'period_end' => $pe->format('Y-m-d')],
+            ['imported_at' => now()]
+        );
+
+        $this->audit(
+            'attendance_timeout_fixed',
+            "Manual Time Out added for {$rec->employee_name} on {$validated['attendance_date']}",
+            'warning',
+            [
+                'employee_name' => $rec->employee_name,
+                'date'          => $validated['attendance_date'],
+                'time_in'       => $timeIn,
+                'time_out'      => $timeOut,
+                'remarks'       => $remarks,
+                'reason'        => $validated['reason'],
+            ],
+            true,
+            'attendance'
+        );
+
+        return back()->with('success', "Time Out added for {$rec->employee_name}. Remarks: {$remarks}.");
     }
 
     // ─── BIO FILE IMPORT (CSV or Excel) ─────────────
